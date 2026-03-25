@@ -20,95 +20,84 @@ const adminStyles = `
     from { opacity: 0; transform: translateY(28px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-
-  /* ── Moonwalk Animation ── */
-  @keyframes moonwalkLeft {
-    0%, 100% { transform: translateX(0) scaleX(-1); }
-    50%      { transform: translateX(8px) scaleX(-1); }
-  }
-
-  @keyframes moonwalkRight {
-    0%, 100% { transform: translateX(0) scaleX(-1); }
-    50%      { transform: translateX(-8px) scaleX(-1); }
-  }
-
-  @keyframes legSwingLeft {
-    0%, 100% { transform: rotateX(0deg); }
-    50%      { transform: rotateX(-25deg); }
-  }
-
-  @keyframes legSwingRight {
-    0%, 100% { transform: rotateX(0deg); }
-    50%      { transform: rotateX(25deg); }
-  }
-
-  @keyframes armSwingLeft {
-    0%, 100% { transform: rotateZ(0deg) rotateX(0deg); }
-    50%      { transform: rotateZ(-20deg) rotateX(8deg); }
-  }
-
-  @keyframes armSwingRight {
-    0%, 100% { transform: rotateZ(0deg) rotateX(0deg); }
-    50%      { transform: rotateZ(20deg) rotateX(-8deg); }
-  }
-
-  /* ── Character Movement from Left to Center ── */
-  @keyframes slideInFromLeft {
-    0% { transform: translateX(-500px) perspective(1200px) rotateY(-15deg) scale(0.8); opacity: 0; }
-    50% { transform: translateX(-250px) perspective(1200px) rotateY(-5deg) scale(0.9); opacity: 1; }
-    100% { transform: translateX(0) perspective(1200px) rotateY(0deg) scale(1); opacity: 1; }
-  }
-
   @keyframes characterFloat {
     0%, 100% { transform: translateY(0px) rotate(-1deg); }
     50%       { transform: translateY(-14px) rotate(1deg); }
   }
-
   @keyframes breathe {
     0%, 100% { transform: scaleY(1); }
     50%       { transform: scaleY(0.94); }
   }
-
   @keyframes eyeBlink {
     0%, 90%, 100% { transform: scaleY(1); }
     95%            { transform: scaleY(0.05); }
   }
-
   @keyframes hairSway {
     0%, 100% { transform: rotate(0deg); transform-origin: top center; }
     50%       { transform: rotate(3deg); transform-origin: top center; }
   }
-
   @keyframes rippleEffect {
     0%   { transform: scale(0); opacity: 0.5; }
     100% { transform: scale(4); opacity: 0; }
   }
-
   @keyframes shimmer {
     0%   { background-position: -200% center; }
     100% { background-position: 200% center; }
   }
-
   @keyframes orb1 {
     0%, 100% { transform: translate(0, 0) scale(1); }
     33%       { transform: translate(30px, -20px) scale(1.1); }
     66%       { transform: translate(-20px, 15px) scale(0.95); }
   }
-
   @keyframes orb2 {
     0%, 100% { transform: translate(0, 0) scale(1); }
     33%       { transform: translate(-25px, 20px) scale(1.05); }
     66%       { transform: translate(20px, -15px) scale(0.9); }
   }
-
+  @keyframes danceKick {
+    0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+    25%      { transform: rotateX(8deg) rotateY(-12deg); }
+    50%      { transform: rotateX(0deg) rotateY(0deg); }
+    75%      { transform: rotateX(8deg) rotateY(12deg); }
+  }
+  @keyframes legSwing {
+    0%, 100% { transform: rotate(-5deg); transform-origin: top center; }
+    25%      { transform: rotate(25deg); transform-origin: top center; }
+    50%      { transform: rotate(-5deg); transform-origin: top center; }
+    75%      { transform: rotate(30deg); transform-origin: top center; }
+  }
+  @keyframes armWave {
+    0%, 100% { transform: rotate(-10deg); transform-origin: top center; }
+    25%      { transform: rotate(35deg); transform-origin: top center; }
+    50%      { transform: rotate(-10deg); transform-origin: top center; }
+    75%      { transform: rotate(-40deg); transform-origin: top center; }
+  }
+  @keyframes armWaveRight {
+    0%, 100% { transform: rotate(10deg); transform-origin: top center; }
+    25%      { transform: rotate(-40deg); transform-origin: top center; }
+    50%      { transform: rotate(10deg); transform-origin: top center; }
+    75%      { transform: rotate(35deg); transform-origin: top center; }
+  }
+  @keyframes slideInDance {
+    0%   { transform: translateX(-400px) scale(0.6); opacity: 0; }
+    50%  { transform: translateX(-100px) scale(0.85); opacity: 0.8; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  @keyframes headBob {
+    0%, 100% { transform: translateY(0px); }
+    25%      { transform: translateY(-8px); }
+    50%      { transform: translateY(-2px); }
+    75%      { transform: translateY(-10px); }
+  }
+  @keyframes spinTorso {
+    0%, 100% { transform: rotateZ(0deg); }
+    25%      { transform: rotateZ(-6deg); }
+    50%      { transform: rotateZ(0deg); }
+    75%      { transform: rotateZ(6deg); }
+  }
   @keyframes labelFloat {
     from { top: 50%; transform: translateY(-50%); font-size: 15px; color: #a0a0b8; }
     to   { top: 0px; transform: translateY(-100%); font-size: 11px; color: #7c6af7; }
-  }
-
-  @keyframes glowPulse {
-    0%, 100% { filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35)); }
-    50% { filter: drop-shadow(0 24px 60px rgba(168, 85, 247, 0.55)); }
   }
 
   .admin-page-wrap * { box-sizing: border-box; }
@@ -157,42 +146,17 @@ const adminStyles = `
   /* ── Character ── */
   .character-wrap {
     display: flex; flex-direction: column; align-items: center; gap: 1rem;
-    animation: slideInFromLeft 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both, fadeSlideUp 0.8s ease both;
-    animation-delay: 0.1s, 0s;
+    animation: slideInDance 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 0.2s;
     perspective: 1200px;
-    transform-style: preserve-3d;
   }
-
   .character-svg {
-    animation: glowPulse 4s ease-in-out infinite;
-    filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35));
+    animation: characterFloat 5s ease-in-out infinite, danceKick 1.6s ease-in-out infinite;
+    animation-delay: 1.4s, 1.4s;
+    filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35)) drop-shadow(0 8px 24px rgba(168, 85, 247, 0.2));
+    transform-style: preserve-3d;
+    will-change: transform;
   }
-
-  /* ── Individual body parts for moonwalk ── */
-  .leg-left {
-    animation: legSwingLeft 0.6s ease-in-out infinite;
-    transform-origin: 90px 262px;
-    transform-box: fill-box;
-  }
-
-  .leg-right {
-    animation: legSwingRight 0.6s ease-in-out infinite 0.3s;
-    transform-origin: 130px 262px;
-    transform-box: fill-box;
-  }
-
-  .arm-left {
-    animation: armSwingLeft 0.6s ease-in-out infinite;
-    transform-origin: 53px 178px;
-    transform-box: fill-box;
-  }
-
-  .arm-right {
-    animation: armSwingRight 0.6s ease-in-out infinite 0.3s;
-    transform-origin: 167px 178px;
-    transform-box: fill-box;
-  }
-
   .character-bubble {
     background: rgba(255,255,255,0.07);
     backdrop-filter: blur(12px);
@@ -396,7 +360,7 @@ const adminStyles = `
   }
 `;
 
-/* ─── 3D Moonwalk SVG character ─── */
+/* ─── 3D-style SVG character with dancing animation ─── */
 const CharacterSVG = () => (
   <svg
     className="character-svg"
@@ -405,38 +369,43 @@ const CharacterSVG = () => (
     viewBox="0 0 220 320"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    style={{ perspective: "1200px" }}
   >
-    {/* Shadow with animation */}
-    <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" style={{ animation: "0.6s ease-in-out infinite legSwingLeft" }} />
+    {/* Shadow */}
+    <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" />
 
-    {/* Body */}
-    <g style={{ animation: "breathe 3.5s ease-in-out infinite" }}>
-      <rect x="68" y="175" width="84" height="95" rx="20" fill="#6c63ff" />
-      {/* Collar / shirt detail */}
-      <rect x="88" y="175" width="44" height="18" rx="6" fill="#a78bfa" />
-      {/* Buttons */}
-      <circle cx="110" cy="205" r="3" fill="#c4b5fd" />
-      <circle cx="110" cy="218" r="3" fill="#c4b5fd" />
-      <circle cx="110" cy="231" r="3" fill="#c4b5fd" />
+    {/* Body Group - Torso with spin animation */}
+    <g style={{ animation: "spinTorso 1.6s ease-in-out infinite", transformOrigin: "center center", animationDelay: "1.4s" }}>
+      <g style={{ animation: "breathe 3.5s ease-in-out infinite" }}>
+        <rect x="68" y="175" width="84" height="95" rx="20" fill="#6c63ff" />
+        {/* Collar / shirt detail */}
+        <rect x="88" y="175" width="44" height="18" rx="6" fill="#a78bfa" />
+        {/* Buttons */}
+        <circle cx="110" cy="205" r="3" fill="#c4b5fd" />
+        <circle cx="110" cy="218" r="3" fill="#c4b5fd" />
+        <circle cx="110" cy="231" r="3" fill="#c4b5fd" />
+      </g>
     </g>
 
-    {/* Arms */}
-    <g className="arm-left">
+    {/* Left Arm - Wave animation */}
+    <g style={{ animation: "armWave 1.6s ease-in-out infinite", transformOrigin: "53 178", animationDelay: "1.4s" }}>
       <rect x="38" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
       <circle cx="53" cy="252" r="14" fill="#f5c5a3" />
     </g>
-    <g className="arm-right">
+
+    {/* Right Arm - Counter wave animation */}
+    <g style={{ animation: "armWaveRight 1.6s ease-in-out infinite", transformOrigin: "167 178", animationDelay: "1.4s" }}>
       <rect x="152" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
       <circle cx="167" cy="252" r="14" fill="#f5c5a3" />
     </g>
 
-    {/* Legs - Moonwalk animation */}
-    <g className="leg-left">
+    {/* Legs - Left leg with swing */}
+    <g style={{ animation: "legSwing 1.6s ease-in-out infinite", transformOrigin: "90 262", animationDelay: "1.4s" }}>
       <rect x="76" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
       <ellipse cx="90" cy="308" rx="20" ry="9" fill="#1e1b4b" />
     </g>
-    <g className="leg-right">
+
+    {/* Legs - Right leg with swing (opposite) */}
+    <g style={{ animation: "legSwing 1.6s ease-in-out infinite", transformOrigin: "130 262", animationDelay: "1.8s" }}>
       <rect x="116" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
       <ellipse cx="130" cy="308" rx="20" ry="9" fill="#1e1b4b" />
     </g>
@@ -444,57 +413,70 @@ const CharacterSVG = () => (
     {/* Neck */}
     <rect x="98" y="155" width="24" height="24" rx="8" fill="#f5c5a3" />
 
-    {/* Head */}
-    <circle cx="110" cy="128" r="50" fill="#f5c5a3" />
+    {/* Head Group - Bob animation */}
+    <g style={{ animation: "headBob 1.6s ease-in-out infinite", transformOrigin: "110 128", animationDelay: "1.4s" }}>
+      <circle cx="110" cy="128" r="50" fill="#f5c5a3" />
 
-    {/* Hair */}
-    <g style={{ animation: "hairSway 4s ease-in-out infinite" }}>
-      <ellipse cx="110" cy="85" rx="50" ry="22" fill="#1a0a2e" />
-      <ellipse cx="68" cy="108" rx="16" ry="32" fill="#1a0a2e" />
-      <ellipse cx="152" cy="108" rx="16" ry="32" fill="#1a0a2e" />
-      <rect x="60" y="78" width="100" height="28" rx="14" fill="#1a0a2e" />
-      {/* Highlights */}
-      <ellipse cx="88" cy="84" rx="12" ry="5" fill="#3d1f6e" opacity="0.7" />
+      {/* Hair */}
+      <g style={{ animation: "hairSway 4s ease-in-out infinite" }}>
+        <ellipse cx="110" cy="85" rx="50" ry="22" fill="#1a0a2e" />
+        <ellipse cx="68" cy="108" rx="16" ry="32" fill="#1a0a2e" />
+        <ellipse cx="152" cy="108" rx="16" ry="32" fill="#1a0a2e" />
+        <rect x="60" y="78" width="100" height="28" rx="14" fill="#1a0a2e" />
+        {/* Highlights */}
+        <ellipse cx="88" cy="84" rx="12" ry="5" fill="#3d1f6e" opacity="0.7" />
+      </g>
+
+      {/* Eyes */}
+      <g style={{ animation: "eyeBlink 4s ease-in-out infinite" }}>
+        <ellipse cx="95" cy="125" rx="7" ry="8" fill="#1a0a2e" />
+        <ellipse cx="125" cy="125" rx="7" ry="8" fill="#1a0a2e" />
+        {/* Shine */}
+        <circle cx="98" cy="122" r="2.5" fill="#fff" />
+        <circle cx="128" cy="122" r="2.5" fill="#fff" />
+        {/* Iris */}
+        <circle cx="95" cy="126" r="4" fill="#6c63ff" />
+        <circle cx="125" cy="126" r="4" fill="#6c63ff" />
+        <circle cx="95" cy="126" r="2" fill="#1a0a2e" />
+        <circle cx="125" cy="126" r="2" fill="#1a0a2e" />
+      </g>
+
+      {/* Eyebrows */}
+      <path d="M86 114 Q95 110 104 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+      <path d="M116 114 Q125 110 134 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+      {/* Nose */}
+      <ellipse cx="110" cy="136" rx="4" ry="3" fill="#e8a882" />
+
+      {/* Smile */}
+      <path d="M97 147 Q110 158 123 147" stroke="#c47b5a" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+      {/* Cheeks */}
+      <ellipse cx="84" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
+      <ellipse cx="136" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
+
+      {/* Earrings */}
+      <circle cx="62" cy="132" r="5" fill="#a78bfa" />
+      <circle cx="158" cy="132" r="5" fill="#a78bfa" />
     </g>
 
-    {/* Eyes */}
-    <g style={{ animation: "eyeBlink 4s ease-in-out infinite" }}>
-      <ellipse cx="95" cy="125" rx="7" ry="8" fill="#1a0a2e" />
-      <ellipse cx="125" cy="125" rx="7" ry="8" fill="#1a0a2e" />
-      {/* Shine */}
-      <circle cx="98" cy="122" r="2.5" fill="#fff" />
-      <circle cx="128" cy="122" r="2.5" fill="#fff" />
-      {/* Iris */}
-      <circle cx="95" cy="126" r="4" fill="#6c63ff" />
-      <circle cx="125" cy="126" r="4" fill="#6c63ff" />
-      <circle cx="95" cy="126" r="2" fill="#1a0a2e" />
-      <circle cx="125" cy="126" r="2" fill="#1a0a2e" />
-    </g>
-
-    {/* Eyebrows */}
-    <path d="M86 114 Q95 110 104 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-    <path d="M116 114 Q125 110 134 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-
-    {/* Nose */}
-    <ellipse cx="110" cy="136" rx="4" ry="3" fill="#e8a882" />
-
-    {/* Smile */}
-    <path d="M97 147 Q110 158 123 147" stroke="#c47b5a" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-
-    {/* Cheeks */}
-    <ellipse cx="84" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
-    <ellipse cx="136" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
-
-    {/* Earrings */}
-    <circle cx="62" cy="132" r="5" fill="#a78bfa" />
-    <circle cx="158" cy="132" r="5" fill="#a78bfa" />
-
-    {/* Sparkles */}
+    {/* Sparkles - Enhanced glow */}
     <g opacity="0.8">
       <circle cx="30" cy="60" r="3" fill="#f59e0b" />
       <circle cx="185" cy="50" r="2" fill="#a78bfa" />
       <circle cx="195" cy="120" r="3" fill="#06b6d4" />
       <circle cx="20" cy="140" r="2" fill="#f59e0b" />
+      {/* Additional shimmer sparkles */}
+      <circle cx="15" cy="70" r="1.5" fill="#a78bfa" opacity="0.6" />
+      <circle cx="200" cy="90" r="1.5" fill="#06b6d4" opacity="0.6" />
+      <circle cx="25" cy="200" r="1" fill="#f59e0b" opacity="0.5" />
+    </g>
+
+    {/* Energy particles around character */}
+    <g opacity="0.6">
+      <circle cx="40" cy="150" r="2" fill="#6c63ff" />
+      <circle cx="180" cy="160" r="2" fill="#a855f7" />
+      <circle cx="110" cy="80" r="1.5" fill="#06b6d4" />
     </g>
   </svg>
 );
@@ -944,8 +926,8 @@ const Admin = () => {
           <div className="character-wrap">
             <CharacterSVG />
             <div className="character-bubble">
-              <strong>Moonwalking In!</strong>
-              Smooth moves incoming... let's accessthe dashboard ✨
+              <strong>Welcome Back!</strong>
+              Sign in to manage your church dashboard ✨
             </div>
           </div>
 
