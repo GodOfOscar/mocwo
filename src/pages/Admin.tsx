@@ -20,77 +20,101 @@ const adminStyles = `
     from { opacity: 0; transform: translateY(28px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  @keyframes characterFloat {
-    0%, 100% { transform: translateY(0px) rotate(-1deg) perspective(1000px) rotateX(0deg); }
-    50%       { transform: translateY(-14px) rotate(1deg) perspective(1000px) rotateX(5deg); }
+
+  /* ── Moonwalk Animation ── */
+  @keyframes moonwalkLeft {
+    0%, 100% { transform: translateX(0) scaleX(-1); }
+    50%      { transform: translateX(8px) scaleX(-1); }
   }
+
+  @keyframes moonwalkRight {
+    0%, 100% { transform: translateX(0) scaleX(-1); }
+    50%      { transform: translateX(-8px) scaleX(-1); }
+  }
+
+  @keyframes legSwingLeft {
+    0%, 100% { transform: rotateX(0deg); }
+    50%      { transform: rotateX(-25deg); }
+  }
+
+  @keyframes legSwingRight {
+    0%, 100% { transform: rotateX(0deg); }
+    50%      { transform: rotateX(25deg); }
+  }
+
+  @keyframes armSwingLeft {
+    0%, 100% { transform: rotateZ(0deg) rotateX(0deg); }
+    50%      { transform: rotateZ(-20deg) rotateX(8deg); }
+  }
+
+  @keyframes armSwingRight {
+    0%, 100% { transform: rotateZ(0deg) rotateX(0deg); }
+    50%      { transform: rotateZ(20deg) rotateX(-8deg); }
+  }
+
+  /* ── Character Movement from Left to Center ── */
+  @keyframes slideInFromLeft {
+    0% { transform: translateX(-500px) perspective(1200px) rotateY(-15deg) scale(0.8); opacity: 0; }
+    50% { transform: translateX(-250px) perspective(1200px) rotateY(-5deg) scale(0.9); opacity: 1; }
+    100% { transform: translateX(0) perspective(1200px) rotateY(0deg) scale(1); opacity: 1; }
+  }
+
+  @keyframes characterFloat {
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50%       { transform: translateY(-14px) rotate(1deg); }
+  }
+
   @keyframes breathe {
     0%, 100% { transform: scaleY(1); }
     50%       { transform: scaleY(0.94); }
   }
+
   @keyframes eyeBlink {
     0%, 90%, 100% { transform: scaleY(1); }
     95%            { transform: scaleY(0.05); }
   }
+
   @keyframes hairSway {
     0%, 100% { transform: rotate(0deg); transform-origin: top center; }
     50%       { transform: rotate(3deg); transform-origin: top center; }
   }
+
   @keyframes rippleEffect {
     0%   { transform: scale(0); opacity: 0.5; }
     100% { transform: scale(4); opacity: 0; }
   }
+
   @keyframes shimmer {
     0%   { background-position: -200% center; }
     100% { background-position: 200% center; }
   }
+
   @keyframes orb1 {
-    0%, 100% { transform: translate(0, 0) scale(1) rotateX(0deg) rotateY(0deg); }
-    33%       { transform: translate(30px, -20px) scale(1.1) rotateX(10deg) rotateY(15deg); }
-    66%       { transform: translate(-20px, 15px) scale(0.95) rotateX(-10deg) rotateY(-15deg); }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(30px, -20px) scale(1.1); }
+    66%       { transform: translate(-20px, 15px) scale(0.95); }
   }
+
   @keyframes orb2 {
-    0%, 100% { transform: translate(0, 0) scale(1) rotateX(0deg) rotateY(0deg); }
-    33%       { transform: translate(-25px, 20px) scale(1.05) rotateX(-8deg) rotateY(20deg); }
-    66%       { transform: translate(20px, -15px) scale(0.9) rotateX(8deg) rotateY(-20deg); }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(-25px, 20px) scale(1.05); }
+    66%       { transform: translate(20px, -15px) scale(0.9); }
   }
+
   @keyframes labelFloat {
     from { top: 50%; transform: translateY(-50%); font-size: 15px; color: #a0a0b8; }
     to   { top: 0px; transform: translateY(-100%); font-size: 11px; color: #7c6af7; }
   }
-  @keyframes cardFlip {
-    from { transform: perspective(1200px) rotateY(-25deg) rotateX(10deg) scale(0.9); opacity: 0; }
-    to   { transform: perspective(1200px) rotateY(0deg) rotateX(0deg) scale(1); opacity: 1; }
-  }
-  @keyframes cardHoverFloat {
-    from { transform: perspective(1200px) translateZ(0px) rotateX(0deg) rotateY(0deg); }
-    to   { transform: perspective(1200px) translateZ(40px) rotateX(2deg) rotateY(-3deg); }
-  }
+
   @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.4), 0 8px 32px rgba(108,99,255,0.2); }
-    50% { box-shadow: 0 0 40px rgba(167,139,250,0.6), 0 12px 48px rgba(167,139,250,0.3); }
-  }
-  @keyframes textDepth3D {
-    from { text-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 -1px 0 rgba(255,255,255,0.1); }
-    to { text-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 -2px 0 rgba(255,255,255,0.2), 0 8px 16px rgba(108,99,255,0.3); }
-  }
-  @keyframes floatRotate3D {
-    0% { transform: translateY(0px) rotateX(0deg) rotateZ(0deg); }
-    25% { transform: translateY(-10px) rotateX(5deg) rotateZ(2deg); }
-    50% { transform: translateY(-20px) rotateX(10deg) rotateZ(4deg); }
-    75% { transform: translateY(-10px) rotateX(5deg) rotateZ(2deg); }
-    100% { transform: translateY(0px) rotateX(0deg) rotateZ(0deg); }
-  }
-  @keyframes rotatingBorder {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0%, 100% { filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35)); }
+    50% { filter: drop-shadow(0 24px 60px rgba(168, 85, 247, 0.55)); }
   }
 
   .admin-page-wrap * { box-sizing: border-box; }
 
   .admin-page-wrap {
     font-family: 'Lato', sans-serif;
-    perspective: 1200px;
   }
 
   /* ── Background ── */
@@ -98,12 +122,10 @@ const adminStyles = `
     position: fixed; inset: 0;
     background: linear-gradient(135deg, #0d0b1e 0%, #1a1040 40%, #0f1a35 100%);
     overflow: hidden;
-    perspective: 1000px;
   }
   .admin-bg-orb {
     position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18;
     pointer-events: none;
-    transform-style: preserve-3d;
   }
   .admin-bg-orb-1 {
     width: 600px; height: 600px; top: -100px; left: -100px;
@@ -130,24 +152,47 @@ const adminStyles = `
     justify-content: center;
     padding: 2rem;
     gap: 4rem;
-    perspective: 1200px;
   }
 
   /* ── Character ── */
   .character-wrap {
     display: flex; flex-direction: column; align-items: center; gap: 1rem;
-    animation: fadeSlideUp 0.8s ease both, floatRotate3D 6s ease-in-out infinite;
-    animation-delay: 0.1s, 1s;
+    animation: slideInFromLeft 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both, fadeSlideUp 0.8s ease both;
+    animation-delay: 0.1s, 0s;
+    perspective: 1200px;
     transform-style: preserve-3d;
   }
+
   .character-svg {
-    animation: characterFloat 5s ease-in-out infinite;
+    animation: glowPulse 4s ease-in-out infinite;
     filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35));
-    transition: transform 0.3s ease;
   }
-  .admin-split:hover .character-svg {
-    transform: rotateY(8deg) rotateX(-5deg) scale(1.05);
+
+  /* ── Individual body parts for moonwalk ── */
+  .leg-left {
+    animation: legSwingLeft 0.6s ease-in-out infinite;
+    transform-origin: 90px 262px;
+    transform-box: fill-box;
   }
+
+  .leg-right {
+    animation: legSwingRight 0.6s ease-in-out infinite 0.3s;
+    transform-origin: 130px 262px;
+    transform-box: fill-box;
+  }
+
+  .arm-left {
+    animation: armSwingLeft 0.6s ease-in-out infinite;
+    transform-origin: 53px 178px;
+    transform-box: fill-box;
+  }
+
+  .arm-right {
+    animation: armSwingRight 0.6s ease-in-out infinite 0.3s;
+    transform-origin: 167px 178px;
+    transform-box: fill-box;
+  }
+
   .character-bubble {
     background: rgba(255,255,255,0.07);
     backdrop-filter: blur(12px);
@@ -159,9 +204,6 @@ const adminStyles = `
     text-align: center;
     max-width: 220px;
     line-height: 1.5;
-    transform-style: preserve-3d;
-    animation: fadeSlideUp 0.8s ease both;
-    animation-delay: 0.3s;
   }
   .character-bubble strong {
     display: block;
@@ -169,15 +211,13 @@ const adminStyles = `
     font-family: 'Cinzel', serif;
     color: #c4b5fd;
     margin-bottom: 4px;
-    animation: textDepth3D 1s ease forwards;
-    animation-delay: 0.6s;
   }
   @media (max-width: 768px) {
     .character-wrap { display: none; }
     .admin-split { justify-content: center; }
   }
 
-  /* ── Card 3D Effects ── */
+  /* ── Card ── */
   .admin-card {
     width: 100%;
     max-width: 420px;
@@ -186,25 +226,8 @@ const adminStyles = `
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 24px;
     padding: 2.5rem;
-    animation: cardFlip 0.8s cubic-bezier(0.22,1,0.36,1) forwards, glowPulse 3s ease-in-out infinite;
-    animation-delay: 0.2s, 1.2s;
-    transform-style: preserve-3d;
-    transition: transform 0.4s cubic-bezier(0.23, 1, 0.320, 1), box-shadow 0.4s ease;
-    position: relative;
-  }
-  .admin-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 24px;
-    background: conic-gradient(from 0deg, rgba(108,99,255,0.3), rgba(167,139,250,0.1), rgba(108,99,255,0.3));
-    opacity: 0;
-    animation: rotatingBorder 8s linear infinite;
-    pointer-events: none;
-  }
-  .admin-card:hover {
-    transform: perspective(1200px) rotateX(5deg) rotateY(-5deg) translateZ(20px);
-    box-shadow: 0 20px 60px rgba(108,99,255,0.4), 0 0 40px rgba(167,139,250,0.3), inset 0 0 30px rgba(167,139,250,0.1);
+    animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.2s;
   }
   .admin-card-title {
     font-family: 'Cinzel', serif;
@@ -213,42 +236,31 @@ const adminStyles = `
     color: #fff;
     text-align: center;
     margin-bottom: 4px;
-    animation: textDepth3D 0.8s ease forwards;
-    animation-delay: 0.5s;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 20px rgba(108,99,255,0.4);
   }
   .admin-card-sub {
     font-size: 13px;
     color: rgba(255,255,255,0.45);
     text-align: center;
     margin-bottom: 2rem;
-    animation: fadeSlideUp 0.7s ease both;
-    animation-delay: 0.4s;
   }
 
-  /* ── Icon badge 3D ── */
+  /* ── Icon badge ── */
   .admin-icon-badge {
     width: 64px; height: 64px;
     border-radius: 50%;
     background: linear-gradient(135deg, #6c63ff, #a78bfa);
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 1.2rem;
-    box-shadow: 0 8px 32px rgba(108,99,255,0.4), 0 0 24px rgba(108,99,255,0.3);
-    animation: fadeSlideUp 0.6s ease both, floatRotate3D 4s ease-in-out infinite;
-    animation-delay: 0.3s, 0.8s;
-    transform-style: preserve-3d;
-  }
-  .admin-icon-badge:hover {
-    transform: perspective(1000px) rotateX(10deg) rotateY(10deg) scale(1.1);
-    box-shadow: 0 16px 48px rgba(108,99,255,0.6), 0 0 40px rgba(167,139,250,0.5);
+    box-shadow: 0 8px 32px rgba(108,99,255,0.4);
+    animation: fadeSlideUp 0.6s ease both;
+    animation-delay: 0.3s;
   }
 
-  /* ── Floating label field 3D ── */
+  /* ── Floating label field ── */
   .field-wrap {
     position: relative;
     margin-bottom: 1.4rem;
     animation: fadeSlideUp 0.6s ease both;
-    perspective: 1000px;
   }
   .field-wrap:nth-child(1) { animation-delay: 0.35s; }
   .field-wrap:nth-child(2) { animation-delay: 0.45s; }
@@ -287,16 +299,14 @@ const adminStyles = `
     font-size: 15px;
     color: #fff;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, transform 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     font-family: 'Lato', sans-serif;
-    perspective: 1000px;
   }
   .admin-input::placeholder { color: transparent; }
   .admin-input:focus {
     border-color: rgba(167,139,250,0.6);
-    box-shadow: 0 0 0 3px rgba(167,139,250,0.15), 0 8px 24px rgba(108,99,255,0.3);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
     background: rgba(255,255,255,0.09);
-    transform: perspective(1000px) translateZ(2px);
   }
   .admin-input:focus + .floating-label,
   .admin-input:not(:placeholder-shown) + .floating-label {
@@ -309,7 +319,7 @@ const adminStyles = `
     text-transform: uppercase;
   }
 
-  /* ── Button 3D ── */
+  /* ── Button ── */
   .admin-btn-wrap {
     position: relative;
     overflow: hidden;
@@ -317,7 +327,6 @@ const adminStyles = `
     margin-top: 0.5rem;
     animation: fadeSlideUp 0.6s ease both;
     animation-delay: 0.6s;
-    perspective: 1000px;
   }
   .admin-btn {
     width: 100%;
@@ -332,18 +341,15 @@ const adminStyles = `
     font-family: 'Lato', sans-serif;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.3s, background-position 0.4s;
+    transition: transform 0.15s, box-shadow 0.2s, background-position 0.4s;
     position: relative; overflow: hidden;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
   .admin-btn:hover {
     background-position: right center;
-    box-shadow: 0 8px 28px rgba(108,99,255,0.45), 0 0 20px rgba(167,139,250,0.3);
-    transform: perspective(1000px) translateZ(4px) rotateX(2deg);
+    box-shadow: 0 8px 28px rgba(108,99,255,0.45);
+    transform: scale(1.02);
   }
-  .admin-btn:active { 
-    transform: perspective(1000px) translateZ(0px) scale(0.98);
-  }
+  .admin-btn:active { transform: scale(0.98); }
   .admin-btn-ripple {
     position: absolute;
     border-radius: 50%;
@@ -364,7 +370,6 @@ const adminStyles = `
     font-size: 13px;
     margin-bottom: 1rem;
     animation: fadeSlideUp 0.3s ease both;
-    transform: perspective(1000px) rotateX(0deg);
   }
 
   /* ── Pre-auth screen ── */
@@ -373,7 +378,6 @@ const adminStyles = `
     display: flex; align-items: center; justify-content: center;
     z-index: 9999;
     padding: 2rem;
-    perspective: 1200px;
   }
   .pre-auth-card {
     background: rgba(255,255,255,0.07);
@@ -382,32 +386,17 @@ const adminStyles = `
     border-radius: 24px;
     padding: 2.5rem;
     max-width: 400px; width: 100%;
-    animation: cardFlip 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
     text-align: center;
-    transform-style: preserve-3d;
-    transition: transform 0.4s ease;
   }
-  .pre-auth-card:hover {
-    transform: perspective(1200px) rotateX(3deg) rotateY(-3deg) translateZ(15px);
-  }
-  .pre-auth-emoji { 
-    font-size: 72px; 
-    display: block; 
-    margin-bottom: 1rem;
-    animation: floatRotate3D 4s ease-in-out infinite;
-    transform-style: preserve-3d;
-  }
+  .pre-auth-emoji { font-size: 72px; display: block; margin-bottom: 1rem; }
   .pre-auth-title {
     font-family: 'Cinzel', serif;
-    color: #fff; 
-    font-size: 22px; 
-    margin-bottom: 1.5rem;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 15px rgba(108,99,255,0.4);
-    animation: textDepth3D 0.8s ease forwards;
+    color: #fff; font-size: 22px; margin-bottom: 1.5rem;
   }
 `;
 
-/* ─── 3D-style SVG character ─── */
+/* ─── 3D Moonwalk SVG character ─── */
 const CharacterSVG = () => (
   <svg
     className="character-svg"
@@ -416,9 +405,10 @@ const CharacterSVG = () => (
     viewBox="0 0 220 320"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    style={{ perspective: "1200px" }}
   >
-    {/* Shadow */}
-    <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" />
+    {/* Shadow with animation */}
+    <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" style={{ animation: "0.6s ease-in-out infinite legSwingLeft" }} />
 
     {/* Body */}
     <g style={{ animation: "breathe 3.5s ease-in-out infinite" }}>
@@ -432,18 +422,24 @@ const CharacterSVG = () => (
     </g>
 
     {/* Arms */}
-    <rect x="38" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
-    <rect x="152" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
-    {/* Hands */}
-    <circle cx="53" cy="252" r="14" fill="#f5c5a3" />
-    <circle cx="167" cy="252" r="14" fill="#f5c5a3" />
+    <g className="arm-left">
+      <rect x="38" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
+      <circle cx="53" cy="252" r="14" fill="#f5c5a3" />
+    </g>
+    <g className="arm-right">
+      <rect x="152" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
+      <circle cx="167" cy="252" r="14" fill="#f5c5a3" />
+    </g>
 
-    {/* Legs */}
-    <rect x="76" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
-    <rect x="116" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
-    {/* Shoes */}
-    <ellipse cx="90" cy="308" rx="20" ry="9" fill="#1e1b4b" />
-    <ellipse cx="130" cy="308" rx="20" ry="9" fill="#1e1b4b" />
+    {/* Legs - Moonwalk animation */}
+    <g className="leg-left">
+      <rect x="76" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
+      <ellipse cx="90" cy="308" rx="20" ry="9" fill="#1e1b4b" />
+    </g>
+    <g className="leg-right">
+      <rect x="116" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
+      <ellipse cx="130" cy="308" rx="20" ry="9" fill="#1e1b4b" />
+    </g>
 
     {/* Neck */}
     <rect x="98" y="155" width="24" height="24" rx="8" fill="#f5c5a3" />
@@ -948,8 +944,8 @@ const Admin = () => {
           <div className="character-wrap">
             <CharacterSVG />
             <div className="character-bubble">
-              <strong>Welcome Back!</strong>
-              Sign in to manage your church dashboard ✨
+              <strong>Moonwalking In!</strong>
+              Smooth moves incoming... let's accessthe dashboard ✨
             </div>
           </div>
 
