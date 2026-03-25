@@ -108,33 +108,44 @@ const AdminPartnerships = () => {
     }
   };
 
+  // Calculate stats
+  const stats = {
+    total: partnerships.length,
+    approved: partnerships.filter(p => p.status === 'approved').length,
+    pending: partnerships.filter(p => p.status === 'pending').length,
+    rejected: partnerships.filter(p => p.status === 'rejected').length,
+    totalRevenue: partnerships.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0)
+  };
+
   return (
-    <div className="min-h-screen pt-16 bg-background">
+    <div className="min-h-screen pt-16 bg-gradient-to-br from-background via-background to-blue-950/5">
       {isPasswordProtected ? (
         // Password Gate Modal
-        <div className="min-h-screen flex items-center justify-center">
-          <Card className="w-full max-w-md border-0 shadow-divine">
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
             <CardHeader className="text-center">
-              <Lock className="w-12 h-12 mx-auto mb-4 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center">
+                <Lock className="w-8 h-8" />
+              </div>
               <CardTitle className="text-2xl">Partnerships Access</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="password">Enter Password</Label>
+                  <Label htmlFor="password" className="text-white">Enter Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="Enter access password"
-                    className="mt-2"
+                    className="mt-2 bg-slate-800 border-blue-500/30 text-white placeholder:text-slate-400"
                   />
                   {passwordError && (
-                    <p className="text-sm text-red-600 mt-2">{passwordError}</p>
+                    <p className="text-sm text-red-400 mt-2">{passwordError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
+                <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-lg hover:shadow-blue-500/50 text-white font-semibold transition-all duration-300">
                   Access Partnerships
                 </Button>
               </form>
@@ -145,83 +156,156 @@ const AdminPartnerships = () => {
         // Main Content
         <>
           {/* Header */}
-          <div className="bg-gradient-hero py-8">
-            <div className="container mx-auto px-4 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-primary-foreground">Partnerships</h1>
-                <p className="text-primary-foreground/80">Manage partnership applications</p>
+          <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 py-12 shadow-lg">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-between items-start gap-4">
+                <div className="text-white">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-2">Partnerships</h1>
+                  <p className="text-white/90 text-lg">Manage and track all partnership applications</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-all duration-300"
+                  onClick={() => navigate('/admin')}
+                >
+                  ← Back to Dashboard
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
-                onClick={() => navigate('/admin')}
-              >
-                ← Back to Dashboard
-              </Button>
             </div>
           </div>
 
-          <div className="container mx-auto px-4 py-8">
-            <Card className="border-0 shadow-divine">
-              <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <CreditCard className="w-6 h-6 mr-2" />
-                  Partnership Applications ({partnerships.length})
+          <div className="container mx-auto px-4 py-12">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Total Partnerships</p>
+                      <p className="text-3xl font-bold text-blue-600 mt-2">{stats.total}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-green-500/10 to-green-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Approved</p>
+                      <p className="text-3xl font-bold text-green-600 mt-2">{stats.approved}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-green-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Pending</p>
+                      <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-yellow-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-yellow-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Total Revenue</p>
+                      <p className="text-3xl font-bold text-cyan-600 mt-2">${stats.totalRevenue.toLocaleString()}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-cyan-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-cyan-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Table Card */}
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-600/5 to-cyan-400/5 border-b border-blue-200/20">
+                <CardTitle className="flex items-center text-2xl text-slate-800">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-400 flex items-center justify-center mr-3">
+                    <CreditCard className="w-5 h-5 text-white" />
+                  </div>
+                  Partnership Applications
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p className="text-muted-foreground mt-4">Loading partnerships...</p>
+                  </div>
+                ) : partnerships.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-muted-foreground text-lg">No partnerships yet</p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Level</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Payment Method</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Actions</TableHead>
+                      <TableHeader className="bg-slate-100/50">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="font-bold text-slate-700">Name</TableHead>
+                          <TableHead className="font-bold text-slate-700">Email</TableHead>
+                          <TableHead className="font-bold text-slate-700">Level</TableHead>
+                          <TableHead className="font-bold text-slate-700">Amount</TableHead>
+                          <TableHead className="font-bold text-slate-700">Payment</TableHead>
+                          <TableHead className="font-bold text-slate-700">Status</TableHead>
+                          <TableHead className="font-bold text-slate-700">Date</TableHead>
+                          <TableHead className="font-bold text-slate-700">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {partnerships.map((partnership) => (
-                          <TableRow key={partnership.id}>
-                            <TableCell className="font-medium">{partnership.name}</TableCell>
-                            <TableCell>{partnership.email}</TableCell>
+                          <TableRow key={partnership.id} className="hover:bg-blue-50/50 transition-colors">
+                            <TableCell className="font-semibold text-slate-800">{partnership.name}</TableCell>
+                            <TableCell className="text-slate-600">{partnership.email}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{partnership.level}</Badge>
+                              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{partnership.level}</Badge>
                             </TableCell>
-                            <TableCell>${partnership.amount}</TableCell>
-                            <TableCell>{partnership.payment_method}</TableCell>
+                            <TableCell className="font-semibold text-cyan-600">${partnership.amount}</TableCell>
+                            <TableCell className="text-slate-600">{partnership.payment_method}</TableCell>
                             <TableCell>
                               <Badge 
-                                variant={partnership.status === 'approved' ? 'default' : 
-                                        partnership.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className={`font-semibold ${
+                                  partnership.status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
+                                  partnership.status === 'rejected' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 
+                                  'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                }`}
                               >
-                                {partnership.status}
+                                {partnership.status.charAt(0).toUpperCase() + partnership.status.slice(1)}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              {new Date(partnership.created_at).toLocaleDateString()}
-                            </TableCell>
+                            <TableCell className="text-sm text-slate-600">{new Date(partnership.created_at).toLocaleDateString()}</TableCell>
                             <TableCell className="space-x-2">
                               {partnership.status === 'pending' && (
                                 <>
                                   <Button 
-                                    size="sm" 
+                                    size="sm"
                                     onClick={() => updatePartnershipStatus(partnership.id, 'approved')}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    className="bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                                   >
                                     Approve
                                   </Button>
                                   <Button 
                                     size="sm" 
-                                    variant="destructive"
                                     onClick={() => updatePartnershipStatus(partnership.id, 'rejected')}
+                                    className="bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                                   >
                                     Reject
                                   </Button>
@@ -231,7 +315,7 @@ const AdminPartnerships = () => {
                                 size="sm" 
                                 variant="ghost"
                                 onClick={() => deletePartnership(partnership.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -240,11 +324,6 @@ const AdminPartnerships = () => {
                         ))}
                       </TableBody>
                     </Table>
-                    {partnerships.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No partnerships yet
-                      </div>
-                    )}
                   </div>
                 )}
               </CardContent>

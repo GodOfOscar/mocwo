@@ -111,33 +111,43 @@ const AdminPrayers = () => {
     }
   };
 
+  // Calculate stats
+  const stats = {
+    total: prayerRequests.length,
+    received: prayerRequests.filter(p => p.status === 'received').length,
+    processed: prayerRequests.filter(p => p.status === 'processed').length,
+    failed: prayerRequests.filter(p => p.status === 'failed').length
+  };
+
   return (
-    <div className="min-h-screen pt-16 bg-background">
+    <div className="min-h-screen pt-16 bg-gradient-to-br from-background via-background to-rose-950/5">
       {isPasswordProtected ? (
         // Password Gate Modal
-        <div className="min-h-screen flex items-center justify-center">
-          <Card className="w-full max-w-md border-0 shadow-divine">
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
             <CardHeader className="text-center">
-              <Lock className="w-12 h-12 mx-auto mb-4 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-rose-600 to-pink-500 flex items-center justify-center">
+                <Lock className="w-8 h-8" />
+              </div>
               <CardTitle className="text-2xl">Prayer Requests Access</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="password">Enter Password</Label>
+                  <Label htmlFor="password" className="text-white">Enter Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="Enter access password"
-                    className="mt-2"
+                    className="mt-2 bg-slate-800 border-rose-500/30 text-white placeholder:text-slate-400"
                   />
                   {passwordError && (
-                    <p className="text-sm text-red-600 mt-2">{passwordError}</p>
+                    <p className="text-sm text-red-400 mt-2">{passwordError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full bg-gradient-to-r from-red-600 to-pink-500 text-white">
+                <Button type="submit" className="w-full bg-gradient-to-r from-rose-600 to-pink-500 hover:shadow-lg hover:shadow-rose-500/50 text-white font-semibold transition-all duration-300">
                   Access Prayer Requests
                 </Button>
               </form>
@@ -148,94 +158,186 @@ const AdminPrayers = () => {
         // Main Content
         <>
           {/* Header */}
-          <div className="bg-gradient-hero py-8">
-            <div className="container mx-auto px-4 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-primary-foreground">Prayer Requests</h1>
-                <p className="text-primary-foreground/80">Monitor and manage prayer requests</p>
+          <div className="bg-gradient-to-r from-rose-600 via-rose-500 to-pink-400 py-12 shadow-lg">
+            <div className="container mx-auto px-4">
+              <div className="flex justify-between items-start gap-4">
+                <div className="text-white">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-2">Prayer Requests</h1>
+                  <p className="text-white/90 text-lg">Intercede for and manage prayer requests</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-all duration-300"
+                  onClick={() => navigate('/admin')}
+                >
+                  ← Back to Dashboard
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
-                onClick={() => navigate('/admin')}
-              >
-                ← Back to Dashboard
-              </Button>
             </div>
           </div>
 
-          <div className="container mx-auto px-4 py-8">
-            <Card className="border-0 shadow-divine">
-              <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <Heart className="w-6 h-6 mr-2" />
-                  Prayer Requests ({prayerRequests.length})
+          <div className="container mx-auto px-4 py-12">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="border-0 bg-gradient-to-br from-rose-500/10 to-rose-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Total Prayers</p>
+                      <p className="text-3xl font-bold text-rose-600 mt-2">{stats.total}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-rose-600/20 flex items-center justify-center">
+                      <Heart className="w-6 h-6 text-rose-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Received</p>
+                      <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.received}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-yellow-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-yellow-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Processed</p>
+                      <p className="text-3xl font-bold text-blue-600 mt-2">{stats.processed}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Failed</p>
+                      <p className="text-3xl font-bold text-red-600 mt-2">{stats.failed}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-red-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Table Card */}
+            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-slate-50 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-rose-600/5 to-pink-400/5 border-b border-rose-200/20">
+                <CardTitle className="flex items-center text-2xl text-slate-800">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-rose-600 to-pink-400 flex items-center justify-center mr-3">
+                    <Heart className="w-5 h-5 text-white" />
+                  </div>
+                  Prayer Requests
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
+                    <p className="text-muted-foreground mt-4">Loading prayer requests...</p>
+                  </div>
                 ) : selectedPrayer ? (
-                  <div>
-                    <Button variant="outline" onClick={() => setSelectedPrayer(null)} className="mb-6">
+                  <div className="space-y-6">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setSelectedPrayer(null)}
+                      className="border-rose-200 hover:bg-rose-50 transition-all duration-300"
+                    >
                       ← Back to List
                     </Button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Name</p>
-                        <p className="text-lg font-semibold">{selectedPrayer.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="text-lg font-semibold">{selectedPrayer.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Location</p>
-                        <p className="text-lg font-semibold">{selectedPrayer.location || 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Method</p>
-                        <Badge variant="outline" className="text-base">
-                          {selectedPrayer.method?.toUpperCase() || 'SMS'}
-                        </Badge>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-sm text-muted-foreground">Prayer Request</p>
-                        <p className="text-base font-semibold whitespace-pre-wrap">{selectedPrayer.prayer_text}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Status</p>
-                        <Badge 
-                          variant={selectedPrayer.status === 'processed' ? 'default' : 
-                                  selectedPrayer.status === 'failed' ? 'destructive' : 'secondary'}
-                          className="text-base"
-                        >
-                          {selectedPrayer.status}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Submitted</p>
-                        <p className="text-lg font-semibold">{new Date(selectedPrayer.created_at).toLocaleString()}</p>
-                      </div>
-                    </div>
+                    
+                    {/* Prayer Detail Card */}
+                    <Card className="border-0 bg-gradient-to-br from-slate-50 to-rose-50/30 shadow-lg">
+                      <CardContent className="p-8">
+                        <div className="mb-6 pb-6 border-b border-rose-200/30">
+                          <h2 className="text-3xl font-bold text-slate-800">{selectedPrayer.name}</h2>
+                          <div className="flex items-center gap-3 mt-3">
+                            <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 font-semibold">
+                              Prayer Request
+                            </Badge>
+                            <Badge 
+                              className={`font-semibold ${
+                                selectedPrayer.status === 'processed' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 
+                                selectedPrayer.status === 'failed' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 
+                                'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                              }`}
+                            >
+                              {selectedPrayer.status.charAt(0).toUpperCase() + selectedPrayer.status.slice(1)}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="mb-8">
+                          <h3 className="text-lg font-bold text-slate-800 mb-4">Contact Information</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="p-4 bg-white/50 rounded-lg border border-rose-200/20">
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Phone</p>
+                              <p className="text-lg font-semibold text-slate-800 mt-1">{selectedPrayer.phone}</p>
+                            </div>
+                            <div className="p-4 bg-white/50 rounded-lg border border-rose-200/20">
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Location</p>
+                              <p className="text-lg font-semibold text-slate-800 mt-1">{selectedPrayer.location || 'Not provided'}</p>
+                            </div>
+                            <div className="p-4 bg-white/50 rounded-lg border border-rose-200/20">
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Method</p>
+                              <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 font-semibold mt-1">
+                                {selectedPrayer.method?.toUpperCase() || 'SMS'}
+                              </Badge>
+                            </div>
+                            <div className="p-4 bg-white/50 rounded-lg border border-rose-200/20">
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Submitted</p>
+                              <p className="text-lg font-semibold text-slate-800 mt-1">{new Date(selectedPrayer.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Prayer Text */}
+                        <div className="mb-8">
+                          <h3 className="text-lg font-bold text-slate-800 mb-4">Prayer Request</h3>
+                          <div className="p-6 bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg border-2 border-rose-200/40 shadow-inner">
+                            <p className="text-slate-800 leading-relaxed text-lg whitespace-pre-wrap">
+                              {selectedPrayer.prayer_text}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     {selectedPrayer.status === 'received' && (
-                      <div className="flex gap-3 mt-6">
+                      <div className="flex flex-wrap gap-3 mt-6">
                         <Button 
                           onClick={() => updatePrayerStatus(selectedPrayer.id, 'processed')}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                         >
                           Mark as Processed
                         </Button>
                         <Button 
-                          variant="destructive"
                           onClick={() => updatePrayerStatus(selectedPrayer.id, 'failed')}
+                          className="bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                         >
                           Mark as Failed
                         </Button>
                         <Button 
                           variant="ghost"
                           onClick={() => deletePrayerRequest(selectedPrayer.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
                         >
                           <Trash2 className="mr-2 w-4 h-4" />
                           Delete
@@ -246,58 +348,60 @@ const AdminPrayers = () => {
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Actions</TableHead>
+                      <TableHeader className="bg-slate-100/50">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="font-bold text-slate-700">Name</TableHead>
+                          <TableHead className="font-bold text-slate-700">Phone</TableHead>
+                          <TableHead className="font-bold text-slate-700">Location</TableHead>
+                          <TableHead className="font-bold text-slate-700">Method</TableHead>
+                          <TableHead className="font-bold text-slate-700">Status</TableHead>
+                          <TableHead className="font-bold text-slate-700">Date</TableHead>
+                          <TableHead className="font-bold text-slate-700">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {prayerRequests.map((prayer) => (
-                          <TableRow key={prayer.id}>
-                            <TableCell className="font-medium">{prayer.name}</TableCell>
-                            <TableCell>{prayer.phone}</TableCell>
-                            <TableCell>{prayer.location || 'N/A'}</TableCell>
+                          <TableRow key={prayer.id} className="hover:bg-rose-50/50 transition-colors">
+                            <TableCell className="font-semibold text-slate-800">{prayer.name}</TableCell>
+                            <TableCell className="text-slate-600">{prayer.phone}</TableCell>
+                            <TableCell className="text-slate-600">{prayer.location || 'N/A'}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{prayer.method?.toUpperCase() || 'SMS'}</Badge>
+                              <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200">{prayer.method?.toUpperCase() || 'SMS'}</Badge>
                             </TableCell>
                             <TableCell>
                               <Badge 
-                                variant={prayer.status === 'processed' ? 'default' : 
-                                        prayer.status === 'failed' ? 'destructive' : 'secondary'}
+                                className={`font-semibold ${
+                                  prayer.status === 'processed' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 
+                                  prayer.status === 'failed' ? 'bg-red-100 text-red-800 hover:bg-red-200' : 
+                                  'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                }`}
                               >
-                                {prayer.status}
+                                {prayer.status.charAt(0).toUpperCase() + prayer.status.slice(1)}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              {new Date(prayer.created_at).toLocaleDateString()}
-                            </TableCell>
+                            <TableCell className="text-sm text-slate-600">{new Date(prayer.created_at).toLocaleDateString()}</TableCell>
                             <TableCell className="space-x-2">
                               <Button 
                                 size="sm" 
                                 variant="outline"
                                 onClick={() => setSelectedPrayer(prayer)}
+                                className="border-rose-200 hover:bg-rose-50 transition-all duration-300"
                               >
                                 View Details
                               </Button>
                               {prayer.status === 'received' && (
                                 <>
                                   <Button 
-                                    size="sm" 
+                                    size="sm"
                                     onClick={() => updatePrayerStatus(prayer.id, 'processed')}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                                   >
                                     Processed
                                   </Button>
                                   <Button 
-                                    size="sm" 
-                                    variant="destructive"
+                                    size="sm"
                                     onClick={() => updatePrayerStatus(prayer.id, 'failed')}
+                                    className="bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
                                   >
                                     Failed
                                   </Button>
@@ -307,7 +411,7 @@ const AdminPrayers = () => {
                                 size="sm" 
                                 variant="ghost"
                                 onClick={() => deletePrayerRequest(prayer.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -317,8 +421,9 @@ const AdminPrayers = () => {
                       </TableBody>
                     </Table>
                     {prayerRequests.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No prayer requests yet
+                      <div className="text-center py-12">
+                        <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-muted-foreground text-lg">No prayer requests yet</p>
                       </div>
                     )}
                   </div>
