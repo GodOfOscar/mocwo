@@ -51,6 +51,7 @@ const Partnership = () => {
         title: `Partnership Highlight ${idx + 1}`,
         subtitle: "Our mission is to impact nations together",
         description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
+        location: "Global Ministry",
         image: img,
         ctaText: ctaTexts[idx % ctaTexts.length],
         ctaLink: ctaLinks[idx % ctaLinks.length]
@@ -61,6 +62,7 @@ const Partnership = () => {
           title: "Kingdom Partnership in Action",
           subtitle: "Join hands with Fathers Heart Chapel Int'l",
           description: "Partner with us to empower outreach, support vulnerable communities, and spread the Gospel worldwide.",
+          location: "Worldwide",
           image: hero1,
           ctaText: "Join Our Family",
           ctaLink: "/membership"
@@ -153,7 +155,7 @@ const Partnership = () => {
     <div className="min-h-screen pt-16 bg-gradient-to-b from-white via-blue-50 to-white">
       
       {/* Hero Carousel */}
-      <HeroCarousel slides={carouselSlides} showContent={false} />
+      <HeroCarousel slides={carouselSlides} showContent={false} cardMode={true} />
 
       {/* Dancing text animation */}
       <div className="relative overflow-hidden h-14 bg-gradient-to-r from-cyan-50 via-blue-50 to-cyan-50 mt-4 mb-8">

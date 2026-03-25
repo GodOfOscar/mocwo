@@ -9,8 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node server.js",
-    "start": "node server.js"
+    "server": "node backend/server.js",
+    "start": "node backend/server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

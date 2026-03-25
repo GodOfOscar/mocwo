@@ -22,18 +22,54 @@ export interface ApiResponse<T = any> {
 }
 
 /**
- * Send a prayer request to the server via SMS or WhatsApp
- * @param payload - Prayer request details including name, phone, location, prayer text, and method
- * @returns Promise with API response
+ * Helper: Safe fetch with timeout + better error handling
+ */
+async function safeFetch(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Helper: Handle API errors safely
+ */
+async function handleResponse(response: Response) {
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}`;
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch {
+      // Not JSON → keep default message
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Send a prayer request
  */
 export async function sendPrayerRequest(
   payload: PrayerRequestPayload
 ): Promise<ApiResponse> {
   try {
     const url = `${API_BASE_URL}/api/sendPrayer`;
-    console.log('[API] Sending prayer to:', url);
-    
-    const response = await fetch(url, {
+    console.log('[API] Sending prayer to:', url, payload);
+
+    const response = await safeFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -41,19 +77,20 @@ export async function sendPrayerRequest(
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
+    const data = await handleResponse(response);
 
-    const data = await response.json();
     return {
       success: true,
       data,
       message: data.message || "Prayer request sent successfully",
     };
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    console.error('[API] Prayer request error:', errorMessage);
+
     return {
       success: false,
       error: errorMessage,
@@ -64,15 +101,13 @@ export async function sendPrayerRequest(
 
 /**
  * Verify if a user is an admin
- * @param email - User email to verify
- * @returns Promise with admin verification response
  */
 export async function verifyAdmin(email: string): Promise<ApiResponse> {
   try {
     const url = `${API_BASE_URL}/api/verify-admin`;
-    console.log('[API] Verifying admin at:', url);
-    
-    const response = await fetch(url, {
+    console.log('[API] Verifying admin at:', url, email);
+
+    const response = await safeFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -80,20 +115,20 @@ export async function verifyAdmin(email: string): Promise<ApiResponse> {
       body: JSON.stringify({ email }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
+    const data = await handleResponse(response);
 
-    const data = await response.json();
     return {
       success: true,
       data,
       message: "Admin verification successful",
     };
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
     console.error('[API] Verification error:', errorMessage);
+
     return {
       success: false,
       error: errorMessage,

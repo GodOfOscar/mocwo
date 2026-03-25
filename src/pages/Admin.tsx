@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { verifyAdmin } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,496 @@ import { useToast } from "@/components/ui/use-toast";
 import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit2, Plus } from "lucide-react";
+
+/* ─── Inline styles for animations (scoped to admin page) ─── */
+const adminStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lato:wght@300;400;700&display=swap');
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes characterFloat {
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50%       { transform: translateY(-14px) rotate(1deg); }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scaleY(1); }
+    50%       { transform: scaleY(0.94); }
+  }
+  @keyframes eyeBlink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    95%            { transform: scaleY(0.05); }
+  }
+  @keyframes hairSway {
+    0%, 100% { transform: rotate(0deg); transform-origin: top center; }
+    50%       { transform: rotate(3deg); transform-origin: top center; }
+  }
+  @keyframes rippleEffect {
+    0%   { transform: scale(0); opacity: 0.5; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes orb1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(30px, -20px) scale(1.1); }
+    66%       { transform: translate(-20px, 15px) scale(0.95); }
+  }
+  @keyframes orb2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(-25px, 20px) scale(1.05); }
+    66%       { transform: translate(20px, -15px) scale(0.9); }
+  }
+  @keyframes labelFloat {
+    from { top: 50%; transform: translateY(-50%); font-size: 15px; color: #a0a0b8; }
+    to   { top: 0px; transform: translateY(-100%); font-size: 11px; color: #7c6af7; }
+  }
+
+  .admin-page-wrap * { box-sizing: border-box; }
+
+  .admin-page-wrap {
+    font-family: 'Lato', sans-serif;
+  }
+
+  /* ── Background ── */
+  .admin-bg {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0d0b1e 0%, #1a1040 40%, #0f1a35 100%);
+    overflow: hidden;
+  }
+  .admin-bg-orb {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18;
+    pointer-events: none;
+  }
+  .admin-bg-orb-1 {
+    width: 600px; height: 600px; top: -100px; left: -100px;
+    background: radial-gradient(circle, #6c63ff, #a855f7);
+    animation: orb1 12s ease-in-out infinite;
+  }
+  .admin-bg-orb-2 {
+    width: 500px; height: 500px; bottom: -80px; right: -80px;
+    background: radial-gradient(circle, #06b6d4, #3b82f6);
+    animation: orb2 15s ease-in-out infinite;
+  }
+  .admin-bg-orb-3 {
+    width: 300px; height: 300px; top: 50%; left: 50%;
+    background: radial-gradient(circle, #f59e0b, #ef4444);
+    animation: orb2 20s ease-in-out infinite reverse;
+    opacity: 0.08;
+  }
+
+  /* ── Layout ── */
+  .admin-split {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 4rem;
+  }
+
+  /* ── Character ── */
+  .character-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    animation: fadeSlideUp 0.8s ease both;
+    animation-delay: 0.1s;
+  }
+  .character-svg {
+    animation: characterFloat 5s ease-in-out infinite;
+    filter: drop-shadow(0 24px 40px rgba(108, 99, 255, 0.35));
+  }
+  .character-bubble {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 12px 20px;
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+    text-align: center;
+    max-width: 220px;
+    line-height: 1.5;
+  }
+  .character-bubble strong {
+    display: block;
+    font-size: 16px;
+    font-family: 'Cinzel', serif;
+    color: #c4b5fd;
+    margin-bottom: 4px;
+  }
+  @media (max-width: 768px) {
+    .character-wrap { display: none; }
+    .admin-split { justify-content: center; }
+  }
+
+  /* ── Card ── */
+  .admin-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 2.5rem;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.2s;
+  }
+  .admin-card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .admin-card-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  /* ── Icon badge ── */
+  .admin-icon-badge {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.2rem;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.4);
+    animation: fadeSlideUp 0.6s ease both;
+    animation-delay: 0.3s;
+  }
+
+  /* ── Floating label field ── */
+  .field-wrap {
+    position: relative;
+    margin-bottom: 1.4rem;
+    animation: fadeSlideUp 0.6s ease both;
+  }
+  .field-wrap:nth-child(1) { animation-delay: 0.35s; }
+  .field-wrap:nth-child(2) { animation-delay: 0.45s; }
+  .field-wrap:nth-child(3) { animation-delay: 0.55s; }
+
+  .floating-label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    color: rgba(255,255,255,0.35);
+    pointer-events: none;
+    transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+    background: transparent;
+    padding: 0 4px;
+    z-index: 2;
+  }
+  .floating-label.active {
+    top: -1px;
+    transform: translateY(-100%);
+    font-size: 11px;
+    color: #a78bfa;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .admin-input {
+    width: 100%;
+    height: 52px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 0 16px;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    font-family: 'Lato', sans-serif;
+  }
+  .admin-input::placeholder { color: transparent; }
+  .admin-input:focus {
+    border-color: rgba(167,139,250,0.6);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+    background: rgba(255,255,255,0.09);
+  }
+  .admin-input:focus + .floating-label,
+  .admin-input:not(:placeholder-shown) + .floating-label {
+    top: -1px;
+    transform: translateY(-100%);
+    font-size: 11px;
+    color: #a78bfa;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ── Button ── */
+  .admin-btn-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    margin-top: 0.5rem;
+    animation: fadeSlideUp 0.6s ease both;
+    animation-delay: 0.6s;
+  }
+  .admin-btn {
+    width: 100%;
+    height: 52px;
+    background: linear-gradient(90deg, #6c63ff, #a855f7);
+    background-size: 200% auto;
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, background-position 0.4s;
+    position: relative; overflow: hidden;
+  }
+  .admin-btn:hover {
+    background-position: right center;
+    box-shadow: 0 8px 28px rgba(108,99,255,0.45);
+    transform: scale(1.02);
+  }
+  .admin-btn:active { transform: scale(0.98); }
+  .admin-btn-ripple {
+    position: absolute;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.3);
+    transform: scale(0);
+    animation: rippleEffect 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* ── Error ── */
+  .admin-error {
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px;
+    color: #fca5a5;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 1rem;
+    animation: fadeSlideUp 0.3s ease both;
+  }
+
+  /* ── Pre-auth screen ── */
+  .pre-auth-overlay {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    padding: 2rem;
+  }
+  .pre-auth-card {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 2.5rem;
+    max-width: 400px; width: 100%;
+    animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+    text-align: center;
+  }
+  .pre-auth-emoji { font-size: 72px; display: block; margin-bottom: 1rem; }
+  .pre-auth-title {
+    font-family: 'Cinzel', serif;
+    color: #fff; font-size: 22px; margin-bottom: 1.5rem;
+  }
+`;
+
+/* ─── 3D-style SVG character ─── */
+const CharacterSVG = () => (
+  <svg
+    className="character-svg"
+    width="220"
+    height="320"
+    viewBox="0 0 220 320"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Shadow */}
+    <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" />
+
+    {/* Body */}
+    <g style={{ animation: "breathe 3.5s ease-in-out infinite" }}>
+      <rect x="68" y="175" width="84" height="95" rx="20" fill="#6c63ff" />
+      {/* Collar / shirt detail */}
+      <rect x="88" y="175" width="44" height="18" rx="6" fill="#a78bfa" />
+      {/* Buttons */}
+      <circle cx="110" cy="205" r="3" fill="#c4b5fd" />
+      <circle cx="110" cy="218" r="3" fill="#c4b5fd" />
+      <circle cx="110" cy="231" r="3" fill="#c4b5fd" />
+    </g>
+
+    {/* Arms */}
+    <rect x="38" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
+    <rect x="152" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
+    {/* Hands */}
+    <circle cx="53" cy="252" r="14" fill="#f5c5a3" />
+    <circle cx="167" cy="252" r="14" fill="#f5c5a3" />
+
+    {/* Legs */}
+    <rect x="76" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
+    <rect x="116" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
+    {/* Shoes */}
+    <ellipse cx="90" cy="308" rx="20" ry="9" fill="#1e1b4b" />
+    <ellipse cx="130" cy="308" rx="20" ry="9" fill="#1e1b4b" />
+
+    {/* Neck */}
+    <rect x="98" y="155" width="24" height="24" rx="8" fill="#f5c5a3" />
+
+    {/* Head */}
+    <circle cx="110" cy="128" r="50" fill="#f5c5a3" />
+
+    {/* Hair */}
+    <g style={{ animation: "hairSway 4s ease-in-out infinite" }}>
+      <ellipse cx="110" cy="85" rx="50" ry="22" fill="#1a0a2e" />
+      <ellipse cx="68" cy="108" rx="16" ry="32" fill="#1a0a2e" />
+      <ellipse cx="152" cy="108" rx="16" ry="32" fill="#1a0a2e" />
+      <rect x="60" y="78" width="100" height="28" rx="14" fill="#1a0a2e" />
+      {/* Highlights */}
+      <ellipse cx="88" cy="84" rx="12" ry="5" fill="#3d1f6e" opacity="0.7" />
+    </g>
+
+    {/* Eyes */}
+    <g style={{ animation: "eyeBlink 4s ease-in-out infinite" }}>
+      <ellipse cx="95" cy="125" rx="7" ry="8" fill="#1a0a2e" />
+      <ellipse cx="125" cy="125" rx="7" ry="8" fill="#1a0a2e" />
+      {/* Shine */}
+      <circle cx="98" cy="122" r="2.5" fill="#fff" />
+      <circle cx="128" cy="122" r="2.5" fill="#fff" />
+      {/* Iris */}
+      <circle cx="95" cy="126" r="4" fill="#6c63ff" />
+      <circle cx="125" cy="126" r="4" fill="#6c63ff" />
+      <circle cx="95" cy="126" r="2" fill="#1a0a2e" />
+      <circle cx="125" cy="126" r="2" fill="#1a0a2e" />
+    </g>
+
+    {/* Eyebrows */}
+    <path d="M86 114 Q95 110 104 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+    <path d="M116 114 Q125 110 134 114" stroke="#1a0a2e" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+    {/* Nose */}
+    <ellipse cx="110" cy="136" rx="4" ry="3" fill="#e8a882" />
+
+    {/* Smile */}
+    <path d="M97 147 Q110 158 123 147" stroke="#c47b5a" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+    {/* Cheeks */}
+    <ellipse cx="84" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
+    <ellipse cx="136" cy="142" rx="10" ry="7" fill="#ffb3b3" opacity="0.45" />
+
+    {/* Earrings */}
+    <circle cx="62" cy="132" r="5" fill="#a78bfa" />
+    <circle cx="158" cy="132" r="5" fill="#a78bfa" />
+
+    {/* Sparkles */}
+    <g opacity="0.8">
+      <circle cx="30" cy="60" r="3" fill="#f59e0b" />
+      <circle cx="185" cy="50" r="2" fill="#a78bfa" />
+      <circle cx="195" cy="120" r="3" fill="#06b6d4" />
+      <circle cx="20" cy="140" r="2" fill="#f59e0b" />
+    </g>
+  </svg>
+);
+
+/* ─── Floating-label input ─── */
+const FloatingInput = ({
+  id, label, type = "text", value, onChange, required = false
+}: {
+  id: string; label: string; type?: string;
+  value: string; onChange: (v: string) => void; required?: boolean;
+}) => {
+  const [focused, setFocused] = useState(false);
+  const isActive = focused || value.length > 0;
+  return (
+    <div className="field-wrap" style={{ position: "relative", marginBottom: "1.4rem" }}>
+      <input
+        id={id}
+        type={type}
+        className="admin-input"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder=" "
+        required={required}
+        autoComplete={type === "password" ? "current-password" : "email"}
+      />
+      <label
+        htmlFor={id}
+        className={`floating-label${isActive ? " active" : ""}`}
+        style={{
+          position: "absolute",
+          left: 16,
+          top: isActive ? -1 : "50%",
+          transform: isActive ? "translateY(-100%)" : "translateY(-50%)",
+          fontSize: isActive ? 11 : 15,
+          color: isActive ? "#a78bfa" : "rgba(255,255,255,0.35)",
+          fontWeight: isActive ? 600 : 400,
+          letterSpacing: isActive ? "0.04em" : "normal",
+          textTransform: isActive ? "uppercase" : "none",
+          pointerEvents: "none",
+          transition: "all 0.22s cubic-bezier(0.4,0,0.2,1)",
+          background: "transparent",
+          padding: "0 4px",
+          zIndex: 2,
+        }}
+      >
+        {label}
+      </label>
+    </div>
+  );
+};
+
+/* ─── Ripple Button ─── */
+const RippleButton = ({
+  children, onClick, style = {}, type = "button"
+}: {
+  children: React.ReactNode; onClick?: (e: React.MouseEvent) => void;
+  style?: React.CSSProperties; type?: "button" | "submit";
+}) => {
+  const [ripples, setRipples] = useState<{ x: number; y: number; id: number }[]>([]);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = btnRef.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left - 20;
+    const y = e.clientY - rect.top - 20;
+    const id = Date.now();
+    setRipples(r => [...r, { x, y, id }]);
+    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 700);
+    if (onClick) onClick(e);
+  };
+
+  return (
+    <div className="admin-btn-wrap">
+      <button
+        ref={btnRef}
+        type={type}
+        className="admin-btn"
+        onClick={handleClick}
+        style={style}
+      >
+        {children}
+        {ripples.map(r => (
+          <span
+            key={r.id}
+            className="admin-btn-ripple"
+            style={{ left: r.x, top: r.y }}
+          />
+        ))}
+      </button>
+    </div>
+  );
+};
 
 const Admin = () => {
   const [preAuthPassed, setPreAuthPassed] = useState(false);
@@ -29,37 +519,22 @@ const Admin = () => {
   const [selectedMember, setSelectedMember] = useState<any | null>(null);
   const [selectedPrayer, setSelectedPrayer] = useState<any | null>(null);
   const [stats, setStats] = useState({
-    totalPartnerships: 0,
-    totalAmount: 0,
-    pendingApplications: 0,
-    activePartners: 0,
-    totalMembers: 0,
-    pendingMembers: 0,
-    approvedMembers: 0
+    totalPartnerships: 0, totalAmount: 0, pendingApplications: 0, activePartners: 0,
+    totalMembers: 0, pendingMembers: 0, approvedMembers: 0
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkAuthState();
-  }, []);
-
+  useEffect(() => { checkAuthState(); }, []);
   useEffect(() => {
     if (isAuthenticated) {
-      fetchPartnerships();
-      fetchMembershipRequests();
-      fetchPrayerRequests();
-      fetchStats();
-      fetchNews();
+      fetchPartnerships(); fetchMembershipRequests(); fetchPrayerRequests();
+      fetchStats(); fetchNews();
     }
   }, [isAuthenticated]);
 
   const fetchNews = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from("news")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      const { data, error } = await (supabase as any).from("news").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       setNewsItems(data || []);
     } catch (error: any) {
@@ -69,61 +544,32 @@ const Admin = () => {
 
   const fetchMembershipRequests = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('membership_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await (supabase as any).from('membership_requests').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setMembershipRequests(data || []);
     } catch (error: any) {
-      toast({
-        title: "Error fetching membership requests",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error fetching membership requests", description: error.message, variant: "destructive" });
     }
   };
 
   const fetchPrayerRequests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('prayer_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.from('prayer_requests').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setPrayerRequests(data || []);
     } catch (error: any) {
-      toast({
-        title: "Error fetching prayer requests",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error fetching prayer requests", description: error.message, variant: "destructive" });
     }
   };
 
   const updatePrayerStatus = async (id: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from('prayer_requests')
-        .update({ status })
-        .eq('id', id);
-
+      const { error } = await supabase.from('prayer_requests').update({ status }).eq('id', id);
       if (error) throw error;
-
-      toast({
-        title: "Status updated",
-        description: `Prayer request marked as ${status}`,
-      });
-
+      toast({ title: "Status updated", description: `Prayer request marked as ${status}` });
       fetchPrayerRequests();
     } catch (error: any) {
-      toast({
-        title: "Error updating status",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating status", description: error.message, variant: "destructive" });
     }
   };
 
@@ -132,30 +578,19 @@ const Admin = () => {
     try {
       if (editing) {
         const { error } = await (supabase as any).from("news").update({
-          title: newsForm.title,
-          excerpt: newsForm.excerpt,
-          content: newsForm.content,
-          date: newsForm.date,
-          image: newsForm.image,
-          link: newsForm.link,
+          title: newsForm.title, excerpt: newsForm.excerpt, content: newsForm.content,
+          date: newsForm.date, image: newsForm.image, link: newsForm.link,
         }).eq("id", editing.id);
-
         if (error) throw error;
         toast({ title: "News updated", description: "The news item was updated." });
       } else {
         const { error } = await (supabase as any).from("news").insert([{
-          title: newsForm.title,
-          excerpt: newsForm.excerpt,
-          content: newsForm.content,
-          date: newsForm.date,
-          image: newsForm.image,
-          link: newsForm.link,
+          title: newsForm.title, excerpt: newsForm.excerpt, content: newsForm.content,
+          date: newsForm.date, image: newsForm.image, link: newsForm.link,
         }]);
-
         if (error) throw error;
         toast({ title: "News created", description: "A new news item was created." });
       }
-
       setNewsForm({ title: "", excerpt: "", content: "", date: "", image: "", link: "" });
       setEditing(null);
       fetchNews();
@@ -189,17 +624,10 @@ const Admin = () => {
       const ext = file.name.split('.').pop();
       const fileName = `${Date.now()}.${ext}`;
       const filePath = `news/${fileName}`;
-
-      const { data: uploadData, error: uploadError } = await (supabase as any).storage
-        .from('news-images')
-        .upload(filePath, file, { upsert: true });
-
+      const { data: uploadData, error: uploadError } = await (supabase as any).storage.from('news-images').upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-
-      // Get public URL
       const { data: urlData } = await (supabase as any).storage.from('news-images').getPublicUrl(filePath);
       const publicUrl = (urlData as any)?.publicUrl || (urlData as any)?.public_url || '';
-
       setNewsForm(prev => ({ ...prev, image: publicUrl }));
       toast({ title: 'Image uploaded', description: 'Image uploaded to storage.' });
     } catch (err: any) {
@@ -213,19 +641,15 @@ const Admin = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email) {
-        // Verify admin status using backend API (bypasses RLS)
         const verifyData = await verifyAdmin(session.user.email);
-
         if (verifyData.success && verifyData.data?.isAdmin) {
           setIsAuthenticated(true);
         } else {
-          // if user exists but doesn't meet criteria, ensure we sign out as a safety measure
-          try { await supabase.auth.signOut(); } catch (e) { /* ignore */ }
+          try { await supabase.auth.signOut(); } catch (e) {}
           setIsAuthenticated(false);
         }
       }
     } catch (error) {
-      console.error('Auth check error:', error);
       setIsAuthenticated(false);
     }
   };
@@ -234,23 +658,13 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("");
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
       if (error) throw error;
-
-      // Verify admin status
       const verifyData = await verifyAdmin(loginForm.email);
-
       if (verifyData.success && verifyData.data?.isAdmin) {
         setIsAuthenticated(true);
         setLoginForm({ email: "", password: "" });
-        toast({
-          title: "Login successful",
-          description: "Welcome to the admin dashboard",
-        });
+        toast({ title: "Login successful", description: "Welcome to the admin dashboard" });
       } else {
         await supabase.auth.signOut();
         setLoginError(verifyData.error || "Unauthorized access");
@@ -262,77 +676,45 @@ const Admin = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    setPreAuthPassed(false);
-    setLoginForm({ email: "", password: "" });
-    setLoginError("");
-    setPreAuthAnswer("");
-    setPreAuthError("");
+    setIsAuthenticated(false); setPreAuthPassed(false);
+    setLoginForm({ email: "", password: "" }); setLoginError("");
+    setPreAuthAnswer(""); setPreAuthError("");
   };
 
   const handlePreAuth = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPreAuthError("");
-    
     if (preAuthAnswer.toLowerCase().trim() === "revprince") {
-      setPreAuthPassed(true);
-      setPreAuthAnswer("");
+      setPreAuthPassed(true); setPreAuthAnswer("");
     } else {
-      setPreAuthError("Access denied");
-      setPreAuthAnswer("");
+      setPreAuthError("Access denied"); setPreAuthAnswer("");
     }
   };
 
   const fetchPartnerships = async () => {
     try {
-      const { data, error } = await supabase
-        .from('partnerships')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.from('partnerships').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setPartnerships(data || []);
     } catch (error: any) {
-      toast({
-        title: "Error fetching partnerships",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error fetching partnerships", description: error.message, variant: "destructive" });
     }
   };
 
   const fetchStats = async () => {
     try {
-      const { data: partnershipData, error: partnershipError } = await supabase
-        .from('partnerships')
-        .select('*');
-
+      const { data: partnershipData, error: partnershipError } = await supabase.from('partnerships').select('*');
       if (partnershipError) throw partnershipError;
-
       const partnershipTotal = partnershipData?.length || 0;
       const partnershipTotalAmount = partnershipData?.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0') || 0), 0) || 0;
       const partnershipPending = partnershipData?.filter(p => p.status === 'pending').length || 0;
       const partnershipActive = partnershipData?.filter(p => p.status === 'approved').length || 0;
-
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('membership_requests')
-        .select('*');
-
+      const { data: membershipData, error: membershipError } = await supabase.from('membership_requests').select('*');
       if (membershipError) throw membershipError;
-
       const membershipTotal = membershipData?.length || 0;
       const membershipPending = membershipData?.filter(m => m.status === 'pending').length || 0;
       const membershipApproved = membershipData?.filter(m => m.status === 'approved').length || 0;
-
-      setStats({
-        totalPartnerships: partnershipTotal,
-        totalAmount: partnershipTotalAmount,
-        pendingApplications: partnershipPending,
-        activePartners: partnershipActive,
-        totalMembers: membershipTotal,
-        pendingMembers: membershipPending,
-        approvedMembers: membershipApproved
-      });
+      setStats({ totalPartnerships: partnershipTotal, totalAmount: partnershipTotalAmount, pendingApplications: partnershipPending, activePartners: partnershipActive, totalMembers: membershipTotal, pendingMembers: membershipPending, approvedMembers: membershipApproved });
     } catch (error: any) {
       console.error('Error fetching stats:', error);
     }
@@ -340,446 +722,426 @@ const Admin = () => {
 
   const updatePartnershipStatus = async (id: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from('partnerships')
-        .update({ status })
-        .eq('id', id);
-
+      const { error } = await supabase.from('partnerships').update({ status }).eq('id', id);
       if (error) throw error;
-
-      toast({
-        title: "Status updated",
-        description: `Partnership ${status} successfully`,
-      });
-
-      fetchPartnerships();
-      fetchStats();
+      toast({ title: "Status updated", description: `Partnership ${status} successfully` });
+      fetchPartnerships(); fetchStats();
     } catch (error: any) {
-      toast({
-        title: "Error updating status",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating status", description: error.message, variant: "destructive" });
     }
   };
 
   const updateMembershipStatus = async (id: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from('membership_requests')
-        .update({ status })
-        .eq('id', id);
-
+      const { error } = await supabase.from('membership_requests').update({ status }).eq('id', id);
       if (error) throw error;
-
-      toast({
-        title: "Status updated",
-        description: `Membership ${status} successfully`,
-      });
-
-      fetchMembershipRequests();
-      fetchStats();
+      toast({ title: "Status updated", description: `Membership ${status} successfully` });
+      fetchMembershipRequests(); fetchStats();
     } catch (error: any) {
-      toast({
-        title: "Error updating status",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error updating status", description: error.message, variant: "destructive" });
     }
   };
 
   const deletePartnership = async (id: string) => {
     if (!confirm("Are you sure you want to delete this partnership?")) return;
-    
     try {
-      const { error } = await supabase
-        .from('partnerships')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw new Error(error.message || 'Failed to delete partnership');
-      }
-
-      toast({
-        title: "Partnership deleted",
-        description: "Entry has been removed successfully",
-      });
-
-      fetchPartnerships();
-      fetchStats();
+      const { error } = await supabase.from('partnerships').delete().eq('id', id);
+      if (error) throw new Error(error.message || 'Failed to delete partnership');
+      toast({ title: "Partnership deleted", description: "Entry has been removed successfully" });
+      fetchPartnerships(); fetchStats();
     } catch (error: any) {
-      console.error('Delete partnership error:', error);
-      toast({
-        title: "Error deleting partnership",
-        description: error.message || 'Check console for details',
-        variant: "destructive",
-      });
+      toast({ title: "Error deleting partnership", description: error.message || 'Check console for details', variant: "destructive" });
     }
   };
 
   const deleteMembershipRequest = async (id: string) => {
     if (!confirm("Are you sure you want to delete this membership request?")) return;
-    
     try {
-      const { error } = await supabase
-        .from('membership_requests')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw new Error(error.message || 'Failed to delete membership request');
-      }
-
-      toast({
-        title: "Membership request deleted",
-        description: "Entry has been removed successfully",
-      });
-
-      fetchMembershipRequests();
-      fetchStats();
+      const { error } = await supabase.from('membership_requests').delete().eq('id', id);
+      if (error) throw new Error(error.message || 'Failed to delete membership request');
+      toast({ title: "Membership request deleted", description: "Entry has been removed successfully" });
+      fetchMembershipRequests(); fetchStats();
     } catch (error: any) {
-      console.error('Delete membership request error:', error);
-      toast({
-        title: "Error deleting membership request",
-        description: error.message || 'Check console for details',
-        variant: "destructive",
-      });
+      toast({ title: "Error deleting membership request", description: error.message || 'Check console for details', variant: "destructive" });
     }
   };
 
   const deletePrayerRequest = async (id: string) => {
     if (!confirm("Are you sure you want to delete this prayer request?")) return;
-    
     try {
-      const { error } = await supabase
-        .from('prayer_requests')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw new Error(error.message || 'Failed to delete prayer request');
-      }
-
-      toast({
-        title: "Prayer request deleted",
-        description: "Entry has been removed successfully",
-      });
-
-      fetchPrayerRequests();
-      setSelectedPrayer(null);
+      const { error } = await supabase.from('prayer_requests').delete().eq('id', id);
+      if (error) throw new Error(error.message || 'Failed to delete prayer request');
+      toast({ title: "Prayer request deleted", description: "Entry has been removed successfully" });
+      fetchPrayerRequests(); setSelectedPrayer(null);
     } catch (error: any) {
-      console.error('Delete prayer request error:', error);
-      toast({
-        title: "Error deleting prayer request",
-        description: error.message || 'Check console for details',
-        variant: "destructive",
-      });
+      toast({ title: "Error deleting prayer request", description: error.message || 'Check console for details', variant: "destructive" });
     }
   };
 
   const deleteNews = async (id: string) => {
     if (!confirm("Are you sure you want to delete this news item?")) return;
-    
     try {
-      const { error } = await supabase
-        .from('news')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw new Error(error.message || 'Failed to delete news item');
-      }
-
-      toast({
-        title: "News item deleted",
-        description: "Entry has been removed successfully",
-      });
-
+      const { error } = await supabase.from('news').delete().eq('id', id);
+      if (error) throw new Error(error.message || 'Failed to delete news item');
+      toast({ title: "News item deleted", description: "Entry has been removed successfully" });
       fetchNews();
     } catch (error: any) {
-      console.error('Delete news error:', error);
-      toast({
-        title: "Error deleting news item",
-        description: error.message || 'Check console for details',
-        variant: "destructive",
-      });
+      toast({ title: "Error deleting news item", description: error.message || 'Check console for details', variant: "destructive" });
     }
   };
 
-  // Pre-authentication gate
+  /* ─── Pre-auth gate ─── */
   if (!preAuthPassed) {
     return (
-      <div className="min-h-screen bg-background fixed inset-0 flex items-center justify-center">
-        <div className="w-full h-full bg-black/50 absolute inset-0" />
-        <Card className="w-full max-w-md border-0 shadow-divine z-50 relative">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <div className="text-7xl mb-6">🤔</div>
-              <h2 className="text-2xl font-bold mb-4">Who sent you here?</h2>
-              <form onSubmit={handlePreAuth} className="space-y-4">
-                <Input
+      <div className="admin-page-wrap">
+        <style>{adminStyles}</style>
+        <div className="admin-bg">
+          <div className="admin-bg-orb admin-bg-orb-1" />
+          <div className="admin-bg-orb admin-bg-orb-2" />
+          <div className="admin-bg-orb admin-bg-orb-3" />
+        </div>
+        <div className="pre-auth-overlay">
+          <div className="pre-auth-card">
+            <span className="pre-auth-emoji">🤔</span>
+            <h2 className="pre-auth-title">Who sent you here?</h2>
+            <form onSubmit={handlePreAuth}>
+              <div style={{ position: "relative", marginBottom: "1.2rem" }}>
+                <input
                   type="text"
-                  placeholder="Enter the answer"
+                  className="admin-input"
                   value={preAuthAnswer}
-                  onChange={(e) => setPreAuthAnswer(e.target.value)}
-                  className="text-center text-lg"
+                  onChange={e => setPreAuthAnswer(e.target.value)}
+                  placeholder=" "
                   autoFocus
                   required
+                  style={{ textAlign: "center", letterSpacing: "0.1em" }}
                 />
-                {preAuthError && (
-                  <div className="text-red-500 font-semibold text-center pt-2">
-                    {preAuthError}
-                  </div>
-                )}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-royal text-primary-foreground text-lg py-6"
-                >
-                  Submit
-                </Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+                <label className={`floating-label${preAuthAnswer ? " active" : ""}`} style={{
+                  position: "absolute", left: 16,
+                  top: preAuthAnswer ? -1 : "50%",
+                  transform: preAuthAnswer ? "translateY(-100%)" : "translateY(-50%)",
+                  fontSize: preAuthAnswer ? 11 : 14,
+                  color: preAuthAnswer ? "#a78bfa" : "rgba(255,255,255,0.35)",
+                  textTransform: preAuthAnswer ? "uppercase" : "none",
+                  letterSpacing: preAuthAnswer ? "0.05em" : "normal",
+                  fontWeight: preAuthAnswer ? 600 : 400,
+                  pointerEvents: "none",
+                  transition: "all 0.22s",
+                  padding: "0 4px", zIndex: 2,
+                }}>Enter the answer</label>
+              </div>
+              {preAuthError && (
+                <div className="admin-error">{preAuthError}</div>
+              )}
+              <RippleButton type="submit">Submit</RippleButton>
+            </form>
+          </div>
+        </div>
       </div>
     );
   }
 
+  /* ─── Login screen ─── */
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen pt-16 bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md border-0 shadow-divine">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-royal rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-primary-foreground" />
+      <div className="admin-page-wrap">
+        <style>{adminStyles}</style>
+        <div className="admin-bg">
+          <div className="admin-bg-orb admin-bg-orb-1" />
+          <div className="admin-bg-orb admin-bg-orb-2" />
+          <div className="admin-bg-orb admin-bg-orb-3" />
+        </div>
+        <div className="admin-split">
+          {/* Character */}
+          <div className="character-wrap">
+            <CharacterSVG />
+            <div className="character-bubble">
+              <strong>Welcome Back!</strong>
+              Sign in to manage your church dashboard ✨
             </div>
-            <CardTitle className="text-2xl">Admin Login</CardTitle>
-            <p className="text-sm text-muted-foreground mt-2">Enter your credentials to access the dashboard</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              {loginError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                  {loginError}
-                </div>
-              )}
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
-              <Button type="submit" className="w-full bg-gradient-royal text-primary-foreground">
+          </div>
+
+          {/* Login Card */}
+          <div className="admin-card">
+            <div className="admin-icon-badge">
+              <Lock style={{ width: 28, height: 28, color: "#fff" }} />
+            </div>
+            <h1 className="admin-card-title">Admin Login</h1>
+            <p className="admin-card-sub">Enter your credentials to access the dashboard</p>
+
+            <form onSubmit={handleLogin}>
+              {loginError && <div className="admin-error">{loginError}</div>}
+
+              <FloatingInput
+                id="email"
+                label="Email address"
+                type="email"
+                value={loginForm.email}
+                onChange={v => setLoginForm(prev => ({ ...prev, email: v }))}
+                required
+              />
+
+              <FloatingInput
+                id="password"
+                label="Password"
+                type="password"
+                value={loginForm.password}
+                onChange={v => setLoginForm(prev => ({ ...prev, password: v }))}
+                required
+              />
+
+              <RippleButton type="submit">
                 Login to Admin Panel
-              </Button>
+              </RippleButton>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
+  /* ─── Authenticated Dashboard (updated) ─── */
   return (
-    <div className="min-h-screen pt-16 bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-16">
       {/* Header */}
-      <div className="bg-gradient-hero py-8">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-primary-foreground">Admin Dashboard</h1>
-            <p className="text-primary-foreground/80">Manage all church operations</p>
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 shadow-lg">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full mix-blend-multiply filter blur-3xl" />
+          <div className="absolute -bottom-8 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl" />
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 relative z-10">
+          <div className="flex justify-between items-start md:items-center gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
+                Admin Dashboard
+              </h1>
+              <p className="text-blue-100 text-lg font-medium flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                Welcome back, manage your ministry
+              </p>
+            </div>
+            <Button 
+              onClick={handleLogout} 
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95"
+            >
+              Logout
+            </Button>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
-            Logout
-          </Button>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-0 shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Partnerships</p>
-                  <p className="text-3xl font-bold text-primary">{stats.totalPartnerships}</p>
-                </div>
-                <CreditCard className="w-12 h-12 text-primary opacity-60" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Members</p>
-                  <p className="text-3xl font-bold text-primary">{stats.totalMembers}</p>
-                </div>
-                <Users className="w-12 h-12 text-primary opacity-60" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Prayer Requests</p>
-                  <p className="text-3xl font-bold text-primary">{prayerRequests.length}</p>
-                </div>
-                <Heart className="w-12 h-12 text-primary opacity-60" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">News Articles</p>
-                  <p className="text-3xl font-bold text-primary">{newsItems.length}</p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-primary opacity-60" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Dashboard - Component Cards with CTAs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="container mx-auto px-4 py-12">
+        {/* Key Metrics - Top Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {/* Partnerships Card */}
-          <Card className="border-0 shadow-divine hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
-                Partnerships
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.totalPartnerships}</p>
+          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 hover:border-blue-300">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="p-6 relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <CreditCard className="w-7 h-7 text-white" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <Badge variant="secondary">{stats.pendingApplications}</Badge>
-                </div>
+                <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full">Active</span>
               </div>
-              <Button 
-                onClick={() => window.location.href = '/admin-partnerships'}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:shadow-lg"
-              >
-                Manage Partnerships →
-              </Button>
-            </CardContent>
-          </Card>
+              <p className="text-slate-600 text-sm font-semibold mb-1">Total Partnerships</p>
+              <p className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">{stats.totalPartnerships}</p>
+              <div className="h-1 bg-gradient-to-r from-blue-200 to-cyan-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 w-3/4" />
+              </div>
+            </div>
+          </div>
 
-          {/* Memberships Card */}
-          <Card className="border-0 shadow-divine hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <Users className="w-5 h-5 mr-2 text-green-600" />
-                Memberships
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.totalMembers}</p>
+          {/* Members Card */}
+          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-green-100 hover:border-green-300">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="p-6 relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Users className="w-7 h-7 text-white" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <Badge variant="secondary">{stats.pendingMembers}</Badge>
-                </div>
+                <span className="text-xs font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">{stats.pendingMembers} Pending</span>
               </div>
-              <Button 
-                onClick={() => window.location.href = '/admin-memberships'}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-500 text-white hover:shadow-lg"
-              >
-                Manage Memberships →
-              </Button>
-            </CardContent>
-          </Card>
+              <p className="text-slate-600 text-sm font-semibold mb-1">Total Members</p>
+              <p className="text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">{stats.totalMembers}</p>
+              <div className="h-1 bg-gradient-to-r from-green-200 to-emerald-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500 w-2/3" />
+              </div>
+            </div>
+          </div>
 
-          {/* Prayer Requests Card */}
-          <Card className="border-0 shadow-divine hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <Heart className="w-5 h-5 mr-2 text-red-600" />
-                Prayer Requests
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-red-600">{prayerRequests.length}</p>
+          {/* Prayers Card */}
+          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-red-100 hover:border-red-300">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-red-100 to-pink-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="p-6 relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Heart className="w-7 h-7 text-white" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">Received</p>
-                  <Badge variant="secondary">{prayerRequests.filter((p: any) => p.status === 'received').length}</Badge>
-                </div>
+                <span className="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">{prayerRequests.filter((p: any) => p.status === 'received').length} New</span>
               </div>
-              <Button 
-                onClick={() => window.location.href = '/admin-prayers'}
-                className="w-full bg-gradient-to-r from-red-600 to-pink-500 text-white hover:shadow-lg"
-              >
-                View Prayers →
-              </Button>
-            </CardContent>
-          </Card>
+              <p className="text-slate-600 text-sm font-semibold mb-1">Prayer Requests</p>
+              <p className="text-4xl font-black bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-2">{prayerRequests.length}</p>
+              <div className="h-1 bg-gradient-to-r from-red-200 to-pink-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-red-500 to-pink-500 w-4/5" />
+              </div>
+            </div>
+          </div>
 
           {/* News Card */}
-          <Card className="border-0 shadow-divine hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg">
-                <TrendingUp className="w-5 h-5 mr-2 text-purple-600" />
-                News
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm text-muted-foreground">Articles</p>
-                  <p className="text-2xl font-bold text-purple-600">{newsItems.length}</p>
+          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="p-6 relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-7 h-7 text-white" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">Recent</p>
-                  <Badge variant="secondary">{newsItems.length > 0 ? 'Updated' : 'None'}</Badge>
-                </div>
+                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">Updated</span>
               </div>
-              <Button 
-                onClick={() => window.location.href = '/admin-news'}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white hover:shadow-lg"
+              <p className="text-slate-600 text-sm font-semibold mb-1">News Articles</p>
+              <p className="text-4xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">{newsItems.length}</p>
+              <div className="h-1 bg-gradient-to-r from-purple-200 to-indigo-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 w-1/3" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Management Cards - Bottom Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Partnerships Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-8 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <CreditCard className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Partnerships</h3>
+                <p className="text-blue-100 text-sm leading-relaxed">
+                  Manage partnership tiers, donations, and donor relationships efficiently.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.href = '/admin-partnerships'}
+                className="mt-6 w-full bg-white text-blue-600 font-bold py-3 rounded-xl hover:bg-blue-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
-                Manage News →
-              </Button>
-            </CardContent>
-          </Card>
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Memberships Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-600 to-emerald-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-8 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Memberships</h3>
+                <p className="text-green-100 text-sm leading-relaxed">
+                  Review and process membership applications from your community.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.href = '/admin-memberships'}
+                className="mt-6 w-full bg-white text-green-600 font-bold py-3 rounded-xl hover:bg-green-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Prayer Requests Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 to-pink-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-8 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Heart className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Prayers</h3>
+                <p className="text-red-100 text-sm leading-relaxed">
+                  View and respond to prayer requests from your congregation.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.href = '/admin-prayers'}
+                className="mt-6 w-full bg-white text-red-600 font-bold py-3 rounded-xl hover:bg-red-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>View</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* News Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-8 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">News</h3>
+                <p className="text-purple-100 text-sm leading-relaxed">
+                  Create, edit, and publish news articles and updates.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.href = '/admin-news'}
+                className="mt-6 w-full bg-white text-purple-600 font-bold py-3 rounded-xl hover:bg-purple-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Footer */}
+        <div className="mt-12 bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+          <h2 className="text-2xl font-bold mb-6 text-slate-800">Quick Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center gap-4 pb-6 md:pb-0 md:border-r border-slate-200">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <CreditCard className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-slate-600 text-sm">Pending Partnerships</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.pendingApplications}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 pb-6 md:pb-0 md:border-r border-slate-200">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <Users className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <p className="text-slate-600 text-sm">Pending Members</p>
+                <p className="text-3xl font-bold text-green-600">{stats.pendingMembers}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                <Heart className="w-8 h-8 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-slate-600 text-sm">Unread Prayers</p>
+                <p className="text-3xl font-bold text-purple-600">{prayerRequests.filter((p: any) => p.status === 'received').length}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
