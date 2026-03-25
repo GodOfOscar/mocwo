@@ -63,6 +63,13 @@ const adminStyles = `
 
   .admin-page-wrap {
     font-family: 'Lato', sans-serif;
+    position: relative;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  html, body {
+    overflow-x: hidden;
   }
 
   /* ── Background ── */
@@ -133,7 +140,64 @@ const adminStyles = `
   }
   @media (max-width: 768px) {
     .character-wrap { display: none; }
-    .admin-split { justify-content: center; }
+    .admin-split { 
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      min-height: auto;
+    }
+    .admin-card {
+      max-width: 100%;
+      padding: 1.5rem;
+      max-width: 380px;
+    }
+    .admin-card-title {
+      font-size: 22px;
+    }
+    .admin-card-sub {
+      font-size: 12px;
+    }
+    .field-wrap {
+      margin-bottom: 1rem;
+    }
+    .admin-btn {
+      height: 48px;
+      font-size: 14px;
+    }
+    .admin-input {
+      height: 48px;
+      font-size: 14px;
+    }
+    .pre-auth-card {
+      padding: 1.5rem;
+      max-width: 90vw;
+      border-radius: 16px;
+    }
+    .pre-auth-title {
+      font-size: 18px;
+    }
+    .pre-auth-emoji {
+      font-size: 48px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .admin-card {
+      max-width: 100%;
+      padding: 1.25rem;
+    }
+    .admin-bg-orb-1 {
+      width: 300px;
+      height: 300px;
+      top: -150px;
+      left: -150px;
+    }
+    .admin-bg-orb-2 {
+      width: 250px;
+      height: 250px;
+      bottom: -150px;
+      right: -150px;
+    }
   }
 
   /* ── Card ── */
@@ -297,6 +361,8 @@ const adminStyles = `
     display: flex; align-items: center; justify-content: center;
     z-index: 9999;
     padding: 2rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .pre-auth-card {
     background: rgba(255,255,255,0.07);
@@ -910,20 +976,20 @@ const Admin = () => {
           <div className="absolute -bottom-8 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl" />
         </div>
         
-        <div className="container mx-auto px-4 py-8 relative z-10">
-          <div className="flex justify-between items-start md:items-center gap-6">
+        <div className="container mx-auto px-4 py-6 md:py-8 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
             <div>
-              <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-white mb-1 md:mb-2 tracking-tight">
                 Admin Dashboard
               </h1>
-              <p className="text-blue-100 text-lg font-medium flex items-center gap-2">
+              <p className="text-blue-100 text-sm md:text-base lg:text-lg font-medium flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                 Welcome back, manage your ministry
               </p>
             </div>
             <Button 
               onClick={handleLogout} 
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95"
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 md:px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 w-full md:w-auto"
             >
               Logout
             </Button>
@@ -931,9 +997,9 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-3 md:px-4 py-6 md:py-12">
         {/* Key Metrics - Top Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
           {/* Partnerships Card */}
           <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 hover:border-blue-300">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
