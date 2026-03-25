@@ -91,18 +91,18 @@ const Navigation = () => {
       )}
       <div className="nav-progress-bar" style={{ width: `${loadingProgress}%` }} />
 
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border font-medium transition-all duration-300 ease-out">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border font-medium transition-all duration-300 ease-out md:bg-background/95">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
 
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-4 transform transition-transform duration-300 hover:scale-105">
+            {/* Logo - Responsive */}
+            <Link to="/" className="flex items-center space-x-2 md:space-x-4 transform transition-transform duration-300 hover:scale-105 flex-shrink-0">
               <img 
                 src={logo2} 
                 alt="MOCWO Logo" 
-                className="h-12 w-auto max-w-full filter transition-all duration-300 hover:drop-shadow-lg" 
+                className="h-10 md:h-12 w-auto max-w-full filter transition-all duration-300 hover:drop-shadow-lg" 
               />
-              <span className="font-bold text-xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent transition-all duration-300">
+              <span className="font-bold text-lg md:text-xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent transition-all duration-300 hidden sm:inline">
                 MOCWO
               </span>
             </Link>
@@ -146,9 +146,11 @@ const Navigation = () => {
             {/* Mobile menu button */}
             <button 
               onClick={() => setIsOpen(!isOpen)} 
-              className="md:hidden p-2 rounded-lg hover:bg-muted transition-all duration-300 transform hover:scale-110 active:scale-95"
+              className="md:hidden p-2 rounded-lg hover:bg-muted transition-all duration-300 transform hover:scale-110 active:scale-95 relative group"
             >
               <div className="relative w-6 h-6 flex items-center justify-center">
+                {/* Background glow effect on hover */}
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <Menu 
                   size={24} 
                   className={`transition-all duration-300 absolute ${isOpen ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}
@@ -164,43 +166,82 @@ const Navigation = () => {
           {/* Mobile nav */}
           {isOpen && (
             <div 
-              className="md:hidden py-4 border-t border-border bg-background/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-300"
+              className="md:hidden py-6 border-t border-border/50 bg-gradient-to-b from-background/98 via-background/95 to-background/90 backdrop-blur-xl animate-in slide-in-from-top-2 duration-300 shadow-2xl"
               style={{
-                animation: 'slideInDown 0.4s ease-out'
+                animation: 'slideInDown 0.4s ease-out',
+                background: 'linear-gradient(180deg, var(--background) 0%, rgba(59, 130, 246, 0.03) 50%, var(--background) 100%)',
               }}
             >
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-col space-y-3 px-2">
+                {/* Header */}
+                {navItems.length > 0 && (
+                  <div className="px-2 py-2 mb-2 border-b border-border/30 pb-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-500/70">Navigation Menu</p>
+                  </div>
+                )}
+
                 {navItems.map((item, index) => (
                   <Link
                     key={item.path}
                     to={item.path}
                     onClick={() => setIsOpen(false)}
-                    className={`px-4 py-3 text-sm font-medium transition-all rounded-lg transform ${
+                    className={`mobile-nav-item group relative px-4 py-3 text-sm font-semibold transition-all duration-300 rounded-xl transform overflow-hidden ${
                       isActive(item.path)
-                        ? "bg-gradient-to-r from-blue-600 to-cyan-400 text-white shadow-lg scale-100"
-                        : "text-muted-foreground hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-400 hover:text-white hover:scale-105"
+                        ? "bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 text-white shadow-lg shadow-blue-500/30 scale-105"
+                        : "text-muted-foreground hover:text-foreground hover:scale-105 active:scale-95"
                     }`}
                     style={{
                       animation: isOpen ? `slideInDown 0.4s ease-out forwards` : 'none',
                       animationDelay: `${index * 0.05 + 0.1}s`
                     }}
                   >
-                    <span className="uppercase">{item.name}</span>
+                    {/* Background hover effect */}
+                    {!isActive(item.path) && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-cyan-400/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl" />
+                    )}
+                    <span className="uppercase relative z-10 flex items-center">
+                      {item.name}
+                      {isActive(item.path) && (
+                        <span className="ml-2 inline-block w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+                      )}
+                    </span>
+                    {/* Bottom border animation */}
+                    {!isActive(item.path) && (
+                      <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-0.5 bg-gradient-to-r from-blue-400 to-cyan-300 transition-all duration-500" />
+                    )}
                   </Link>
                 ))}
-                <div className="px-4 pt-3">
-                  <Link to="/admin" style={{
+
+                {/* Divider */}
+                <div className="my-2 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+
+                {/* Admin Section */}
+                <div 
+                  className="px-2 pt-2"
+                  style={{
                     animation: isOpen ? `slideInDown 0.4s ease-out forwards` : 'none',
                     animationDelay: `${(navItems.length * 0.05) + 0.1}s`
-                  }}>
+                  }}
+                >
+                  <Link 
+                    to="/admin"
+                    onClick={() => setIsOpen(false)}
+                  >
                     <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300"
+                      className="w-full bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105 active:scale-95 text-white font-semibold py-3 h-auto rounded-xl group"
                     >
-                      Admin
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/80 group-hover:scale-150 transition-transform duration-300" />
+                        Admin Panel
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/80 group-hover:scale-150 transition-transform duration-300" />
+                      </div>
                     </Button>
                   </Link>
+                </div>
+
+                {/* Footer info */}
+                <div className="px-4 pt-4 mt-2 text-center text-xs text-muted-foreground/50 border-t border-border/20 pt-4">
+                  <p>MOCWO Administration</p>
                 </div>
               </div>
             </div>
@@ -244,6 +285,40 @@ const Navigation = () => {
           50% {
             box-shadow: 0 0 15px rgba(37, 99, 235, 0.6);
           }
+        }
+
+        @keyframes mobileMenuSlide {
+          from {
+            transform: translateY(-20px) scaleY(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0) scaleY(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes itemFloat {
+          0%, 100% {
+            transform: translateX(-5px);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        /* Mobile menu enhanced animations */
+        @media (max-width: 768px) {
+          .mobile-nav-item {
+            animation: itemFloat 0.4s ease-out forwards;
+          }
+        }
+
+        /* Ensure smooth transitions */
+        * {
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
     </>
