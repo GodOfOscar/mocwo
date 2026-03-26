@@ -153,6 +153,44 @@ const Home = () => {
       {/* Hero Carousel */}
       <HeroCarousel slides={carouselSlides} />
 
+      {/* Welcome section with video + glassmorphism + scroll reveal */}
+      <section
+        ref={welcomeRef}
+        className={`relative overflow-hidden py-20 transition-all duration-700 ease-out ${showWelcome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
+      >
+        <video
+          className="absolute inset-0 w-full h-full object-cover brightness-80 filter blur-sm"
+          src={vid}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-br from-black/45 via-slate-900/45 to-black/50 backdrop-blur-sm" />
+
+        <div className="relative z-10 container mx-auto px-4">
+          <div className="max-w-5xl mx-auto rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl p-8 md:p-12 shadow-2xl shadow-slate-950/35">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">Welcome to Martyrs Of Christ World Outreach</h2>
+            <p className="text-white/90 text-lg md:text-xl mb-8 leading-relaxed">
+              A Christian youth non-denominational evangelical movement fully committed to missions and mandated to empower the saints to be effective witnesses of Christ.
+              Join a community that grows in purpose, faith, and impact in the world.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Link to="/mocwo">
+                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Explore MOCWO</Button>
+              </Link>
+              <Link to="/membership">
+                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Join Our Family</Button>
+              </Link>
+              <Link to="/partnership">
+                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Partner with Us</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* News Feed Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
