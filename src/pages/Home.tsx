@@ -124,27 +124,24 @@ const Home = () => {
 
   // `news` imported from src/data/news
 
-  const [showWelcome, setShowWelcome] = useState(false);
-  const welcomeRef = useRef<HTMLElement | null>(null);
+  const [heroVisible, setHeroVisible] = useState(false);
+  const heroRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!welcomeRef.current) return;
+    const node = heroRef.current;
+    if (!node) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setShowWelcome(true);
-            observer.unobserve(entry.target);
-          }
-        });
+        const entry = entries[0];
+        if (entry) {
+          setHeroVisible(entry.isIntersecting && entry.intersectionRatio > 0.2);
+        }
       },
-      {
-        root: null,
-        rootMargin: "-100px",
-        threshold: 0.3,
-      }
+      { threshold: [0.2, 0.4, 0.6, 0.8] }
     );
-    observer.observe(welcomeRef.current);
+
+    observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
@@ -152,44 +149,6 @@ const Home = () => {
     <div className="min-h-screen flex flex-col">
       {/* Hero Carousel */}
       <HeroCarousel slides={carouselSlides} />
-
-      {/* Welcome section with video + glassmorphism + scroll reveal */}
-      <section
-        ref={welcomeRef}
-        className={`relative overflow-hidden py-20 transition-all duration-700 ease-out ${showWelcome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
-      >
-        <video
-          className="absolute inset-0 w-full h-full object-cover brightness-80 filter blur-sm"
-          src={vid}
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-br from-black/45 via-slate-900/45 to-black/50 backdrop-blur-sm" />
-
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="max-w-5xl mx-auto rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl p-8 md:p-12 shadow-2xl shadow-slate-950/35">
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">Welcome to Martyrs Of Christ World Outreach</h2>
-            <p className="text-white/90 text-lg md:text-xl mb-8 leading-relaxed">
-              A Christian youth non-denominational evangelical movement fully committed to missions and mandated to empower the saints to be effective witnesses of Christ.
-              Join a community that grows in purpose, faith, and impact in the world.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Link to="/mocwo">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Explore MOCWO</Button>
-              </Link>
-              <Link to="/membership">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Join Our Family</Button>
-              </Link>
-              <Link to="/partnership">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Partner with Us</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* News Feed Section */}
       <section className="py-16 bg-white">
@@ -249,13 +208,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Welcome section with video + glassmorphism + scroll reveal */}
-      <section
-        ref={welcomeRef}
-        className={`relative overflow-hidden py-20 transition-all duration-700 ease-out ${showWelcome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
-      >
+      {/* Welcome Section */}
+      <section ref={heroRef} className="py-20 relative overflow-hidden bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600">
         <video
-          className="absolute inset-0 w-full h-full object-cover brightness-90 filter blur-sm"
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${heroVisible ? "opacity-100 blur-0" : "opacity-20 blur-sm"}`}
           src={vid}
           autoPlay
           muted
@@ -263,25 +219,39 @@ const Home = () => {
           playsInline
         />
 
-        <div className="absolute inset-0 bg-gradient-to-br from-black/45 via-slate-900/45 to-black/50 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/30 transition-opacity duration-1000 ease-in-out" />
 
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="max-w-5xl mx-auto rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl p-8 md:p-12 shadow-2xl shadow-slate-950/35">
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">Welcome to Martyrs Of Christ World Outreach</h2>
-            <p className="text-white/90 text-lg md:text-xl mb-8 leading-relaxed">
-              A Christian youth non-denominational evangelical movement fully committed to missions and mandated to empower the saints to be effective witnesses of Christ.
-              Join a community that grows in purpose, faith, and impact in the world.
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-4xl mx-auto text-center text-white">
+            <h2
+              className={`text-4xl md:text-5xl font-bold mb-6 transform transition-all duration-800 ease-out ${
+                heroVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+            >
+              Welcome to Martyrs Of Christ World Outreach
+            </h2>
+            <p
+              className={`text-xl mb-8 transition-all duration-900 ease-out ${
+                heroVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+              style={{ transitionDelay: heroVisible ? "0.15s" : "0s" }}
+            >
+              A Christian youth non-denominational evangelical movement fully commited to missions and mandated to empower the saints to be effective witnesses of Christ and also live as agents of change in the world at large.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-1000 ease-out ${
+                heroVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+              style={{ transitionDelay: heroVisible ? "0.25s" : "0s" }}
+            >
               <Link to="/mocwo">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Explore MOCWO</Button>
+                <Button size="lg" variant="secondary" className="px-8 py-6 text-lg">
+                  MOCWO
+                </Button>
               </Link>
-              <Link to="/membership">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Join Our Family</Button>
-              </Link>
-              <Link to="/partnership">
-                <Button className="bg-white/25 text-white hover:bg-white/40 border border-white/25 backdrop-blur-md">Partner with Us</Button>
-              </Link>
+              {/* <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-white text-white hover:bg-white hover:text-blue-800">
+                Watch Online
+              </Button> */}
             </div>
           </div>
         </div>
