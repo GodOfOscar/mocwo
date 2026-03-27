@@ -57,14 +57,19 @@ const Navigation = () => {
   useEffect(() => {
     const shouldDisableScrollEffect = location.pathname === "/partnership";
     
+    // Set initial state based on current scroll position
+    if (shouldDisableScrollEffect) {
+      setIsScrolled(true); // Partnership always white
+    } else {
+      setIsScrolled(window.scrollY > 50); // All other pages check scroll
+    }
+    
     const handleScroll = () => {
       if (!shouldDisableScrollEffect) {
         const scrollY = window.scrollY;
         setIsScrolled(scrollY > 50); // Trigger at 50px scroll
-      } else {
-        // On Partnership page, keep navbar in scrolled state (white background)
-        setIsScrolled(true);
       }
+      // On Partnership page, don't update scroll state
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
