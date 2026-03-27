@@ -53,18 +53,22 @@ const Navigation = () => {
     };
   }, [location.pathname]);
 
-  // Handle scroll-based navbar styling
+  // Handle scroll-based navbar styling - disable on Partnership and FHC pages
   useEffect(() => {
+    const shouldDisableScrollEffect = location.pathname === "/partnership" || location.pathname === "/fhc";
+    
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setIsScrolled(scrollY > 50); // Trigger at 50px scroll
+      if (!shouldDisableScrollEffect) {
+        const scrollY = window.scrollY;
+        setIsScrolled(scrollY > 50); // Trigger at 50px scroll
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
-  // Hide navbar on main FHC landing page and Partnership page
+  // Hide navbar on FHC and Partnership pages
   if (location.pathname === "/fhc" || location.pathname === "/partnership") return null;
 
   return (
