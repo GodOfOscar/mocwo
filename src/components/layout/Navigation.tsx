@@ -53,14 +53,17 @@ const Navigation = () => {
     };
   }, [location.pathname]);
 
-  // Handle scroll-based navbar styling - disable on Partnership and FHC pages
+  // Handle scroll-based navbar styling - disable on Partnership page only
   useEffect(() => {
-    const shouldDisableScrollEffect = location.pathname === "/partnership" || location.pathname === "/fhc";
+    const shouldDisableScrollEffect = location.pathname === "/partnership";
     
     const handleScroll = () => {
       if (!shouldDisableScrollEffect) {
         const scrollY = window.scrollY;
         setIsScrolled(scrollY > 50); // Trigger at 50px scroll
+      } else {
+        // On Partnership page, keep navbar in scrolled state (white background)
+        setIsScrolled(true);
       }
     };
 
@@ -68,8 +71,8 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
-  // Hide navbar on FHC and Partnership pages
-  if (location.pathname === "/fhc" || location.pathname === "/partnership") return null;
+  // Hide navbar on FHC page only
+  if (location.pathname === "/fhc") return null;
 
   return (
     <>
