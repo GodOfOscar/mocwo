@@ -55,13 +55,14 @@ const Navigation = () => {
 
   // Handle scroll-based navbar styling
   useEffect(() => {
-    const shouldDisableScrollEffect = location.pathname === "/partnership";
+    const pagesWithWhiteNavbar = ["/partnership", "/about", "/services", "/rev-prince-ministries"];
+    const shouldDisableScrollEffect = pagesWithWhiteNavbar.includes(location.pathname);
     
-    // Initialize based on current scroll
-    if (!shouldDisableScrollEffect) {
-      setIsScrolled(window.scrollY > 30); // Lower threshold for better trigger
+    // Initialize based on current scroll or force white on specific pages
+    if (shouldDisableScrollEffect) {
+      setIsScrolled(true); // Always white background with black text on these pages
     } else {
-      setIsScrolled(true);
+      setIsScrolled(window.scrollY > 30);
     }
     
     const handleScroll = () => {
@@ -71,6 +72,7 @@ const Navigation = () => {
           setIsScrolled(window.scrollY > 30);
         });
       }
+      // On pages with white navbar, don't update scroll state
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
