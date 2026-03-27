@@ -64,8 +64,8 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hide navbar only on main FHC landing page
-  if (location.pathname === "/fhc") return null;
+  // Hide navbar on main FHC landing page and Partnership page
+  if (location.pathname === "/fhc" || location.pathname === "/partnership") return null;
 
   return (
     <>
