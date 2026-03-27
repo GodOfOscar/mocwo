@@ -137,10 +137,10 @@ const Navigation = () => {
                   to={item.path}
                   className={`relative group px-4 py-2 text-sm font-medium transition-all duration-300 ease-out ${
                     isActive(item.path)
-                      ? "bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent"
+                      ? "text-blue-600 font-bold"
                       : isScrolled
-                        ? "text-gray-700 hover:text-blue-600"
-                        : "text-white hover:text-blue-200"
+                        ? "text-gray-800 hover:text-blue-600"
+                        : "text-white hover:text-cyan-300 drop-shadow-md"
                   }`}
                   style={{
                     animation: isNavigating ? `slideInDown 0.6s ease-out forwards` : 'none',
@@ -160,10 +160,10 @@ const Navigation = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className={`transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  className={`transition-all duration-300 transform hover:scale-105 active:scale-95 font-semibold ${
                     isScrolled
-                      ? 'border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white'
-                      : 'border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur'
+                      ? 'border-blue-600 text-white bg-blue-600 hover:bg-blue-700'
+                      : 'border-white/50 text-white bg-blue-600/80 hover:bg-blue-600 drop-shadow-lg backdrop-blur'
                   }`}
                 >
                   Admin
@@ -227,7 +227,7 @@ const Navigation = () => {
                     borderColor: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'
                   }}>
                     <p className={`text-xs font-bold uppercase tracking-widest ${
-                      isScrolled ? 'text-blue-500/70' : 'text-blue-500/70'
+                      isScrolled ? 'text-blue-600' : 'text-blue-400'
                     }`}>Navigation Menu</p>
                   </div>
                 )}
@@ -241,8 +241,8 @@ const Navigation = () => {
                       isActive(item.path)
                         ? "bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 text-white shadow-lg shadow-blue-500/30 scale-105"
                         : isScrolled
-                          ? "text-gray-700 hover:text-blue-600 hover:scale-105 active:scale-95"
-                          : "text-muted-foreground hover:text-foreground hover:scale-105 active:scale-95"
+                          ? "text-gray-800 hover:text-blue-600 hover:scale-105 active:scale-95"
+                          : "text-white hover:text-cyan-300 hover:scale-105 active:scale-95 drop-shadow-md"
                     }`}
                     style={{
                       animation: isOpen ? `slideInDown 0.4s ease-out forwards` : 'none',
@@ -290,7 +290,7 @@ const Navigation = () => {
                     <Button 
                       className={`w-full transition-all duration-300 transform hover:scale-105 active:scale-95 text-white font-semibold py-3 h-auto rounded-xl group ${
                         isScrolled
-                          ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-500/40'
+                          ? 'bg-blue-600 hover:bg-blue-700'
                           : 'bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-500/40'
                       }`}
                     >
