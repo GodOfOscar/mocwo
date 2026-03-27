@@ -53,26 +53,31 @@ const Navigation = () => {
     };
   }, [location.pathname]);
 
-  // Handle scroll-based navbar styling - disable on Partnership page only
+  // Handle scroll-based navbar styling
   useEffect(() => {
     const shouldDisableScrollEffect = location.pathname === "/partnership";
     
-    // Set initial state based on current scroll position
-    if (shouldDisableScrollEffect) {
-      setIsScrolled(true); // Partnership always white
+    // Initialize based on current scroll
+    if (!shouldDisableScrollEffect) {
+      setIsScrolled(window.scrollY > 30); // Lower threshold for better trigger
     } else {
-      setIsScrolled(window.scrollY > 50); // All other pages check scroll
+      setIsScrolled(true);
     }
     
     const handleScroll = () => {
       if (!shouldDisableScrollEffect) {
-        const scrollY = window.scrollY;
-        setIsScrolled(scrollY > 50); // Trigger at 50px scroll
+        // Use requestAnimationFrame for smooth updates
+        requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 30);
+        });
       }
-      // On Partnership page, don't update scroll state
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Trigger check immediately on mount
+    handleScroll();
+    
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
