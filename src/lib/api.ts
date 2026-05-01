@@ -2,9 +2,13 @@
  * API client functions for prayer requests and other backend operations
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const VITE_API_URL = import.meta.env.VITE_API_URL;
 
-console.log('[API] Using base URL:', API_BASE_URL);
+const API_BASE_URL = typeof window !== 'undefined' && window.location.protocol === 'https:' && VITE_API_URL?.startsWith('http://localhost')
+  ? ''
+  : VITE_API_URL || 'http://localhost:5000';
+
+console.log('[API] Using base URL:', API_BASE_URL || '/api');
 
 export interface PrayerRequestPayload {
   name: string;
