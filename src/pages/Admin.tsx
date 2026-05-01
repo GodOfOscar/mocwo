@@ -740,7 +740,13 @@ const Admin = () => {
         setLoginError(verifyData.error || "Unauthorized access");
       }
     } catch (error: any) {
-      setLoginError(error.message || "Login failed");
+      const message = error?.message || "Login failed";
+      const networkIssue = /failed to fetch|network request failed|networkerror|connection refused|abort/i.test(message);
+      setLoginError(
+        networkIssue
+          ? "Unable to reach the admin backend. Please check that the backend server is running and reload the page."
+          : message
+      );
     }
   };
 

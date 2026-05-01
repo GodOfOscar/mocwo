@@ -131,12 +131,18 @@ export async function verifyAdmin(email: string): Promise<ApiResponse> {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
+    let friendlyMessage = errorMessage;
+    if (/failed to fetch|network request failed|networkerror|connection refused|abort/i.test(errorMessage)) {
+      friendlyMessage =
+        "Admin verification service is unavailable. Please ensure the backend server is running and accessible.";
+    }
+
     console.error('[API] Verification error:', errorMessage);
 
     return {
       success: false,
-      error: errorMessage,
-      message: `Admin verification failed: ${errorMessage}`,
+      error: friendlyMessage,
+      message: `Admin verification failed: ${friendlyMessage}`,
     };
   }
 }
