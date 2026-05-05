@@ -188,10 +188,26 @@ const Home = () => {
 
       {/* Welcome Section */}
       <section className="py-20 relative overflow-hidden bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600">
+        <style>{`
+          @keyframes textReveal {
+            0% { opacity: 0; background-position: 200% center; }
+            100% { opacity: 1; background-position: 0% center; }
+          }
+          .text-gradient-animated {
+            background: linear-gradient(90deg, #ffffff, #a5f3fc, #ffffff);
+            background-size: 200% center;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: textReveal 1.8s ease-in-out forwards;
+          }
+        `}</style>
         <div className="absolute inset-0 bg-black/20" /> 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center text-white">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Welcome to Martyrs Of Christ World Outreach</h2>
+            <h2 className="text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight tracking-tight">
+              <span className="text-gradient-animated">Welcome to Martyrs Of Christ World Outreach</span>
+            </h2>
             <p className="text-xl mb-8 opacity-90">
              A Christian youth non-denominational evangelical movement fully commited to missions and mandated to empower the saints to be effective witnesses of Christ and also live as agents of change in the world at large.
             </p>

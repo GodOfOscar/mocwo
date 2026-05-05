@@ -21,6 +21,8 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 console.log("✅ Environment variables loaded");
+console.log("🔑 SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("🔑 SUPABASE_SERVICE_ROLE_KEY starts with:", process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20) + "...");
 
 // Express setup
 const app = express();

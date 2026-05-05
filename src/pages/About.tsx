@@ -277,7 +277,7 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-16 bg-white overflow-hidden">
+    <div className="min-h-screen bg-white overflow-hidden">
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(30px); }
@@ -316,7 +316,7 @@ const About = () => {
       `}</style>
 
       {/* Hero Section with Gradient Overlay */}
-      <section className="relative h-screen flex items-center overflow-hidden">
+      <section className="relative min-h-[110vh] flex items-center overflow-hidden">
         {/* Background Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
@@ -356,12 +356,9 @@ const About = () => {
               Transforming lives, empowering communities, and building a legacy of faith across continents
             </p>
 
-            <div className="animate-fade-in-up flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="animate-fade-in-up flex justify-center">
               <Button className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white font-bold px-10 py-7 text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
                 <Link to="/partnership">Partner With Us</Link>
-              </Button>
-              <Button className="bg-white/20 hover:bg-white/30 text-white font-bold px-10 py-7 text-lg border-2 border-white/50 backdrop-blur-sm hover:scale-105 transition-all duration-300">
-                Explore More
               </Button>
             </div>
           </div>
@@ -457,9 +454,9 @@ const About = () => {
             <Button className="bg-cyan-400 hover:bg-cyan-500 text-blue-900 font-bold px-8 py-6 text-lg">
               <Link to="/leadership">Meet Our Leaders</Link>
             </Button>
-            <Button className="bg-white/20 hover:bg-white/30 text-white border border-white font-bold px-8 py-6 text-lg">
+            {/* <Button className="bg-white/20 hover:bg-white/30 text-white border border-white font-bold px-8 py-6 text-lg">
               Learn More
-            </Button>
+            </Button> */}
           </div>
         </div>
       </ScrollReveal>

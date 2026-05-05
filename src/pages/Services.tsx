@@ -82,7 +82,7 @@ const Services = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col pt-16">
+    <div className="min-h-screen flex flex-col overflow-hidden">
       {/* Hero Section */}
       <section className="py-24 bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">

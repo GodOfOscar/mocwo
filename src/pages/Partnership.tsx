@@ -152,7 +152,7 @@ const Partnership = () => {
   };
 
   return (
-    <div className="min-h-screen pt-16 bg-gradient-to-b from-white via-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50 to-white overflow-hidden">
       
       {/* Hero Carousel */}
       <HeroCarousel slides={carouselSlides} showContent={false} cardMode={true} />

@@ -250,7 +250,7 @@ const Resources = () => {
     <div className="min-h-screen flex flex-col">
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-900 min-h-screen flex items-center justify-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-900 min-h-[110vh] py-24 flex items-center justify-center">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
@@ -265,6 +265,15 @@ const Resources = () => {
             <Button size="lg" className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-2xl hover:scale-105 transition-all duration-200 text-white px-8 py-6 text-lg font-semibold shadow-lg">
               Browse All Resources
             </Button>
+          </div>
+        </div>
+
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center text-white">
+          <span className="text-xs uppercase tracking-[0.35em] mb-2 text-white/80">Scroll</span>
+          <div className="w-10 h-10 rounded-full border border-white/60 bg-white/10 backdrop-blur-xl flex items-center justify-center animate-bounce">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 text-white">
+              <path fill="currentColor" d="M12 16.5l-6-6 1.4-1.4L12 13.7l4.6-4.6 1.4 1.4z" />
+            </svg>
           </div>
         </div>
       </section>

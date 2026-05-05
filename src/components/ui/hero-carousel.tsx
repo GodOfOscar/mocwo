@@ -155,6 +155,20 @@ const HeroCarousel = ({
             opacity: 0;
           }
 
+          .text-gradient-animated {
+            background: linear-gradient(90deg, #ffffff, #a5f3fc, #ffffff);
+            background-size: 200% center;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: textReveal 1.8s ease-in-out forwards;
+          }
+
+          @keyframes textReveal {
+            0% { opacity: 0; background-position: 200% center; }
+            100% { opacity: 1; background-position: 0% center; }
+          }
+
           .card-stack {
             perspective: 1200px;
           }
@@ -194,7 +208,7 @@ const HeroCarousel = ({
               </p>
               
               <div className="mb-4">
-                <h1 className="hero-title text-3xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-2 break-words">
+                <h1 className="hero-title text-gradient-animated text-3xl md:text-5xl lg:text-6xl font-black leading-tight mb-2 break-words">
                   {slides[currentSlide].title}
                 </h1>
                 <h2 className="hero-subtitle text-xl md:text-2xl text-orange-400 font-bold">

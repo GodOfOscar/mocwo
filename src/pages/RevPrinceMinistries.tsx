@@ -61,7 +61,7 @@ export default function RevPrinceMinistries() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-hidden">
 
       {/* Hero Section */}
       <section className="relative h-[70vh] overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">

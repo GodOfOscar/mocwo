@@ -25,7 +25,12 @@ const Navigation = () => {
     {name: "Rev. Prince", path: "/rev-prince-ministries"}, // ✅ Rev.Prince External Link
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const normalizePath = (pathname: string) => pathname.replace(/\/+$|^\s+|\s+$/g, '') || "/";
+  const isActive = (path: string) => {
+    const currentPath = normalizePath(location.pathname);
+    const targetPath = normalizePath(path);
+    return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
+  };
 
   // Handle navigation animation
   useEffect(() => {
@@ -55,8 +60,11 @@ const Navigation = () => {
 
   // Handle scroll-based navbar styling
   useEffect(() => {
-    const pagesWithWhiteNavbar = ["/partnership", "/about", "/services", "/rev-prince-ministries"];
-    const shouldDisableScrollEffect = pagesWithWhiteNavbar.includes(location.pathname);
+    const pagesWithWhiteNavbar = ["/partnership", "/about", "/services", "/resources", "/rev-prince-ministries"];
+    const shouldDisableScrollEffect = pagesWithWhiteNavbar.some((path) => {
+      const current = location.pathname.replace(/\/+$|^\s+|\s+$/g, '') || "/";
+      return current === path || current.startsWith(`${path}/`);
+    });
     
     // Initialize based on current scroll or force white on specific pages
     if (shouldDisableScrollEffect) {
