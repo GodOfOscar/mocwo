@@ -978,7 +978,7 @@ const Admin = () => {
 
   /* ─── Authenticated Dashboard (updated) ─── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 shadow-lg">
         <div className="absolute inset-0 opacity-10">

@@ -7,6 +7,10 @@ DROP POLICY IF EXISTS "Admins can select news" ON public.news;
 DROP POLICY IF EXISTS "Admins can insert news" ON public.news;
 DROP POLICY IF EXISTS "Admins can update news" ON public.news;
 DROP POLICY IF EXISTS "Admins can delete news" ON public.news;
+DROP POLICY IF EXISTS "Anyone can select news" ON public.news;
+DROP POLICY IF EXISTS "Anyone can insert news" ON public.news;
+DROP POLICY IF EXISTS "Anyone can update news" ON public.news;
+DROP POLICY IF EXISTS "Anyone can delete news" ON public.news;
 
 -- Create simplified policies for news that allow public access
 -- Frontend still uses /api/verify-admin for authentication
@@ -35,6 +39,10 @@ CREATE POLICY "Anyone can delete news"
 DROP POLICY IF EXISTS "Admins can view all partnerships" ON public.partnerships;
 DROP POLICY IF EXISTS "Admins can update partnerships" ON public.partnerships;
 DROP POLICY IF EXISTS "Admins can delete partnerships" ON public.partnerships;
+DROP POLICY IF EXISTS "Anyone can view partnerships" ON public.partnerships;
+DROP POLICY IF EXISTS "Anyone can create partnerships" ON public.partnerships;
+DROP POLICY IF EXISTS "Anyone can update partnerships" ON public.partnerships;
+DROP POLICY IF EXISTS "Anyone can delete partnerships" ON public.partnerships;
 
 CREATE POLICY "Anyone can view partnerships"
   ON public.partnerships
@@ -60,7 +68,10 @@ CREATE POLICY "Anyone can delete partnerships"
 -- Do the same for membership_requests table
 DROP POLICY IF EXISTS "Admins can view membership requests" ON public.membership_requests;
 DROP POLICY IF EXISTS "Admins can update membership requests" ON public.membership_requests;
+DROP POLICY IF EXISTS "Anyone can view membership requests" ON public.membership_requests;
 DROP POLICY IF EXISTS "Anyone can create membership requests" ON public.membership_requests;
+DROP POLICY IF EXISTS "Anyone can update membership requests" ON public.membership_requests;
+DROP POLICY IF EXISTS "Anyone can delete membership requests" ON public.membership_requests;
 
 CREATE POLICY "Anyone can view membership requests"
   ON public.membership_requests
@@ -86,7 +97,10 @@ CREATE POLICY "Anyone can delete membership requests"
 -- Do the same for prayer_requests table
 DROP POLICY IF EXISTS "Admins can select prayer requests" ON public.prayer_requests;
 DROP POLICY IF EXISTS "Admins can update prayer requests" ON public.prayer_requests;
+DROP POLICY IF EXISTS "Anyone can view prayer requests" ON public.prayer_requests;
 DROP POLICY IF EXISTS "Anyone can create prayer requests" ON public.prayer_requests;
+DROP POLICY IF EXISTS "Anyone can update prayer requests" ON public.prayer_requests;
+DROP POLICY IF EXISTS "Anyone can delete prayer requests" ON public.prayer_requests;
 
 CREATE POLICY "Anyone can view prayer requests"
   ON public.prayer_requests
