@@ -1,8 +1,10 @@
 // src/pages/Home.tsx
+import { useState, useEffect } from "react";
 import HeroCarousel from "@/components/ui/hero-carousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import hero1 from "@/assets/hero1.jpeg";
 import hero2 from "@/assets/hero2.jpeg";
 import hero3 from "@/assets/hero3.jpeg";
@@ -13,100 +15,94 @@ import { news } from "@/data/news";
 import { Heart, BookOpen, Users, Globe, Mail, Phone, MapPin, Facebook, Instagram, Youtube } from "lucide-react";
 
 const Home = () => {
-  const carouselSlides = [
-  { 
-    id: 1, 
-    title: "REACHING OUT TO THE UNREACHED", 
-    subtitle: "Welcome to Martyrs of Christ World Outreach & Father's Heart Chapel Int'l", 
-    description: "We are mandated to fulfill the Great Commission by reaching all people and making Christ known where His name is still unknown (Mark 16:15).", 
-    image: hero1, 
-    ctaText: "Join Our Family", 
-    ctaLink: "/membership", 
-    gradient: "from-blue-950 via-blue-800 to-cyan-600" 
-  },
-  { 
-    id: 2, 
-    title: "RAISING KINGDOM DISCIPLES", 
-    subtitle: "Discipleship & Mentorship", 
-    description: "Raising men and women to be effective witnesses of Christ and agents of positive change wherever they find themselves in the world (Matthew 28:19–20).", 
-    image: hero2, 
-    ctaText: "Join Our Family", 
-    ctaLink: "/membership",
-    gradient: "from-blue-950 via-blue-800 to-cyan-600"
-  },
-  { 
-    id: 3, 
-    title: "KINGDOM PARTNERSHIP", 
-    subtitle: "Building Together", 
-    description: "Raise a foundation for many generations. Support our mission to advance God's kingdom through missions, outreach, and community transformation (Philipians 1:5).", 
-    image: hero3, 
-    ctaText: "Partner With Us", 
-    ctaLink: "/partnership",
-    gradient: "from-blue-950 via-blue-800 to-cyan-600"
-  },
-  { 
-    id: 4, 
-    title: "GROWING STEADFASTLY", 
-    subtitle: "FELLOWSHIP & COMMUNITY", 
-    description: "We are a growing, Christ-centered community devoted to spiritual growth through teaching, fellowship, and prayer (Acts 2:42).", 
-    image: hero6, 
-    ctaText: "Join Our Family", 
-    ctaLink: "/membership",
-    gradient: "from-blue-950 via-blue-800 to-cyan-600"
-  },
-  { 
-    id: 5, 
-    title: "OUR YEAR OF REST", 
-    subtitle: "Theme for 2026", 
-    description: "Together in 2026, let's fulfill God's Word and the Father's heart desire for our lives, standing firm on His promises (Psalm 62:1-2).", 
-    image: vid, 
-    ctaText: "Join Our Family", 
-    ctaLink: "/membership",
-    gradient: "from-blue-950 via-blue-800 to-cyan-600"
-  },
-  // {
-  //   id: 6,
-  //   title: "HIGISA GADOLA",
-  //   subtitle: "The Great Encounter",
-  //   description: "Join us for a powerful encounter with God as we gather from December 20-24. Experience revival, transformation, and the presence of the Holy Spirit in a life-changing event.",
-  //   image: hero1,
-  //   ctaText: "Join Us",
-  //   ctaLink: "/membership",
-  //   gradient: "from-red-950 via-red-800 to-orange-600"
-  // },
-  // {
-  //   id: 7,
-  //   title: "REV. PRINCE'S 20 YEARS ANNIVERSARY",
-  //   subtitle: "December 21st",
-  //   description: "Celebrate two decades of apostolic ministry and divine calling. Join us as we honor the faithful service of Rev. Prince Bediako Appau in spreading the gospel and transforming lives.",
-  //   image: hero2,
-  //   ctaText: "Celebrate With Us",
-  //   ctaLink: "/rev-prince-ministries",
-  //   gradient: "from-purple-950 via-purple-800 to-pink-600"
-  // },
-  // {
-  //   id: 8,
-  //   title: "PNEUMATIKOS WATCH NIGHT",
-  //   subtitle: "A Night of Spirit Fire and Revival",
-  //   description: "Join us in June 2026 at the CCB Auditorium for an unforgettable night of worship, prayer, and revival. Experience the fire of the Holy Spirit as we cry out for restoration and renewal.",
-  //   image: hero3,
-  //   ctaText: "Mark Your Calendar",
-  //   ctaLink: "/membership",
-  //   gradient: "from-yellow-950 via-yellow-800 to-orange-500"
-  // },
-  // {
-  //   id: 9,
-  //   title: "ATWEA EASTER CAMP",
-  //   subtitle: "A Season of Renewal",
-  //   description: "Experience an incredible Easter season at the Atwea Camp. Join fellow believers for discipleship, fellowship, worship, and spiritual growth in a transformed environment.",
-  //   image: hero6,
-  //   ctaText: "Register Now",
-  //   ctaLink: "/membership",
-  //   gradient: "from-green-950 via-green-800 to-emerald-600"
-  // }
-];
+  const defaultSlides = [
+    {
+      id: 1,
+      title: "REACHING OUT TO THE UNREACHED",
+      subtitle: "Welcome to Martyrs of Christ World Outreach & Father's Heart Chapel Int'l",
+      description: "We are mandated to fulfill the Great Commission by reaching all people and making Christ known where His name is still unknown (Mark 16:15).",
+      image: hero1,
+      ctaText: "Join Our Family",
+      ctaLink: "/membership",
+      gradient: "from-blue-950 via-blue-800 to-cyan-600"
+    },
+    {
+      id: 2,
+      title: "RAISING KINGDOM DISCIPLES",
+      subtitle: "Discipleship & Mentorship",
+      description: "Raising men and women to be effective witnesses of Christ and agents of positive change wherever they find themselves in the world (Matthew 28:19–20).",
+      image: hero2,
+      ctaText: "Join Our Family",
+      ctaLink: "/membership",
+      gradient: "from-blue-950 via-blue-800 to-cyan-600"
+    },
+    {
+      id: 3,
+      title: "KINGDOM PARTNERSHIP",
+      subtitle: "Building Together",
+      description: "Raise a foundation for many generations. Support our mission to advance God's kingdom through missions, outreach, and community transformation (Philippians 1:5).",
+      image: hero3,
+      ctaText: "Partner With Us",
+      ctaLink: "/partnership",
+      gradient: "from-blue-950 via-blue-800 to-cyan-600"
+    },
+    {
+      id: 4,
+      title: "GROWING STEADFASTLY",
+      subtitle: "FELLOWSHIP & COMMUNITY",
+      description: "We are a growing, Christ-centered community devoted to spiritual growth through teaching, fellowship, and prayer (Acts 2:42).",
+      image: hero6,
+      ctaText: "Join Our Family",
+      ctaLink: "/membership",
+      gradient: "from-blue-950 via-blue-800 to-cyan-600"
+    },
+    {
+      id: 5,
+      title: "OUR YEAR OF REST",
+      subtitle: "Theme for 2026",
+      description: "Together in 2026, let's fulfill God's Word and the Father's heart desire for our lives, standing firm on His promises (Psalm 62:1-2).",
+      image: vid,
+      ctaText: "Join Our Family",
+      ctaLink: "/membership",
+      gradient: "from-blue-950 via-blue-800 to-cyan-600"
+    }
+  ];
 
-  // ✅ Correct Order: FHC → Rev Prince → Offering → Partnership
+  const [carouselSlides, setCarouselSlides] = useState<any[]>(defaultSlides);
+
+  useEffect(() => {
+    fetchCarouselImages();
+  }, []);
+
+  const fetchCarouselImages = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("carousel_images")
+        .select("*")
+        .eq("page", "home")
+        .order("order_index", { ascending: true });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const slides = data.map((img: any, idx: number) => ({
+          id: img.id,
+          title: img.title || `Welcome to our story ${idx + 1}`,
+          subtitle: img.subtitle || "Join us in outreach and ministry",
+          description: img.description || "Experience the life-changing work of our movement across communities.",
+          image: img.image_url,
+          ctaText: img.cta_text || "Join Our Family",
+          ctaLink: img.cta_link || "/membership",
+          gradient: img.gradient || "from-blue-950 via-blue-800 to-cyan-600"
+        }));
+        setCarouselSlides(slides);
+      } else {
+        setCarouselSlides(defaultSlides);
+      }
+    } catch (error) {
+      console.error("Error fetching home carousel images:", error);
+      setCarouselSlides(defaultSlides);
+    }
+  };
   const quickActions = [
     { title: "FHCI", description: "Father’s Heart Chapel Int. – Equipping this generation to fulfill the Father’s desire", icon: Globe, gradient: "from-blue-700 to-cyan-500", link: "/fhc" },
     { title: "REV PRINCE MINISTRIES", description: "Rev. Prince Bediako Appau – Fulfilling Divine Calling, Living as Christ’s Representative", icon: BookOpen, gradient: "from-blue-700 to-cyan-500", link: "/rev-prince-ministries" },

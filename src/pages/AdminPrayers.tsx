@@ -35,7 +35,7 @@ const AdminPrayers = () => {
     e.preventDefault();
     setPasswordError("");
     
-    if (passwordInput === "teritorial3") {
+    if (passwordInput === "teritorial3" || passwordInput === "pastorokrah1") {
       setIsPasswordProtected(false);
       setPasswordInput("");
     } else {
@@ -120,7 +120,7 @@ const AdminPrayers = () => {
   };
 
   return (
-    <div className="min-h-screen pt-16 bg-gradient-to-br from-background via-background to-rose-950/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-rose-950/5">
       {isPasswordProtected ? (
         // Password Gate Modal
         <div className="min-h-screen flex items-center justify-center px-4">

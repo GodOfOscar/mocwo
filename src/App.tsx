@@ -36,6 +36,8 @@ import AdminPartnerships from "./pages/AdminPartnerships";
 import AdminMemberships from "./pages/AdminMemberships";
 import AdminPrayers from "./pages/AdminPrayers";
 import AdminNews from "./pages/AdminNews";
+import AdminResources from "./pages/AdminResources";
+import AdminMediaFiles from "./pages/AdminMediaFiles";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +66,8 @@ export default function App() {
             <Route path="/admin-memberships" element={<AdminMemberships />} />
             <Route path="/admin-prayers" element={<AdminPrayers />} />
             <Route path="/admin-news" element={<AdminNews />} />
+            <Route path="/admin-resources" element={<AdminResources />} />
+            <Route path="/admin-media-files" element={<AdminMediaFiles />} />
 
             {/* FHC & Prayer */}
             <Route path="/fhc" element={<FHC />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,13 +40,77 @@ const Partnership = () => {
     message: ""
   });
 
-  const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
-  const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
+  const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
 
-  const allCarouselImages = [tImage, vImage, ...mImages];
+  useEffect(() => {
+    fetchCarouselImages();
+  }, []);
 
-  const carouselSlides = allCarouselImages.length > 0
-    ? allCarouselImages.map((img, idx) => ({
+  const fetchCarouselImages = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("carousel_images")
+        .select("*")
+        .eq("page", "partnership")
+        .order("order_index", { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Use carousel images from database
+        const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
+        const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
+        
+        const slides = data.map((img: any, idx: number) => ({
+          id: img.id,
+          title: `Partnership Highlight`,
+          subtitle: "Our mission is to impact nations together",
+          description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
+          location: "Global Ministry",
+          image: img.image_url,
+          ctaText: ctaTexts[idx % ctaTexts.length],
+          ctaLink: ctaLinks[idx % ctaLinks.length]
+        }));
+        setCarouselSlides(slides);
+      } else {
+        // Fall back to hardcoded images
+        const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
+        const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
+        const allCarouselImages = [tImage, vImage, ...mImages];
+
+        const slides = allCarouselImages.length > 0
+          ? allCarouselImages.map((img, idx) => ({
+              id: idx + 1,
+              title: `Partnership Highlight ${idx + 1}`,
+              subtitle: "Our mission is to impact nations together",
+              description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
+              location: "Global Ministry",
+              image: img,
+              ctaText: ctaTexts[idx % ctaTexts.length],
+              ctaLink: ctaLinks[idx % ctaLinks.length]
+            }))
+          : [
+              {
+                id: 1,
+                title: "Kingdom Partnership in Action",
+                subtitle: "Join hands with Fathers Heart Chapel Int'l",
+                description: "Partner with us to empower outreach, support vulnerable communities, and spread the Gospel worldwide.",
+                location: "Worldwide",
+                image: hero1,
+                ctaText: "Join Our Family",
+                ctaLink: "/membership"
+              }
+            ];
+        setCarouselSlides(slides);
+      }
+    } catch (error) {
+      console.error("Error fetching carousel images:", error);
+      // Fall back to default images on error
+      const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
+      const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
+      const allCarouselImages = [tImage, vImage, ...mImages];
+
+      const slides = allCarouselImages.map((img, idx) => ({
         id: idx + 1,
         title: `Partnership Highlight ${idx + 1}`,
         subtitle: "Our mission is to impact nations together",
@@ -55,19 +119,10 @@ const Partnership = () => {
         image: img,
         ctaText: ctaTexts[idx % ctaTexts.length],
         ctaLink: ctaLinks[idx % ctaLinks.length]
-      }))
-    : [
-        {
-          id: 1,
-          title: "Kingdom Partnership in Action",
-          subtitle: "Join hands with Fathers Heart Chapel Int'l",
-          description: "Partner with us to empower outreach, support vulnerable communities, and spread the Gospel worldwide.",
-          location: "Worldwide",
-          image: hero1,
-          ctaText: "Join Our Family",
-          ctaLink: "/membership"
-        }
-      ];
+      }));
+      setCarouselSlides(slides);
+    }
+  };
 
   const partnershipLevels = [
     {
