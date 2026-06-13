@@ -123,7 +123,7 @@ const AdminPrayers = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-rose-950/5">
       {isPasswordProtected ? (
         // Password Gate Modal
-        <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center px-0">
           <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
             <CardHeader className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-rose-600 to-pink-500 flex items-center justify-center">
@@ -159,7 +159,7 @@ const AdminPrayers = () => {
         <>
           {/* Header */}
           <div className="bg-gradient-to-r from-rose-600 via-rose-500 to-pink-400 py-12 shadow-lg">
-            <div className="container mx-auto px-4">
+            <div className="w-full px-0">
               <div className="flex justify-between items-start gap-4">
                 <div className="text-white">
                   <h1 className="text-4xl md:text-5xl font-bold mb-2">Prayer Requests</h1>
@@ -176,7 +176,7 @@ const AdminPrayers = () => {
             </div>
           </div>
 
-          <div className="container mx-auto px-4 py-12">
+          <div className="w-full px-0 py-12">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="border-0 bg-gradient-to-br from-rose-500/10 to-rose-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">

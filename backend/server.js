@@ -27,7 +27,7 @@ console.log("🔑 SUPABASE_SERVICE_ROLE_KEY starts with:", process.env.SUPABASE_
 // Express setup
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "1mb" }));
 
 // Register notification routes
 app.use("/api/notifications", notificationRoutes);
@@ -154,6 +154,41 @@ app.post("/api/verify-admin", async (req, res) => {
   }
 });
 
+// ------------------ Admin login proxy ------------------
+app.post("/api/admin-login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: "Missing email or password" });
+  }
+
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!anonKey) {
+    console.error("ADMIN LOGIN ERROR: missing Supabase anon key");
+    return res.status(500).json({ success: false, error: "Supabase anon key not configured" });
+  }
+
+  try {
+    const response = await axios.post(
+      `${process.env.SUPABASE_URL}/auth/v1/token?grant_type=password`,
+      { email, password },
+      {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+          "Content-Type": "application/json"
+        },
+      }
+    );
+
+    return res.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("ADMIN LOGIN ERROR:", error.response?.data || error.message);
+    const message = error.response?.data?.error_description || error.response?.data?.error || error.message || "Login failed";
+    return res.status(401).json({ success: false, error: message });
+  }
+});
+
 // ------------------ Create Admin User ------------------
 app.post("/api/create-admin", async (req, res) => {
   const { email, password, full_name } = req.body;
@@ -226,6 +261,20 @@ app.post("/api/create-admin", async (req, res) => {
       details: error.response?.data || error.message
     });
   }
+});
+
+// JSON parse error handler
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('JSON parse error:', err.message);
+    return res.status(400).json({ success: false, error: 'Invalid JSON payload' });
+  }
+  next(err);
+});
+
+// API 404 fallback
+app.use((req, res) => {
+  res.status(404).json({ success: false, error: `Cannot ${req.method} ${req.originalUrl}` });
 });
 
 // ------------------ Start server ------------------

@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS public.carousel_images (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   image_url text NOT NULL,
   image_name text NOT NULL,
+  page text NOT NULL DEFAULT 'home',
   order_index integer NOT NULL DEFAULT 0,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL

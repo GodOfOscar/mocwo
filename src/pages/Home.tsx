@@ -12,7 +12,7 @@ import hero6 from "@/assets/hero6.jpg";
 import vid from "@/assets/vid.mp4";
 import NewsCarousel from "@/components/ui/news-carousel";
 import { news } from "@/data/news";
-import { Heart, BookOpen, Users, Globe, Mail, Phone, MapPin, Facebook, Instagram, Youtube } from "lucide-react";
+import { Heart, BookOpen, Users, Globe, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Radio } from "lucide-react";
 
 const Home = () => {
   const defaultSlides = [
@@ -69,10 +69,35 @@ const Home = () => {
   ];
 
   const [carouselSlides, setCarouselSlides] = useState<any[]>(defaultSlides);
+  const [liveService, setLiveService] = useState<any>(null);
 
   useEffect(() => {
     fetchCarouselImages();
+    checkLiveStatus();
+
+    // Refresh live status every minute to keep the banner updated
+    const interval = setInterval(checkLiveStatus, 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  const checkLiveStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('church_schedule')
+        .select('*');
+
+      if (error) throw error;
+      if (Array.isArray(data) && data.length > 0) {
+        const liveItem = data.find((item: any) => item.is_live === true);
+        setLiveService(liveItem ?? null);
+      } else {
+        setLiveService(null);
+      }
+    } catch (err) {
+      console.error("Error checking live status:", err);
+      setLiveService(null);
+    }
+  };
 
   const fetchCarouselImages = async () => {
     try {
@@ -121,6 +146,34 @@ const Home = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Live Notification Banner */}
+      {liveService && (
+        <div className="bg-red-600 text-white py-2.5 px-4 z-[40] relative overflow-hidden group animate-in slide-in-from-top duration-500">
+          {/* Animated background pulse */}
+          <div className="absolute inset-0 bg-red-500 animate-pulse opacity-20" />
+          
+          <div className="container mx-auto relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-center">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Radio className="w-5 h-5 animate-bounce" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping" />
+              </div>
+              <span className="font-black text-sm uppercase tracking-tighter">Live Now</span>
+            </div>
+            
+            <p className="font-bold text-sm md:text-base tracking-tight">
+              Experience <span className="italic">"{liveService.title}"</span> happening right now!
+            </p>
+            
+            <Link to={`/live?source=${encodeURIComponent(liveService.live_link)}`}>
+              <Button size="sm" className="bg-white text-red-600 hover:bg-slate-100 font-black rounded-full h-8 px-5 border-none shadow-lg transition-transform hover:scale-105">
+                JOIN THE STREAM
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Hero Carousel */}
       <HeroCarousel slides={carouselSlides} />
 
@@ -284,9 +337,9 @@ const Home = () => {
           <div>
             <h3 className="text-xl font-bold mb-4">Contact Us</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li className="flex items-center gap-2"><MapPin className="w-5 h-5" /> 123 Church Street, Accra, Ghana</li>
+              <li className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Sawaba Junction, Kumasi, Ghana</li>
               <li className="flex items-center gap-2"><Phone className="w-5 h-5" /> +233 24 352 7174</li>
-              <li className="flex items-center gap-2"><Mail className="w-5 h-5" /> info@fathersheart.org</li>
+              <li className="flex items-center gap-2"><Mail className="w-5 h-5" /> mocwo.org01@gmail.com</li>
             </ul>
 
             <div className="flex gap-4 mt-4">

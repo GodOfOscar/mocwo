@@ -35,6 +35,9 @@ Add these variables to your `.env` file:
 RESEND_API_KEY=re_your_api_key_here
 RESEND_FROM_EMAIL=noreply@yourdomain.com
 PRAYER_EMAIL_RECIPIENTS=admin@yourdomain.com,pastor@yourdomain.com,prayer@yourdomain.com
+
+# SMS/WhatsApp Forwarding Number
+PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469
 ```
 
 **Explanation:**

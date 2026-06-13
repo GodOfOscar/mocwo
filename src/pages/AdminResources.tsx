@@ -129,7 +129,7 @@ const AdminResources = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-slate-950/5">
       {isPasswordProtected ? (
-        <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center px-0">
           <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
             <CardHeader className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-500 flex items-center justify-center">
@@ -161,7 +161,7 @@ const AdminResources = () => {
       ) : (
         <div className="pb-16">
           <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-slate-900 py-12 shadow-lg">
-            <div className="container mx-auto px-4">
+            <div className="w-full px-0">
               <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="text-white">
                   <h1 className="text-4xl md:text-5xl font-bold mb-2">Resource Manager</h1>
@@ -181,7 +181,7 @@ const AdminResources = () => {
             </div>
           </div>
 
-          <div className="container mx-auto px-4 py-12 space-y-8">
+          <div className="w-full px-0 py-12 space-y-8">
             <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-lg overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-indigo-600/10 to-cyan-500/10 border-b border-slate-200/50">
                 <CardTitle className="text-2xl text-slate-900 flex items-center gap-3">

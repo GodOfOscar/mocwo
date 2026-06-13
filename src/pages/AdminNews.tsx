@@ -160,7 +160,7 @@ const AdminNews = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-purple-950/5">
       {isPasswordProtected ? (
         // Password Gate Modal
-        <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center px-0">
           <Card className="w-full max-w-md border-0 shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
             <CardHeader className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 flex items-center justify-center">
@@ -196,7 +196,7 @@ const AdminNews = () => {
         <>
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-400 py-12 shadow-lg">
-            <div className="container mx-auto px-4">
+            <div className="w-full px-0">
               <div className="flex justify-between items-start gap-4">
                 <div className="text-white">
                   <h1 className="text-4xl md:text-5xl font-bold mb-2">News Management</h1>
@@ -213,7 +213,7 @@ const AdminNews = () => {
             </div>
           </div>
 
-          <div className="container mx-auto px-4 py-12">
+          <div className="w-full px-0 py-12">
             {/* Stats Card */}
             <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-indigo-400/10 backdrop-blur shadow-lg mb-8">
               <CardContent className="p-6">

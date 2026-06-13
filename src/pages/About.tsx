@@ -77,7 +77,7 @@ const FlipCard = ({ point }: { point: { year: string; title: string; description
           className="absolute w-full h-full bg-white rounded-lg shadow-lg p-8 flex flex-col justify-center items-center border-0"
           style={{ backfaceVisibility: "hidden" }}
         >
-          <div className="text-5xl font-bold text-cyan-600 mb-4">{point.year}</div>
+          <div className="text-5xl font-bold text-white mb-4">{point.year}</div>
           <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">{point.title}</h3>
           <p className="text-gray-600 text-center text-sm leading-relaxed">{point.description}</p>
           <div className="mt-4 text-xs text-gray-400 font-semibold">Click to flip</div>
@@ -296,8 +296,8 @@ const About = () => {
           to { opacity: 1; transform: translateX(0); }
         }
         @keyframes textReveal {
-          0% { opacity: 0; "background-position": "200% center"; }
-          100% { opacity: 1; "background-position": "0% center"; }
+          0% { opacity: 0; background-position: 200% center; }
+          100% { opacity: 1; background-position: 0% center; }
         }
         .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
         .animate-fade-in-down { animation: fadeInDown 0.8s ease-out forwards; }
@@ -347,10 +347,8 @@ const About = () => {
               </div>
             </div>
 
-            <h1 className="animate-fade-in-up text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight">
-              20<sup className="align-super text-5xl sm:text-6xl text-cyan-300 font-bold">+</sup>
-              <span className="text-gradient-animated"> Years of Impact</span>
-            </h1>
+            {/* <p className="text-cyan-300 font-semibold uppercase tracking-widest text-sm mb-4">WELCOME TO OUR STORY</p> */}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6 leading-tight">20+ Years of Impact</h1>
 
             <p className="animate-fade-in-up text-xl md:text-2xl opacity-95 max-w-3xl mx-auto mb-12 leading-relaxed font-light">
               Transforming lives, empowering communities, and building a legacy of faith across continents
@@ -365,11 +363,11 @@ const About = () => {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-20">
-          <div className="flex flex-col items-center gap-2 text-white">
-            <span className="text-sm font-semibold">Scroll to discover</span>
-            <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center text-white">
+          <span className="text-xs uppercase tracking-[0.35em] mb-2 text-white/80">Scroll</span>
+          <div className="w-10 h-10 rounded-full border border-white/60 bg-white/10 backdrop-blur-xl flex items-center justify-center animate-bounce">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 text-white">
+              <path fill="currentColor" d="M12 16.5l-6-6 1.4-1.4L12 13.7l4.6-4.6 1.4 1.4z" />
             </svg>
           </div>
         </div>
@@ -381,6 +379,7 @@ const About = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-gray-900">Our Story</h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              <p></p>
               From humble beginnings to global impact, our journey is marked by faith, dedication, and God's grace
             </p>
           </div>

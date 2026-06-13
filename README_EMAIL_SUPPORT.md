@@ -42,6 +42,7 @@ Prayer requests can now be sent directly to Gmail/email accounts using Resend em
    RESEND_API_KEY=re_your_key
    RESEND_FROM_EMAIL=noreply@yourdomain.com
    PRAYER_EMAIL_RECIPIENTS=pastor@yourdomain.com
+   PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469 # Optional: for forwarding SMS/WhatsApp requests
    ```
 
 3. **Restart Server** (1 min)
@@ -82,8 +83,9 @@ Prayer requests can now be sent directly to Gmail/email accounts using Resend em
 - Sends to multiple recipients
 - Professional HTML formatting
 - Includes all prayer details
-- User phone in reply-to field
-- Automatic logging and monitoring
+- User phone in reply-to field (for email)
+- Automatic logging and monitoring (for all methods)
+- **New:** Forwards SMS/WhatsApp requests to a specified number (`PRAYER_SMS_WHATSAPP_FORWARD_NUMBER`)
 
 ✅ **Database Tracking**
 - Records method used
@@ -124,9 +126,10 @@ Can track in admin dashboard
 Three variables required:
 
 ```env
-RESEND_API_KEY=re_xxxxxxxxxxxxx         # From Resend dashboard
-RESEND_FROM_EMAIL=noreply@church.com    # Verified in Resend
-PRAYER_EMAIL_RECIPIENTS=admin@...       # Your team's emails
+RESEND_API_KEY=re_xxxxxxxxxxxxx                  # From Resend dashboard
+RESEND_FROM_EMAIL=noreply@church.com             # Verified in Resend
+PRAYER_EMAIL_RECIPIENTS=admin@...                # Your team's emails
+PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469    # Optional: Number to forward SMS/WhatsApp requests to
 ```
 
 See `ENV_TEMPLATE.md` for detailed examples.

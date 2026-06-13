@@ -1,61 +1,91 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
-import { Calendar, Clock, Users, Play, Zap, Heart, Radio, Mail, Phone, MapPin, Facebook, Instagram, Youtube, X } from "lucide-react";
+import { Calendar, Clock, Users, Play, Zap, Heart, Radio, Mail, Phone, MapPin, Facebook, Instagram, Youtube, X, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NotificationSignup } from "@/components/NotificationSignup";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Services = () => {
   const [showPlanVisit, setShowPlanVisit] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+
   const weeklyServices = [
     {
       title: "Sunday Service",
-      time: "8AM | 10AM",
+      time_string: "8AM | 10AM",
       description: "Our main worship service with powerful praise, worship, and the Word",
       image: "🎵",
       details: "Join us for an uplifting time of worship, fellowship, and life-changing messages",
       color: "from-blue-500 to-blue-600",
-      liveLink: "https://www.youtube.com/live/yNB1h2ubyYM?si=_tPwUI9yxZCDFGMO"
+      live_link: "https://www.youtube.com/live/yNB1h2ubyYM?si=_tPwUI9yxZCDFGMO",
+      is_live: false
     },
     {
       title: "Monday TikTok Live",
-      time: "9PM",
+      time_string: "9PM",
       description: "A moment of prayer and prophetic encouragement",
       image: "🌅",
       details: "Experience God's presence through prayer, prophecy, and spiritual breakthrough",
       color: "from-purple-500 to-purple-600",
-      liveLink: "https://www.tiktok.com/@revprinceappaubediako"
+      live_link: "https://www.tiktok.com/@revprinceappaubediako",
+      is_live: false
     },
     {
       title: "Wednesday Midweek Service",
-      time: "7PM",
+      time_string: "7PM",
       description: "Midweek spiritual refreshing and Bible study",
       image: "📖",
       details: "Dive deeper into God's Word with interactive Bible study and prayer",
       color: "from-green-500 to-green-600",
-      liveLink: "https://www.youtube.com/@revprincebediakoappau"
+      live_link: "https://www.youtube.com/@revprincebediakoappau",
+      is_live: false
     },
     {
       title: "Thursday TikTok Live",
-      time: "9PM",
+      time_string: "9PM",
       description: "A moment of prayer and prophetic encouragement",
       image: "🙏",
       details: "Experience the power of prayer and prophetic ministry",
       color: "from-orange-500 to-orange-600",
-      liveLink: "https://www.tiktok.com/@revprinceappaubediako"
+      live_link: "https://www.tiktok.com/@revprinceappaubediako",
+      is_live: false
     },
     {
       title: "Friday Prayer Encounter",
-      time: "7PM",
+      time_string: "7PM",
       description: "Intensive prayer and Prophetic session",
       image: "⛪",
       details: "Join us for powerful prayer sessions and spiritual warfare",
       color: "from-red-500 to-red-600",
-      liveLink: "https://www.youtube.com/@revprincebediakoappau"
+      live_link: "https://www.youtube.com/@revprincebediakoappau",
+      is_live: false
     },
   ];
+
+  const [services, setServices] = useState<any[]>(weeklyServices);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('church_schedule')
+          .select('*')
+          .order('order_index', { ascending: true });
+
+        if (error) throw error;
+        if (data && data.length > 0) setServices(data);
+      } catch (err) {
+        console.error("Error fetching church schedule:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const liveStreamOptions = [
     {
@@ -80,6 +110,13 @@ const Services = () => {
       icon: "🎧"
     }
   ];
+
+  // Detect which service is currently marked as live
+  const currentlyLiveService = services.find(s => s.is_live === true);
+  const sundayService = services.find(s => s.title === 'Sunday Service');
+  
+  const liveNowLink = currentlyLiveService?.live_link || sundayService?.live_link || 'https://www.youtube.com/live/yNB1h2ubyYM?si=_tPwUI9yxZCDFGMO';
+  const isAnyServiceLive = !!currentlyLiveService;
 
   return (
     <div className="min-h-screen flex flex-col overflow-hidden">
@@ -107,12 +144,12 @@ const Services = () => {
             </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to={`/live?source=${encodeURIComponent('https://www.youtube.com/live/yNB1h2ubyYM?si=_tPwUI9yxZCDFGMO')}`}>
+              <Link to={`/live?source=${encodeURIComponent(liveNowLink)}`}>
                 <Button
                   size="lg"
-                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-6 text-lg font-bold rounded-full shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105"
+                  className={`${isAnyServiceLive ? "bg-red-600 hover:bg-red-700 animate-pulse ring-4 ring-red-500/30" : "bg-secondary hover:bg-secondary/90"} text-white px-8 py-6 text-lg font-bold rounded-full shadow-2xl transition-all duration-300 hover:scale-105`}
                 >
-                  🔴 Join Live Now
+                  {isAnyServiceLive ? "● Join Live Service Now" : "🔴 Join Live Now"}
                 </Button>
               </Link>
               <Button
@@ -145,7 +182,13 @@ const Services = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {weeklyServices.map((service, index) => (
+            {isLoading ? (
+              <div className="col-span-full flex flex-col items-center py-12">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                <p className="text-muted-foreground animate-pulse">Loading service schedule...</p>
+              </div>
+            ) : services.length > 0 ? (
+              services.map((service, index) => (
               <Card 
                 key={index} 
                 className="border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:-translate-y-2 group overflow-hidden"
@@ -153,14 +196,19 @@ const Services = () => {
                 <div className={`h-2 bg-gradient-to-r ${service.color}`}></div>
                 
                 <CardHeader className="text-center pb-2">
-                  <div className="text-7xl mb-3 group-hover:scale-110 transition-transform">{service.image}</div>
+                  <div className="relative inline-block mx-auto mb-3">
+                    <div className="text-7xl group-hover:scale-110 transition-transform">{service.image}</div>
+                    {service.is_live && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 rounded-full border-4 border-white animate-pulse shadow-lg" />
+                    )}
+                  </div>
                   <CardTitle className="text-2xl font-black group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-600 group-hover:bg-clip-text mb-2">
                     {service.title}
                   </CardTitle>
                   
                   <div className="flex items-center justify-center gap-2 text-sm font-bold text-blue-600">
                     <Clock className="w-4 h-4" />
-                    {service.time}
+                    {service.time_string}
                   </div>
                 </CardHeader>
 
@@ -169,7 +217,7 @@ const Services = () => {
                   <p className="text-sm text-muted-foreground mb-6">{service.details}</p>
 
                   <div className="space-y-3">
-                    <Link to={`/live?source=${encodeURIComponent(service.liveLink)}`}>
+                    <Link to={`/live?source=${encodeURIComponent(service.live_link)}`}>
                       <Button 
                         className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold rounded-full transition-all hover:shadow-lg"
                       >
@@ -198,7 +246,13 @@ const Services = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-lg text-muted-foreground">No services found.</p>
+                <Button variant="link" onClick={() => window.location.reload()}>Try Refreshing</Button>
+              </div>
+            )}
           </div>
         </div>
       </section>

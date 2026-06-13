@@ -15,6 +15,7 @@ Prayer requests can now be sent directly to Gmail/email accounts in addition to 
   - Check if method is "email"
   - Send formatted HTML email to all recipients
   - Return email-specific response
+- **New:** SMS and WhatsApp requests are now automatically forwarded to `0544733469` using the Termii API integration.
 - Comprehensive error handling and logging
 
 **Email Payload:**
@@ -60,6 +61,7 @@ To enable email support, add to `.env`:
 RESEND_API_KEY=re_your_api_key_here
 RESEND_FROM_EMAIL=noreply@yourdomain.com
 PRAYER_EMAIL_RECIPIENTS=admin@yourdomain.com,pastor@yourdomain.com,prayer@yourdomain.com
+PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469 # Optional: for forwarding SMS/WhatsApp requests
 ```
 
 ## How to Get Started

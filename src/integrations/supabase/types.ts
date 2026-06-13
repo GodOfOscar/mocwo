@@ -348,6 +348,81 @@ export type Database = {
         }
         Relationships: []
       }
+      carousel_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_name: string
+          image_url: string
+          order_index: number
+          page: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_name: string
+          image_url: string
+          order_index?: number
+          page?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_name?: string
+          image_url?: string
+          order_index?: number
+          page?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      church_schedule: {
+        Row: {
+          color: string | null
+          created_at: string
+          day: string
+          description: string | null
+          details: string | null
+          id: string
+          image: string | null
+          live_link: string | null
+          order_index: number
+          time_string: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          day: string
+          description?: string | null
+          details?: string | null
+          id?: string
+          image?: string | null
+          live_link?: string | null
+          order_index?: number
+          time_string: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          day?: string
+          description?: string | null
+          details?: string | null
+          id?: string
+          image?: string | null
+          live_link?: string | null
+          order_index?: number
+          time_string?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media_gallery: {
         Row: {
           category: string | null

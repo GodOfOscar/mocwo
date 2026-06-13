@@ -126,16 +126,17 @@ const Leadership = () => {
         />
         
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/70 to-slate-800/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-800/80 via-slate-900/70 to-slate-950/60" />
+        {/* colour overlay like homepage */}
 
-        <div className="relative z-10 container mx-auto px-4 w-full">
-          <div className="max-w-3xl">
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight">
-              Our Team
+        <div className="relative z-10 container mx-auto px-4 w-full flex justify-center">
+          <div className="max-w-3xl text-center">
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-cyan text-white mb-6 leading-tight">
+              Meet our team 
             </h1>
-            <p className="text-xl md:text-2xl text-gray-100 leading-relaxed">
+            {/* <p className="text-xl md:text-2xl text-gray-100 leading-relaxed">
               Our people define our success. We are all passionate and committed to making a positive impact in the world.
-            </p>
+            </p> */}
           </div>
         </div>
       </section>
@@ -146,13 +147,13 @@ const Leadership = () => {
           <div className="flex flex-col md:flex-row md:items-start md:gap-16 mb-16">
             <div className="md:w-1/4">
               <div className="inline-block px-4 py-2 bg-slate-900 text-white rounded-full mb-6">
-                <p className="text-sm font-semibold">Leadership Hierarchy</p>
+                {/* <p className="text-sm font-semibold">Leadership Hierarchy</p> */}
               </div>
             </div>
             <div className="md:w-3/4">
-              <h2 className="text-5xl md:text-6xl font-black text-gray-900 leading-tight">
+              {/* <h2 className="text-5xl md:text-6xl font-black text-gray-900 leading-tight">
                 Meet the<br />leadership team
-              </h2>
+              </h2> */}
             </div>
           </div>
 

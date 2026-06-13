@@ -170,8 +170,11 @@ const Navigation = () => {
                         : "text-white hover:text-cyan-300 drop-shadow-md"
                   }`}
                   style={{
-                    animation: isNavigating ? `slideInDown 0.6s ease-out forwards` : 'none',
-                    animationDelay: `${index * 0.05}s`
+                    animationName: isNavigating ? 'slideInDown' : 'none',
+                    animationDuration: isNavigating ? '0.6s' : undefined,
+                    animationTimingFunction: isNavigating ? 'ease-out' : undefined,
+                    animationFillMode: isNavigating ? 'forwards' : undefined,
+                    animationDelay: isNavigating ? `${index * 0.05}s` : undefined,
                   }}
                 >
                   <span className="uppercase relative group">
@@ -272,8 +275,11 @@ const Navigation = () => {
                           : "text-white hover:text-cyan-300 hover:scale-105 active:scale-95 drop-shadow-md"
                     }`}
                     style={{
-                      animation: isOpen ? `slideInDown 0.4s ease-out forwards` : 'none',
-                      animationDelay: `${index * 0.05 + 0.1}s`
+                      animationName: isOpen ? 'slideInDown' : 'none',
+                      animationDuration: isOpen ? '0.4s' : undefined,
+                      animationTimingFunction: isOpen ? 'ease-out' : undefined,
+                      animationFillMode: isOpen ? 'forwards' : undefined,
+                      animationDelay: isOpen ? `${index * 0.05 + 0.1}s` : undefined,
                     }}
                   >
                     {/* Background hover effect */}
@@ -306,8 +312,11 @@ const Navigation = () => {
                 <div 
                   className="px-2 pt-2"
                   style={{
-                    animation: isOpen ? `slideInDown 0.4s ease-out forwards` : 'none',
-                    animationDelay: `${(navItems.length * 0.05) + 0.1}s`
+                    animationName: isOpen ? 'slideInDown' : 'none',
+                    animationDuration: isOpen ? '0.4s' : undefined,
+                    animationTimingFunction: isOpen ? 'ease-out' : undefined,
+                    animationFillMode: isOpen ? 'forwards' : undefined,
+                    animationDelay: isOpen ? `${(navItems.length * 0.05) + 0.1}s` : undefined,
                   }}
                 >
                   <Link 

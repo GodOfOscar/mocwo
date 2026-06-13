@@ -12,7 +12,12 @@ Step 0: Method Selection
     ↓ (user selects Email)
 Step 1: Enter Name
     ↓
-Step 2: Enter Phone
+...
+Step 4: Write Prayer
+    ↓
+Step 5: Confirmation & Send
+├── 📧 Email/📱 SMS: Show Confirmation Screen ✅
+└── 💬 WhatsApp: Redirect to +233 544 733 469 🔗
     ↓
 Step 3: Enter Location
     ↓

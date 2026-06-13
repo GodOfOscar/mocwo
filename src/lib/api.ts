@@ -4,7 +4,7 @@
 
 const VITE_API_URL = import.meta.env.VITE_API_URL;
 
-const API_BASE_URL = typeof window !== 'undefined' && window.location.protocol === 'https:' && VITE_API_URL?.startsWith('http://localhost')
+const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
   ? ''
   : VITE_API_URL || 'http://localhost:5000';
 
@@ -143,6 +143,48 @@ export async function verifyAdmin(email: string): Promise<ApiResponse> {
       success: false,
       error: friendlyMessage,
       message: `Admin verification failed: ${friendlyMessage}`,
+    };
+  }
+}
+
+export async function loginAdmin(email: string, password: string): Promise<ApiResponse> {
+  try {
+    const url = `${API_BASE_URL}/api/admin-login`;
+    console.log('[API] Logging in admin at:', url, email);
+
+    const response = await safeFetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await handleResponse(response);
+    const loginData = data?.data ?? data;
+
+    return {
+      success: true,
+      data: loginData,
+      message: "Admin login successful",
+    };
+
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    let friendlyMessage = errorMessage;
+    if (/failed to fetch|network request failed|networkerror|connection refused|abort/i.test(errorMessage)) {
+      friendlyMessage =
+        "Admin login service is unavailable. Please ensure the backend server is running and accessible.";
+    }
+
+    console.error('[API] Login error:', errorMessage);
+
+    return {
+      success: false,
+      error: friendlyMessage,
+      message: `Admin login failed: ${friendlyMessage}`,
     };
   }
 }

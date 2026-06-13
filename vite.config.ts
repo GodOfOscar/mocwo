@@ -5,14 +5,12 @@ import fs from "fs";
 
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0",
     port: 8080,
-
-    // ✅ Add this block
-    https: {
+    https: process.env.DEV_HTTPS === "true" ? {
       key: fs.readFileSync("localhost-key.pem"),
       cert: fs.readFileSync("localhost.pem"),
-    },
+    } : false,
     proxy: {
       "/api": {
         target: "http://localhost:5000",

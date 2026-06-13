@@ -17,6 +17,7 @@ Add these three lines to your `.env`:
 RESEND_API_KEY=re_your_key_here
 RESEND_FROM_EMAIL=noreply@yourdomain.com
 PRAYER_EMAIL_RECIPIENTS=admin@yourdomain.com,pastor@yourdomain.com
+PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469 # Optional: for forwarding SMS/WhatsApp requests
 ```
 
 ### Step 3: Restart Server

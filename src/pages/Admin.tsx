@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { verifyAdmin } from "@/lib/api";
+import { loginAdmin, verifyAdmin } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart, BookOpen, Video } from "lucide-react";
+import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart, BookOpen, Video, Image, Clock, ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit2, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 /* ─── Inline styles for animations (scoped to admin page) ─── */
 const adminStyles = `
@@ -374,8 +375,15 @@ const CharacterSVG = () => (
     <ellipse cx="110" cy="305" rx="50" ry="10" fill="rgba(108,99,255,0.18)" />
 
     {/* Body Group - Torso with spin animation */}
-    <g style={{ animation: "spinTorso 1.6s ease-in-out infinite", transformOrigin: "center center", animationDelay: "1.4s" }}>
-      <g style={{ animation: "breathe 3.5s ease-in-out infinite" }}>
+    <g style={{ 
+      animationName: "spinTorso", 
+      animationDuration: "1.6s", 
+      animationTimingFunction: "ease-in-out", 
+      animationIterationCount: "infinite", 
+      transformOrigin: "center center", 
+      animationDelay: "1.4s" 
+    }}>
+      <g style={{ animationName: "breathe", animationDuration: "3.5s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite" }}>
         <rect x="68" y="175" width="84" height="95" rx="20" fill="#6c63ff" />
         {/* Collar / shirt detail */}
         <rect x="88" y="175" width="44" height="18" rx="6" fill="#a78bfa" />
@@ -387,25 +395,25 @@ const CharacterSVG = () => (
     </g>
 
     {/* Left Arm - Wave animation */}
-    <g style={{ animation: "armWave 1.6s ease-in-out infinite", transformOrigin: "53 178", animationDelay: "1.4s" }}>
+    <g style={{ animationName: "armWave", animationDuration: "1.6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", transformOrigin: "53px 178px", animationDelay: "1.4s" }}>
       <rect x="38" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
       <circle cx="53" cy="252" r="14" fill="#f5c5a3" />
     </g>
 
     {/* Right Arm - Counter wave animation */}
-    <g style={{ animation: "armWaveRight 1.6s ease-in-out infinite", transformOrigin: "167 178", animationDelay: "1.4s" }}>
+    <g style={{ animationName: "armWaveRight", animationDuration: "1.6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", transformOrigin: "167px 178px", animationDelay: "1.4s" }}>
       <rect x="152" y="178" width="30" height="68" rx="15" fill="#6c63ff" />
       <circle cx="167" cy="252" r="14" fill="#f5c5a3" />
     </g>
 
     {/* Legs - Left leg with swing */}
-    <g style={{ animation: "legSwing 1.6s ease-in-out infinite", transformOrigin: "90 262", animationDelay: "1.4s" }}>
+    <g style={{ animationName: "legSwing", animationDuration: "1.6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", transformOrigin: "90px 262px", animationDelay: "1.4s" }}>
       <rect x="76" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
       <ellipse cx="90" cy="308" rx="20" ry="9" fill="#1e1b4b" />
     </g>
 
     {/* Legs - Right leg with swing (opposite) */}
-    <g style={{ animation: "legSwing 1.6s ease-in-out infinite", transformOrigin: "130 262", animationDelay: "1.8s" }}>
+    <g style={{ animationName: "legSwing", animationDuration: "1.6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", transformOrigin: "130px 262px", animationDelay: "1.8s" }}>
       <rect x="116" y="262" width="28" height="48" rx="14" fill="#4f46e5" />
       <ellipse cx="130" cy="308" rx="20" ry="9" fill="#1e1b4b" />
     </g>
@@ -414,11 +422,11 @@ const CharacterSVG = () => (
     <rect x="98" y="155" width="24" height="24" rx="8" fill="#f5c5a3" />
 
     {/* Head Group - Bob animation */}
-    <g style={{ animation: "headBob 1.6s ease-in-out infinite", transformOrigin: "110 128", animationDelay: "1.4s" }}>
+    <g style={{ animationName: "headBob", animationDuration: "1.6s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", transformOrigin: "110px 128px", animationDelay: "1.4s" }}>
       <circle cx="110" cy="128" r="50" fill="#f5c5a3" />
 
       {/* Hair */}
-      <g style={{ animation: "hairSway 4s ease-in-out infinite" }}>
+      <g style={{ animationName: "hairSway", animationDuration: "4s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite" }}>
         <ellipse cx="110" cy="85" rx="50" ry="22" fill="#1a0a2e" />
         <ellipse cx="68" cy="108" rx="16" ry="32" fill="#1a0a2e" />
         <ellipse cx="152" cy="108" rx="16" ry="32" fill="#1a0a2e" />
@@ -428,7 +436,7 @@ const CharacterSVG = () => (
       </g>
 
       {/* Eyes */}
-      <g style={{ animation: "eyeBlink 4s ease-in-out infinite" }}>
+      <g style={{ animationName: "eyeBlink", animationDuration: "4s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite" }}>
         <ellipse cx="95" cy="125" rx="7" ry="8" fill="#1a0a2e" />
         <ellipse cx="125" cy="125" rx="7" ry="8" fill="#1a0a2e" />
         {/* Shine */}
@@ -594,6 +602,7 @@ const Admin = () => {
   });
   const MASTER_PASSWORD = "pastorokrah1";
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => { checkAuthState(); }, []);
   useEffect(() => {
@@ -736,8 +745,23 @@ const Admin = () => {
         return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email: loginForm.email, password: loginForm.password });
-      if (error) throw error;
+      const loginResult = await loginAdmin(loginForm.email, loginForm.password);
+      if (!loginResult.success) {
+        throw new Error(loginResult.error || "Login failed");
+      }
+
+      const accessToken = loginResult.data?.access_token;
+      const refreshToken = loginResult.data?.refresh_token;
+      if (!accessToken || !refreshToken) {
+        throw new Error("Login completed but no session tokens were returned.");
+      }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (sessionError) throw sessionError;
+
       const verifyData = await verifyAdmin(loginForm.email);
       if (verifyData.success && verifyData.data?.isAdmin) {
         setIsAuthenticated(true);
@@ -1025,7 +1049,7 @@ const Admin = () => {
           <div className="absolute -bottom-8 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl" />
         </div>
         
-        <div className="container mx-auto px-4 py-8 relative z-10">
+        <div className="w-full px-0 py-8 relative z-10">
           <div className="flex justify-between items-start md:items-center gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
@@ -1046,7 +1070,7 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="w-full px-0 py-12">
         {/* Key Metrics - Top Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {/* Partnerships Card */}
@@ -1140,7 +1164,7 @@ const Admin = () => {
                 </p>
               </div>
               <button
-                onClick={() => window.location.href = '/admin-partnerships'}
+                onClick={() => navigate('/admin-partnerships')}
                 className="mt-8 w-full bg-white text-blue-600 font-bold py-4 rounded-xl hover:bg-blue-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>Manage</span>
@@ -1165,7 +1189,7 @@ const Admin = () => {
                 </p>
               </div>
               <button
-                onClick={() => window.location.href = '/admin-memberships'}
+                onClick={() => navigate('/admin-memberships')}
                 className="mt-8 w-full bg-white text-green-600 font-bold py-4 rounded-xl hover:bg-green-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>Manage</span>
@@ -1190,10 +1214,35 @@ const Admin = () => {
                 </p>
               </div>
               <button
-                onClick={() => window.location.href = '/admin-prayers'}
+                onClick={() => navigate('/admin-prayers')}
                 className="mt-8 w-full bg-white text-red-600 font-bold py-4 rounded-xl hover:bg-red-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>View</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Events Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Events</h3>
+                <p className="text-orange-100 text-base leading-relaxed">
+                  Manage ministry programs and view member registration lists.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-events')}
+                className="mt-8 w-full bg-white text-orange-600 font-bold py-4 rounded-xl hover:bg-orange-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
                 <span>→</span>
               </button>
             </div>
@@ -1215,7 +1264,7 @@ const Admin = () => {
                 </p>
               </div>
               <button
-                onClick={() => window.location.href = '/admin-news'}
+                onClick={() => navigate('/admin-news')}
                 className="mt-8 w-full bg-white text-purple-600 font-bold py-4 rounded-xl hover:bg-purple-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>Manage</span>
@@ -1240,7 +1289,7 @@ const Admin = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => window.location.href = '/admin-resources'}
+                  onClick={() => navigate('/admin-resources')}
                   className="mt-8 w-full bg-white text-violet-600 font-bold py-4 rounded-xl hover:bg-white/90 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                 >
                   <span>Manage</span>
@@ -1265,7 +1314,7 @@ const Admin = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => window.location.href = '/admin-media-files'}
+                  onClick={() => navigate('/admin-media-files')}
                   className="mt-8 w-full bg-white text-teal-600 font-bold py-4 rounded-xl hover:bg-white/90 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                 >
                   <span>Manage</span>
@@ -1273,6 +1322,56 @@ const Admin = () => {
                 </button>
               </div>
             </div>
+
+          {/* Services Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-700 to-indigo-700 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Clock className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Services</h3>
+                <p className="text-blue-100 text-base leading-relaxed">
+                  Manage weekly service times, recurring programs, and live stream links.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-services')}
+                className="mt-8 w-full bg-white text-blue-700 font-bold py-4 rounded-xl hover:bg-blue-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Carousel Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Image className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Carousel</h3>
+                <p className="text-sky-100 text-base leading-relaxed">
+                  Manage hero carousel images and banners across various pages of the website.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-carousel')}
+                className="mt-8 w-full bg-white text-sky-600 font-bold py-4 rounded-xl hover:bg-sky-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Quick Stats Footer */}

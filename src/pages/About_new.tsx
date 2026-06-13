@@ -72,7 +72,7 @@ const About = () => {
         .animate-slide-in-left { animation: slideInLeft 0.8s ease-out forwards; }
         .animate-slide-in-right { animation: slideInRight 0.8s ease-out forwards; }
         .animate-scale-in { animation: scaleIn 0.6s ease-out forwards; }
-        .text-gradient-animated { 
+        .text-white { 
           background: linear-gradient(90deg, #0369a1, #06b6d4, #0369a1);
           background-size: 200% center;
           -webkit-background-clip: text;
@@ -113,8 +113,8 @@ const About = () => {
             </div>
 
             <h1 className="animate-fade-in-up text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight" style={{ animationDelay: "0.2s" }}>
-              20<sup className="align-super text-5xl sm:text-6xl text-cyan-300 font-bold">+</sup>
-              <span className="text-gradient-animated"> Years of Impact</span>
+              20<sup className="align-super text-5xl sm:text-6xl text-white font-bold">+</sup>
+              <span className="text-white"> Years of Impact</span>
             </h1>
 
             <p className="animate-fade-in-up text-lg md:text-xl lg:text-2xl opacity-95 max-w-3xl mx-auto mb-12 leading-relaxed font-light tracking-wide" style={{ animationDelay: "0.3s" }}>
@@ -204,7 +204,7 @@ const About = () => {
                 <p className="text-sm font-bold text-cyan-700">OUR HERITAGE</p>
               </div>
               <h2 className="text-5xl md:text-6xl font-black mb-8 text-gray-900 leading-tight">
-                From Small Beginnings to <span className="text-gradient-animated">Global Purpose</span>
+                From Small Beginnings to <span className="text-white">Global Purpose</span>
               </h2>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed font-light">
                 What began as a group of committed believers now touches lives across multiple continents. Our foundation is built on biblical principles, community service, and an unwavering vision to advance God's kingdom.

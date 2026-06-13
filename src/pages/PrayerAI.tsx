@@ -137,6 +137,14 @@ export default function PrayerAI() {
       );
 
       await sendLeaderNotification();
+
+      if (method === 'whatsapp') {
+        const waNumber = "233544733469";
+        const text = encodeURIComponent(`🙏 New Prayer Request\n\nName: ${name}\nPhone: ${phone}\nLocation: ${location}\n\nPrayer: ${prayer}`);
+        window.location.href = `https://wa.me/${waNumber}?text=${text}`;
+        return;
+      }
+
       next();
     }
   };

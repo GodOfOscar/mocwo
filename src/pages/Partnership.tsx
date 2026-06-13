@@ -58,9 +58,9 @@ const Partnership = () => {
 
       if (data && data.length > 0) {
         // Use carousel images from database
-        const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
+        const ctaTexts = ["Partner With Us", "Partner With Us", "Explore Levels"];
         const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
-        
+
         const slides = data.map((img: any, idx: number) => ({
           id: img.id,
           title: `Partnership Highlight`,
@@ -74,24 +74,21 @@ const Partnership = () => {
         setCarouselSlides(slides);
       } else {
         // Fall back to hardcoded images
-        const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
-        const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
         const allCarouselImages = [tImage, vImage, ...mImages];
 
         const slides = allCarouselImages.length > 0
           ? allCarouselImages.map((img, idx) => ({
               id: idx + 1,
-              title: `Partnership Highlight ${idx + 1}`,
+              title: `Partnership Highlights ${idx + 1}`,
               subtitle: "Our mission is to impact nations together",
               description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
               location: "Global Ministry",
               image: img,
-              ctaText: ctaTexts[idx % ctaTexts.length],
-              ctaLink: ctaLinks[idx % ctaLinks.length]
+              ctaText: "Partner With Us",
+              ctaLink: "/partnership"
             }))
           : [
               {
-                id: 1,
                 title: "Kingdom Partnership in Action",
                 subtitle: "Join hands with Fathers Heart Chapel Int'l",
                 description: "Partner with us to empower outreach, support vulnerable communities, and spread the Gospel worldwide.",
@@ -106,19 +103,17 @@ const Partnership = () => {
     } catch (error) {
       console.error("Error fetching carousel images:", error);
       // Fall back to default images on error
-      const ctaTexts = ["Join Our Family", "Partner With Us", "Explore Levels"];
-      const ctaLinks = ["/membership", "/partnership", "#partnership-levels"];
       const allCarouselImages = [tImage, vImage, ...mImages];
 
       const slides = allCarouselImages.map((img, idx) => ({
         id: idx + 1,
-        title: `Partnership Highlight ${idx + 1}`,
+        title: `Partnership Highlights ${idx + 1}`,
         subtitle: "Our mission is to impact nations together",
         description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
         location: "Global Ministry",
         image: img,
-        ctaText: ctaTexts[idx % ctaTexts.length],
-        ctaLink: ctaLinks[idx % ctaLinks.length]
+        ctaText: "Partner With Us",
+        ctaLink: "/partnership"
       }));
       setCarouselSlides(slides);
     }
@@ -131,7 +126,7 @@ const Partnership = () => {
       icon: Heart,
       color: "from-orange-400 to-orange-600",
       description: "Begin your partnership journey",
-      benefits: [
+      benefits: [                   
         "Monthly prayer support",
         "Access to partner events",
         "Digital resources",

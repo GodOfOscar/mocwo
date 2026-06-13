@@ -5,6 +5,7 @@
 ### Backend (server.js)
 - [x] Import Resend library
 - [x] Configure email variables (RESEND_API_KEY, PRAYER_EMAIL_RECIPIENTS, etc.)
+- [x] Implement SMS/WhatsApp forwarding to `0544733469` via Termii
 - [x] Initialize Resend client
 - [x] Update /api/sendPrayer endpoint to handle email method
 - [x] Create HTML email template
@@ -18,6 +19,7 @@
 - [x] Update Step 0 method selection UI
 - [x] Add Email button with 📧 icon
 - [x] Change layout from 2-button flex to 3-button grid
+- [x] Implement WhatsApp redirect to `0544733469` after submission
 - [x] Add purple color scheme for email button
 - [x] Maintain same user flow for email method
 - [x] Keep all validation and error handling
@@ -53,6 +55,7 @@
 - [ ] Open `.env` file
 - [ ] Add RESEND_API_KEY=re_your_key_here
 - [ ] Add RESEND_FROM_EMAIL=noreply@yourdomain.com
+- [ ] Add PRAYER_SMS_WHATSAPP_FORWARD_NUMBER=0544733469 (Optional, for forwarding SMS/WhatsApp)
 - [ ] Add PRAYER_EMAIL_RECIPIENTS=email1@domain.com,email2@domain.com
 - [ ] Save and close file
 
@@ -130,6 +133,20 @@ EMAIL_VISUAL_OVERVIEW.md
 - [ ] Select WhatsApp method - works as before
 - [ ] Email doesn't affect other methods
 
+### Scenario 6: WhatsApp Redirect
+- [ ] Select WhatsApp method, submit prayer
+- [ ] Verify browser redirects to `https://wa.me/233544733469`
+- [ ] Verify prayer text is pre-filled in WhatsApp
+
+### Scenario 4: SMS/WhatsApp Forwarding
+- [ ] Set `PRAYER_SMS_WHATSAPP_FORWARD_NUMBER` in `.env`
+- [ ] Select SMS method, submit prayer
+- [ ] Verify SMS is received by `PRAYER_SMS_WHATSAPP_FORWARD_NUMBER`
+- [ ] Select WhatsApp method, submit prayer
+- [ ] Verify WhatsApp message is received by `PRAYER_SMS_WHATSAPP_FORWARD_NUMBER`
+- [ ] Check server logs for forwarding messages
+
+
 ### Scenario 4: Email Not Configured
 - [ ] Remove RESEND_API_KEY from .env
 - [ ] Submit prayer with email method
@@ -182,6 +199,7 @@ EMAIL_VISUAL_OVERVIEW.md
 ### If "Email not configured" Error
 1. Verify RESEND_API_KEY is set
 2. Verify PRAYER_EMAIL_RECIPIENTS has values
+3. Verify PRAYER_SMS_WHATSAPP_FORWARD_NUMBER is set if expecting SMS/WhatsApp forwarding
 3. Restart server after adding variables
 4. Check .env file has correct format
 
