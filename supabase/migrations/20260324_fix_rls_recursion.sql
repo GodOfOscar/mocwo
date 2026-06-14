@@ -22,18 +22,17 @@ CREATE POLICY "Anyone can select news"
 CREATE POLICY "Anyone can insert news"
   ON public.news
   FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admin_users au WHERE au.auth_uid = auth.uid() AND au.role = 'admin' AND au.is_active = true));
 
 CREATE POLICY "Anyone can update news"
   ON public.news
   FOR UPDATE
-  USING (true)
-  WITH CHECK (true);
+  USING (EXISTS (SELECT 1 FROM public.admin_users au WHERE au.auth_uid = auth.uid() AND au.role = 'admin' AND au.is_active = true));
 
 CREATE POLICY "Anyone can delete news"
   ON public.news
   FOR DELETE
-  USING (true);
+  USING (EXISTS (SELECT 1 FROM public.admin_users au WHERE au.auth_uid = auth.uid() AND au.role = 'admin' AND au.is_active = true));
 
 -- Do the same for partnerships table
 DROP POLICY IF EXISTS "Admins can view all partnerships" ON public.partnerships;
