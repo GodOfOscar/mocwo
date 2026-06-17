@@ -2,7 +2,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import Footer from "@/components/Footer";
-import PAPS from "@/assets/paps.jpeg";
+import globalPastorBibleStudiesCoordinator from "@/assets/PASTORS AND HODS/GLOBAL PASTOR AND BIBLE STUDIES CO-ORDINATOR.png";
+import globalPastorProtocolUshering from "@/assets/PASTORS AND HODS/GLOBAL PASTOR & HOD PROTOCOL AND USHERING .png";
+import globalSecretaryAdministrationHod from "@/assets/PASTORS AND HODS/GLOBAL SECRETARY & ADMINISTRATION HOD.png";
+import HOD_EDENPLAY from "@/assets/PASTORS AND HODS/HOD - EDENPLAY.png";
+import HOD_MEN_ON_MISSION from "@/assets/PASTORS AND HODS/HOD - MEN ON MISSION.png";
+import HOD_MONITORING_AND_EVALUATION_TEAM from "@/assets/PASTORS AND HODS/HOD - MONITORING AND EVALUATION TEAM.png";
+import HOD_MUSIC_DEPARTMENT from "@/assets/PASTORS AND HODS/HOD - MUSIC DEPARTMENT.png";
+import HOD_TELEPASTORING from "@/assets/PASTORS AND HODS/HOD - TELEPASTORING.png";
+import HOD_TERTIARY_MINISTRY from "@/assets/PASTORS AND HODS/HOD - TERTIARY MINISTRY.png";
+import HOD_WOMEN_ON_THE_MOVE from "@/assets/PASTORS AND HODS/HOD - WOMEN ON THE MOVE.png";
+import globalPastorDirectorGhanaChurch from "@/assets/PASTORS AND HODS/GLOBAL PASTOR & DIRECTOR GHANA CHURCH.jpeg";
 import beatriceImage from "@/assets/e1 (7).jpg";
 import REV1 from "@/assets/rev1.jpeg";
 import REV2 from "@/assets/rev2.jpeg";
@@ -26,30 +36,30 @@ const Leadership = () => {
     { name: "Prophetess Mrs. Beatrice Appau Bediako", title: "Co-Leader & Wife", photo: beatriceImage },
   ];
 
-  // Global Associates - 4 people
+  // Global Pastors - 4 people
   const globalAssociates = [
     { name: "Global Associate 1", title: "Global Associate", photo: REV1 },
-    { name: "Global Associate 2", title: "Global Associate", photo: REV2 },
-    { name: "Global Associate 3", title: "Global Associate", photo: PK },
-    { name: "Global Associate 4", title: "Global Associate", photo: PO },
+    { name: "PASTOR EMMANUEL OKRAH", title: "Global Associate", photo: globalPastorDirectorGhanaChurch },
+    { name: "PASTOR OBED SARFO", title: "Head of Protocol and Ushering", photo: globalPastorProtocolUshering },
+    { name: "PASTOR DR. KWAME FENYI AIDOO", title: "Bible Studies Coordinator", photo: globalPastorBibleStudiesCoordinator },
   ];
 
   // Global Secretariat - 2 people
   const globalSecretariat = [
-    { name: "Secretariat Head 1", title: "Global Secretariat", photo: S1 },
+    { name: "LADY PASTOR NARNHA", title: "ADMINISTRATION HOD", photo: globalSecretaryAdministrationHod },
     { name: "Secretariat Head 2", title: "Global Secretariat", photo: S2 },
   ];
 
   // HODs - 8 people
   const hods = [
-    { name: "HOD Schools", title: "Head of Departments", photo: S3 },
-    { name: "HOD Discipleship", title: "Head of Departments", photo: S4 },
-    { name: "HOD Media", title: "Head of Departments", photo: S5 },
-    { name: "HOD Outreach", title: "Head of Departments", photo: REV1 },
-    { name: "HOD Missions", title: "Head of Departments", photo: REV2 },
-    { name: "HOD Finance", title: "Head of Departments", photo: PK },
-    { name: "HOD Operations", title: "Head of Departments", photo: PO },
-    { name: "HOD Worship", title: "Head of Departments", photo: S1 },
+    { name: "PASTOR TERRY NKANSAH", title: "MEN ON MISSION", photo: HOD_MEN_ON_MISSION },
+    { name: "LADY PASTOR LYDIA OKRAH", title: "WOMEN ON THE MOVE", photo: HOD_WOMEN_ON_THE_MOVE },
+    { name: "PASTOR DAPI", title: "MUSIC DEPARTMENT", photo: HOD_MUSIC_DEPARTMENT },
+    { name: "PASTOR", title: "TERTIARY MINISTRY", photo: HOD_TERTIARY_MINISTRY },
+    { name: "LADY PASTOR MERCY AGYEI", title: "TELEPASTORING", photo: HOD_TELEPASTORING },
+    { name: "LADY PASTOR TITI", title: "EDENPLAY", photo: HOD_EDENPLAY },
+    { name: "LADY PASTOR", title: "MONITORING AND EVALUATION TEAM", photo: HOD_MONITORING_AND_EVALUATION_TEAM },
+    // { name: "HOD Worship", title: "Head of Departments", photo: S1 },
   ];
 
   // Resident Pastors - 4 people
@@ -92,13 +102,14 @@ const Leadership = () => {
                 src={member.photo} 
                 alt={member.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                style={title.includes('HOD') && (idx === 0 || idx === 5) ? { objectPosition: 'center 25%' } : undefined}
               />
               
               {/* Dark Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               
               {/* Text Content at Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <h3 className={`font-bold mb-1 ${textSizeClass}`}>
                   {member.name}
                 </h3>
@@ -162,8 +173,8 @@ const Leadership = () => {
             {/* Founder & Wife - Extra Large */}
             {renderHierarchySection("Founder & Senior Pastor", founderAndWife, "large")}
 
-            {/* Global Associates */}
-            {renderHierarchySection("Global Associates", globalAssociates, "normal")}
+            {/* Global Pastors */}
+            {renderHierarchySection("Global Pastors", globalAssociates, "normal")}
 
             {/* Global Secretariat */}
             {renderHierarchySection("Global Secretariat", globalSecretariat, "normal")}
