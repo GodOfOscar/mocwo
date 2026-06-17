@@ -182,7 +182,7 @@ const Home = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold">News & Events</h2>
+            <h2 className="text-3xl font-bold">News & Articles</h2>
             <Link to="/news" className="text-sm bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400 hover:underline">
               View All News
             </Link>

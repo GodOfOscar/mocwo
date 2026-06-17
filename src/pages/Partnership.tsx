@@ -136,34 +136,34 @@ const Partnership = () => {
 
   const partnershipLevels = [
     {
-      title: "Seed Partner",
+      title: "Bronze Partner",
       amount: "₵ 50/month",
       icon: Heart,
       color: "from-orange-400 to-orange-600",
       description: "Planting seeds of hope and joining our global intercession family",
-      benefits: [                   
+      benefits: [
         "Monthly prayer support",
         "Access to partner events",
         "Digital resources",
-        "Ministry updates"
+        "Ministry updates",
       ]
     },
     {
-      title: "Vision Partner",
+      title: "Silver Partner",
       amount: "₵ 100/month",
       icon: Star,
       color: "from-gray-400 to-gray-600",
       description: "Walking closer with us as we transform communities together",
       benefits: [
         "All Bronze benefits",
-        "Quarterly ministry calls",
+        "Pastoral Engagement",
         "Physical resource gifts",
         "Priority prayer requests",
-        "Special recognition"
+        "Special recognition",
       ]
     },
     {
-      title: "Kingdom Pillar",
+      title: "Gold Partner",
       amount: "₵ 250/month",
       icon: Sparkles,
       color: "from-yellow-400 to-yellow-600",
@@ -173,13 +173,48 @@ const Partnership = () => {
         "Annual partner retreat",
         "One-on-one prayer sessions",
         "Exclusive content access",
-        "Ministry impact reports"
+        "Ministry impact reports",
       ]
     },
 
   ];
 
+  const partnershipMinimums: Record<string, number> = {
+    "Bronze Partner": 50,
+    "Silver Partner": 100,
+    "Gold Partner": 250,
+    custom: 250,
+  };
+
+  const getMinimumAmount = (level: string) => partnershipMinimums[level] ?? 0;
+
   const handleInputChange = (field: string, value: string) => {
+    if (field === "level") {
+      const minAmount = getMinimumAmount(value);
+      setFormData(prev => ({
+        ...prev,
+        level: value,
+        amount: value === "custom" ? prev.amount : String(minAmount),
+      }));
+      return;
+    }
+
+    if (field === "amount") {
+      const selectedLevel = formData.level || "custom";
+      const minAmount = getMinimumAmount(selectedLevel);
+      const amountNumber = Number(value);
+      if (value === "" || Number.isNaN(amountNumber)) {
+        setFormData(prev => ({ ...prev, amount: value }));
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        amount: amountNumber < minAmount ? String(minAmount) : String(amountNumber),
+      }));
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -190,6 +225,19 @@ const Partnership = () => {
       toast({
         title: "Required Fields",
         description: "Please fill in your email, amount and payment method.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedLevel = formData.level || "custom";
+    const minimumAmount = getMinimumAmount(selectedLevel);
+    const amountNumber = Number(formData.amount);
+
+    if (Number.isNaN(amountNumber) || amountNumber < minimumAmount) {
+      toast({
+        title: "Invalid Amount",
+        description: `The selected partnership level requires a minimum of ₵ ${minimumAmount}.`,
         variant: "destructive",
       });
       return;
@@ -468,11 +516,11 @@ const Partnership = () => {
                         <SelectValue placeholder="Select partnership level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Seed Partner">🧡 Seed Partner - ₵ 50/month</SelectItem>
-                        <SelectItem value="Vision Partner">⭐ Vision Partner - ₵ 100/month</SelectItem>
-                        <SelectItem value="Kingdom Pillar">✨ Kingdom Pillar - ₵ 250/month</SelectItem>
+                        <SelectItem value="Bronze Partner"> Bronze Partner - ₵ 50/month</SelectItem>
+                        <SelectItem value="Silver Partner"> Silver Partner - ₵ 100/month</SelectItem>
+                        <SelectItem value="Gold Partner"> Gold Partner - ₵ 250/month</SelectItem>
 
-                        <SelectItem value="custom">💎 Custom Amount</SelectItem>
+                        <SelectItem value="custom"> Beyound 250</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -511,7 +559,7 @@ const Partnership = () => {
                       id="message"
                       value={formData.message}
                       onChange={(e) => handleInputChange("message", e.target.value)}
-                      placeholder="Tell us about your heart for partnership..."
+                      placeholder="Share your vision for partnering with us...."
                       rows={5}
                       className="border-2 focus:border-blue-500 transition-all resize-none"
                     />

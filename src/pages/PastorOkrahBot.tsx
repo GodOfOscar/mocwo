@@ -16,7 +16,7 @@ export default function PastorOscarBot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
-      text: "God bless you! I am Pastor Oscar, your AI Church Assistant. I'm here to help with your enquiries about our doctrine, schedules, ministries, and events. How can I assist you today?",
+      text: "God bless you! I am Pastor Oscar, your Church Site Assistant. I'm here to help with your enquiries about our doctrine, schedules, ministries, and events. How can I assist you today?",
     },
   ]);
   

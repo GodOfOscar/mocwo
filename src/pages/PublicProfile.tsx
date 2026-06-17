@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, MessageSquare, Heart, Share2, Star, Flame, Loader2, UserPlus, UserMinus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { LoadingLogo } from "@/components/LoadingLogo";
 
 const PublicProfile = () => {
   const { id } = useParams();
@@ -138,11 +139,7 @@ const PublicProfile = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <LoadingLogo message="Loading member profile..." />;
   }
 
   if (!profile) {

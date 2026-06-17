@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { User, Camera, Save, Loader2, ArrowLeft, Globe } from "lucide-react";
+import { User, Camera, Save, ArrowLeft, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { LoadingLogo } from "@/components/LoadingLogo";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -92,11 +93,7 @@ const Profile = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <LoadingLogo message="Loading profile..." />;
   }
 
   return (

@@ -441,32 +441,32 @@ const MOCWO = () => {
 
         <div className="container mx-auto px-4 max-w-4xl text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black mb-6">
-            Be Part of the Revolution
+            Be Part of the Movement
           </h2>
           <p className="text-xl opacity-90 mb-12 leading-relaxed">
-            Join thousands of believers who are committed to reaching, teaching, and transforming the next generation. Your support—whether through prayer, partnership, or giving—can change a student's eternal destiny.
+            Join thousands of believers who are committed to reaching and transforming the next generation. Your support, whether through prayer, partnership, or giving, can change people's destiny
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <Card className="bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="text-4xl mb-3">💪</div>
                 <h3 className="font-bold mb-2">Volunteer</h3>
-                <p className="text-sm opacity-75">Be a mentor and change a life directly</p>
+                <p className="text-sm opacity-80">Be a mentor and change a life directly</p>
               </CardContent>
             </Card>
             <Card className="bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="text-4xl mb-3">💖</div>
                 <h3 className="font-bold mb-2">Give</h3>
-                <p className="text-sm opacity-75">Fund mission outreaches to schools</p>
+                <p className="text-sm opacity-80">Fund mission outreaches to schools</p>
               </CardContent>
             </Card>
             <Card className="bg-white/5 backdrop-blur-sm border border-white/20 hover:border-white/40 transition-all">
-              <CardContent className="p-6">
+              <CardContent className="p-6 text-white">
                 <div className="text-4xl mb-3">🤝</div>
                 <h3 className="font-bold mb-2">Partner</h3>
-                <p className="text-sm opacity-75">Build strategic partnerships for growth</p>
+                <p className="text-sm opacity-80">Build strategic partnerships for growth</p>
               </CardContent>
             </Card>
           </div>
@@ -477,7 +477,7 @@ const MOCWO = () => {
                 size="lg"
                 className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-6 text-lg font-bold rounded-full"
               >
-                🤝 Partner With Us
+                Partner With Us
               </Button>
             </Link>
             <Link to="/give/mocwo">
@@ -485,7 +485,7 @@ const MOCWO = () => {
                 size="lg"
                 className="bg-white/10 hover:bg-white/20 border-2 border-white text-white px-8 py-6 text-lg font-bold rounded-full transition-all"
               >
-                💖 Support Mission
+                Support Mission
               </Button>
             </Link>
           </div>

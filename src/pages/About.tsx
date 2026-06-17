@@ -258,7 +258,7 @@ const About = () => {
 
   const storyPointsData = [
     { year: "2000", title: "Foundation Year", description: "Established with a mission to spread God's love globally", icon: "🌱", image: p1_1 },
-    { year: "2010", title: "Growth Expansion", description: "Opened branches across multiple African countries", icon: "🌍", image: p1_6 },
+    { year: "2010", title: "Growth Expansion", description: "Extending the Gospel across Ghana and the nations of the world.", icon: "🌍", image: p1_6 },
     { year: "2024", title: "Global Impact", description: "Impacting millions through digital and physical ministry", icon: "✨", image: p1_7 },
   ];
 

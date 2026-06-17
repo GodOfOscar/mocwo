@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navigation from "./components/layout/Navigation";
 import AdminLayout from "./pages/AdminLayout";
+import { LoadingLogo } from "./components/LoadingLogo";
 
 // Pages
 import Home from "./pages/Home";
@@ -79,12 +80,7 @@ export default function App() {
   }, []);
 
   if (loadingMaintenanceStatus) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="ml-2 text-slate-600">Loading site status...</p>
-      </div>
-    );
+    return <LoadingLogo />;
   }
 
   if (isMaintenanceMode) {
