@@ -36,6 +36,25 @@ npm run dev
 
 Use your preferred deployment platform. This project is built with Vite, React, TypeScript, Tailwind CSS, and Supabase.
 
+#### Deploying the backend on Render
+
+The backend is located in the `backend/` folder and includes its own `package.json` and `render.yaml` service definition.
+
+1. Push the repository to GitHub.
+2. Connect the repo to Render.
+3. Render will use `backend/render.yaml` and deploy the `backend` folder as a Node web service.
+4. Required environment variables for the backend service:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_ANON_KEY` or `VITE_SUPABASE_ANON_KEY`
+   - `RESEND_API_KEY`
+   - `WHAPI_TOKEN` (optional if using WhatsApp sending)
+   - `WHAPI_BASE_URL` (optional)
+   - `PRAYER_EMAIL_RECIPIENTS`
+   - `RESEND_FROM_EMAIL` / `VITE_FROM_EMAIL`
+
+The backend starts with `node server.js` and listens on the port Render provides via `process.env.PORT`.
+
 ## What technologies are used for this project?
 
 - Vite

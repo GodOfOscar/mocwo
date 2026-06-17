@@ -43,7 +43,7 @@ declare global {
 const GivePage = () => {
   const { type } = useParams<{ type?: string }>();
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("GHS");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [frequency, setFrequency] = useState("one-time");
   const [email, setEmail] = useState("");
@@ -154,7 +154,7 @@ const GivePage = () => {
         "Your offering supports the daily operations of our church and enables us to serve our community with excellence.",
       icon: Heart,
       gradient: "from-blue-950 to-cyan-600/70",
-      suggestedAmounts: [25, 50, 100, 250],
+      suggestedAmounts: [50, 100, 200, 500],
     },
     tithe: {
       title: "Tithe",
@@ -163,7 +163,7 @@ const GivePage = () => {
         "Tithing is a biblical principle of giving the first 10% of your income to God through His church.",
       icon: Globe,
       gradient: "from-accent to-cyan-400",
-      suggestedAmounts: [50, 100, 200, 500],
+      suggestedAmounts: [100, 200, 400, 1000],
     },
     seed: {
       title: "Seed Offering",
@@ -172,7 +172,7 @@ const GivePage = () => {
         "Plant a seed of faith for a harvest of blessings. Your seed offering is an investment in God's kingdom and your future.",
       icon: Sparkles,
       gradient: "from-secondary to-yellow-400",
-      suggestedAmounts: [20, 100, 500, 1000],
+      suggestedAmounts: [50, 200, 1000, 2000],
     },
     partnership: {
       title: "Partnership",
@@ -181,7 +181,7 @@ const GivePage = () => {
         "Partner with us monthly to advance God's kingdom and impact lives around the world.",
       icon: Users,
       gradient: "from-purple-500 to-pink-500",
-      suggestedAmounts: [50, 100, 250, 500],
+      suggestedAmounts: [100, 200, 500, 1000],
     },
     mocwo: {
       title: "MOCWO Support",
@@ -190,7 +190,7 @@ const GivePage = () => {
         "Support our outreach programs to be a blessing to millions of youths and students.",
       icon: Users,
       gradient: "from-green-500 to-emerald-400",
-      suggestedAmounts: [30, 75, 150, 300],
+      suggestedAmounts: [50, 150, 300, 600],
     },
   };
 
@@ -199,11 +199,11 @@ const GivePage = () => {
   const Icon = currentGive.icon;
 
   const currencies = [
+    { code: "GHS", symbol: "₵", name: "Cedis" },
     { code: "USD", symbol: "$", name: "US Dollar" },
     { code: "ZWL", symbol: "Z$", name: "Zimbabwean Dollar" },
     { code: "ZAR", symbol: "R", name: "South African Rand" },
     { code: "GBP", symbol: "£", name: "British Pound" },
-    { code: "GHS", symbol: "₵", name: "Cedis" },
     { code: "EUR", symbol: "€", name: "Euro" },
   ];
 
@@ -218,7 +218,7 @@ const GivePage = () => {
       id: "mobile",
       name: "Mobile Money",
       icon: Smartphone,
-      description: "EcoCash, OneMoney, or other mobile payment platforms",
+      description: "MTN MoMo, Vodafone Cash, or AirtelTigo Money",
     },
     {
       id: "bank",
@@ -393,7 +393,7 @@ const GivePage = () => {
                           onClick={() => setAmount(suggestedAmount.toString())}
                           className="h-12"
                         >
-                          ${suggestedAmount}
+                          ₵{suggestedAmount}
                         </Button>
                       ))}
                     </div>
@@ -483,10 +483,13 @@ const GivePage = () => {
                       <Label htmlFor="mobile" className="text-lg font-semibold mb-2 block">
                         Mobile Money Number
                       </Label>
+                      <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg mb-4 text-center">
+                        <p className="text-sm text-blue-800 font-medium italic">Recipient MoMo Number: <span className="font-bold">024 287 5432</span></p>
+                      </div>
                       <Input
                         id="mobile"
                         type="tel"
-                        placeholder="e.g., +263 78 123 4567 or 0781234567"
+                        placeholder="e.g., 024 123 4567"
                         value={mobileNumber}
                         onChange={(e) => setMobileNumber(e.target.value)}
                         className="text-lg h-12"

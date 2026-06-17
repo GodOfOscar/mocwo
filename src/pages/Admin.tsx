@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart, BookOpen, Video, Image, Clock, ArrowLeft } from "lucide-react";
+import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart, BookOpen, Video, Image, Clock, ArrowLeft, Book, ShieldAlert } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -587,6 +587,10 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [loginError, setLoginError] = useState("");
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [masterPasswordFromDB, setMasterPasswordFromDB] = useState("");
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false); // New state for maintenance mode
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
   const [partnerships, setPartnerships] = useState([]);
   const [membershipRequests, setMembershipRequests] = useState([]);
   const [prayerRequests, setPrayerRequests] = useState<any[]>([]);
@@ -600,11 +604,27 @@ const Admin = () => {
     totalPartnerships: 0, totalAmount: 0, pendingApplications: 0, activePartners: 0,
     totalMembers: 0, pendingMembers: 0, approvedMembers: 0
   });
-  const MASTER_PASSWORD = "pastorokrah1";
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => { checkAuthState(); }, []);
+  useEffect(() => {
+    const initAdmin = async () => {
+      const response = await fetch("/api/admin/settings/master_password");
+      const data = await response.json();
+      if (data.success) setMasterPasswordFromDB(data.value);
+
+      // Fetch maintenance mode status from the backend
+      try {
+        const maintenanceResponse = await fetch("/api/status");
+        const maintenanceData = await maintenanceResponse.json();
+        if (maintenanceData.success) setIsMaintenanceMode(maintenanceData.maintenanceMode);
+      } catch (error) {
+        console.error("Error fetching maintenance mode from backend:", error);
+      }
+      checkAuthState();
+    };
+    initAdmin();
+  }, []);
   useEffect(() => {
     if (isAuthenticated) {
       fetchPartnerships(); fetchMembershipRequests(); fetchPrayerRequests();
@@ -724,6 +744,9 @@ const Admin = () => {
         const verifyData = await verifyAdmin(session.user.email);
         if (verifyData.success && verifyData.data?.isAdmin) {
           setIsAuthenticated(true);
+          if (sessionStorage.getItem("is_master_admin") === "true") {
+            setIsMasterAdmin(true);
+          }
         } else {
           try { await supabase.auth.signOut(); } catch (e) {}
           setIsAuthenticated(false);
@@ -738,9 +761,12 @@ const Admin = () => {
     e.preventDefault();
     setLoginError("");
     try {
-      if (loginForm.password === MASTER_PASSWORD) {
+      if (loginForm.password === masterPasswordFromDB) {
         setIsAuthenticated(true);
+        setIsMasterAdmin(true);
+        sessionStorage.setItem("is_master_admin", "true");
         setLoginForm({ email: "", password: "" });
+        setLoginAttempts(0);
         toast({ title: "Login successful", description: "Master admin access granted" });
         return;
       }
@@ -766,25 +792,34 @@ const Admin = () => {
       if (verifyData.success && verifyData.data?.isAdmin) {
         setIsAuthenticated(true);
         setLoginForm({ email: "", password: "" });
+        setLoginAttempts(0);
         toast({ title: "Login successful", description: "Welcome to the admin dashboard" });
       } else {
         await supabase.auth.signOut();
-        setLoginError(verifyData.error || "Unauthorized access");
+        throw new Error(verifyData.error || "Unauthorized access");
       }
     } catch (error: any) {
       const message = error?.message || "Login failed";
       const networkIssue = /failed to fetch|network request failed|networkerror|connection refused|abort/i.test(message);
-      setLoginError(
-        networkIssue
-          ? "Unable to reach the admin backend. Please check that the backend server is running and reload the page."
-          : message
-      );
+      const displayMessage = networkIssue
+        ? "Unable to reach the admin backend. Please check that the backend server is running and reload the page."
+        : message;
+
+      const nextAttempts = loginAttempts + 1;
+      setLoginAttempts(nextAttempts);
+      setLoginError(displayMessage);
+
+      if (nextAttempts >= 2) {
+        navigate("/");
+      }
     }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false); setPreAuthPassed(false);
+    setIsMasterAdmin(false);
+    sessionStorage.removeItem("is_master_admin");
     setLoginForm({ email: "", password: "" }); setLoginError("");
     setPreAuthAnswer(""); setPreAuthError("");
   };
@@ -793,8 +828,12 @@ const Admin = () => {
     e.preventDefault();
     setPreAuthError("");
     const answer = preAuthAnswer.trim();
-    if (answer.toLowerCase() === "revprince" || answer === MASTER_PASSWORD) {
+    if (answer.toLowerCase() === "revprince" || answer === masterPasswordFromDB) {
       setPreAuthPassed(true); setPreAuthAnswer("");
+      if (answer === masterPasswordFromDB) {
+        setIsMasterAdmin(true);
+        sessionStorage.setItem("is_master_admin", "true");
+      }
     } else {
       setPreAuthError("Access denied"); setPreAuthAnswer("");
     }
@@ -924,7 +963,7 @@ const Admin = () => {
                   autoFocus
                   required
                   style={{ textAlign: "center", letterSpacing: "0.1em" }}
-                />
+                /> 
                 <label className={`floating-label${preAuthAnswer ? " active" : ""}`} style={{
                   position: "absolute", left: 16,
                   top: preAuthAnswer ? -1 : "50%",
@@ -1049,7 +1088,7 @@ const Admin = () => {
           <div className="absolute -bottom-8 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl" />
         </div>
         
-        <div className="w-full px-0 py-8 relative z-10">
+        <div className="w-full px-6 md:px-12 py-8 relative z-10">
           <div className="flex justify-between items-start md:items-center gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
@@ -1060,23 +1099,31 @@ const Admin = () => {
                 Welcome back, manage your ministry
               </p>
             </div>
-            <Button 
-              onClick={handleLogout} 
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95"
-            >
-              Logout
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate('/admin-master')} 
+                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95"
+              >
+                Master Admin
+              </Button>
+              <Button 
+                onClick={handleLogout} 
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="w-full px-0 py-12">
+      <div className="w-full px-6 md:px-8 lg:px-12 py-12">
         {/* Key Metrics - Top Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
           {/* Partnerships Card */}
           <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 hover:border-blue-300">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="p-6 relative z-10">
+            <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <CreditCard className="w-7 h-7 text-white" />
@@ -1094,7 +1141,7 @@ const Admin = () => {
           {/* Members Card */}
           <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-green-100 hover:border-green-300">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="p-6 relative z-10">
+            <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <Users className="w-7 h-7 text-white" />
@@ -1112,7 +1159,7 @@ const Admin = () => {
           {/* Prayers Card */}
           <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-red-100 hover:border-red-300">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-red-100 to-pink-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="p-6 relative z-10">
+            <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <Heart className="w-7 h-7 text-white" />
@@ -1130,7 +1177,7 @@ const Admin = () => {
           {/* News Card */}
           <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-purple-100 hover:border-purple-300">
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="p-6 relative z-10">
+            <div className="p-8 relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <TrendingUp className="w-7 h-7 text-white" />
@@ -1147,13 +1194,38 @@ const Admin = () => {
         </div>
 
         {/* Management Cards - Bottom Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Master Admin Card */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-700 to-indigo-800 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <ShieldAlert className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Master Control</h3>
+                <p className="text-purple-100 text-base leading-relaxed">
+                  Access high-level administrative tools, manage admin users, and review system logs.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-master')}
+                className="mt-8 w-full bg-white text-purple-700 font-bold py-4 rounded-xl hover:bg-purple-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Enter Master Panel</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
           {/* Partnerships Manager */}
           <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
             </div>
-            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
               <div>
                 <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <CreditCard className="w-7 h-7 text-white" />
@@ -1178,7 +1250,7 @@ const Admin = () => {
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
             </div>
-            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
               <div>
                 <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Users className="w-7 h-7 text-white" />
@@ -1203,7 +1275,7 @@ const Admin = () => {
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
             </div>
-            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
               <div>
                 <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Heart className="w-7 h-7 text-white" />
@@ -1228,7 +1300,7 @@ const Admin = () => {
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
             </div>
-            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
               <div>
                 <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Calendar className="w-7 h-7 text-white" />
@@ -1240,6 +1312,31 @@ const Admin = () => {
               </div>
               <button
                 onClick={() => navigate('/admin-events')}
+                className="mt-8 w-full bg-white text-orange-600 font-bold py-4 rounded-xl hover:bg-orange-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Devotionals Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-10 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Book className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Devotionals</h3>
+                <p className="text-orange-100 text-base leading-relaxed">
+                  Upload and manage daily devotional images for all 12 months.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-devotionals')}
                 className="mt-8 w-full bg-white text-orange-600 font-bold py-4 rounded-xl hover:bg-orange-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>Manage</span>

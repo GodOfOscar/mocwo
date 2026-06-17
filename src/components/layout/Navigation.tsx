@@ -91,8 +91,8 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
-  // Hide navbar on FHC and admin pages
-  if (location.pathname === "/fhc" || location.pathname.startsWith("/admin")) return null;
+  // Hide navbar on FHC, Community, and admin pages
+  if (location.pathname === "/fhc" || location.pathname === "/community" || location.pathname.startsWith("/admin")) return null;
 
   return (
     <>

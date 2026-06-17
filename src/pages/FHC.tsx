@@ -15,7 +15,7 @@ export default function Fhc() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const mediaExperts = [
-    { name: "Pastor Okrah", role: "Media Head", image: PO, bio: "Oversees all media operations." },
+    { name: "Pastor Oscar", role: "Media Head", image: PO, bio: "Oversees all media operations." },
     { name: "Pastor Kwame", role: "Senior Editor/Designer", image: PK, bio: "Captures moments from services and outreach programs." },
     { name: "Pastor Clinton", role: "Digital Media Manager", image: SC, bio: "Produces live streams and highlight videos." },
   ];
@@ -43,6 +43,7 @@ export default function Fhc() {
             <a href="/" className="py-2 px-3 rounded hover:bg-slate-100 transition">Home</a>
             <a href="/about" className="py-2 px-3 rounded hover:bg-slate-100 transition">About</a>
             <a href="/services" className="py-2 px-3 rounded hover:bg-slate-100 transition">Services</a>
+            <a href="/community" className="py-2 px-3 rounded hover:bg-slate-100 transition">Community</a>
             <a href="/give/partner" className="py-2 px-4 rounded-full bg-amber-400 text-slate-900 font-semibold hover:shadow-lg transition">Partner</a>
           </nav>
 
@@ -59,6 +60,7 @@ export default function Fhc() {
             <a href="/" className="py-2 px-3 rounded hover:bg-slate-100">Home</a>
             <a href="/about" className="py-2 px-3 rounded hover:bg-slate-100">About</a>
             <a href="/services" className="py-2 px-3 rounded hover:bg-slate-100">Services</a>
+            <a href="/community" className="py-2 px-3 rounded hover:bg-slate-100">Community</a>
             <a href="/give/partner" className="py-2 px-3 rounded hover:bg-slate-100">Partner</a>
           </div>
         )}
@@ -291,6 +293,7 @@ export default function Fhc() {
               {[ 
                 { name: "Services", link: "/services" },
                 { name: "About Us", link: "/about" },
+                { name: "Community", link: "/community" },
                 { name: "Partnership", link: "/partnership" },
                 { name: "Giving", link: "/give/offering" },
                 { name: "Contact", link: "/contact" }

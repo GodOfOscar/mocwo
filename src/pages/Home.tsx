@@ -139,7 +139,8 @@ const Home = () => {
     { title: "Live Streaming", description: "Join our services from anywhere in the world", icon: "📺", link: "/live" },
     { title: "Prayer Request", description: "Submit your prayer needs and receive support", icon: "🙏", link: "/Prayer-ai"},
     { title: "Evangelical Outreach", description: "Making a difference in our local and global communities", icon: "🌍", link: "/MOCWO" },
-    { title: "Resources", description: "Access sermons, books, and study materials", icon: "📖", link: "/resources" }
+    { title: "Resources", description: "Access sermons, books, and study materials", icon: "📖", link: "/resources" },
+    { title: "The Martyrs World", description: "Interact with members beyond Sunday service", icon: "🤝", link: "/community" }
   ];
 
   // `news` imported from src/data/news
@@ -275,13 +276,13 @@ const Home = () => {
       {/* Features Section */}
       <section className="py-20 bg-background flex-1">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Connect, Grow, and Serve</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Discover the many ways you can be part of our community and grow in your faith journey.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {features.map((feature, index) => (
               <Link key={index} to={feature.link || "#"} className="no-underline">
                 <Card className="text-center border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:scale-105 cursor-pointer h-full">
@@ -317,6 +318,7 @@ const Home = () => {
                 { name: "Services", link: "/services" },
                 { name: "About Us", link: "/about" },
                 { name: "News & Events", link: "/news" },
+                { name: "Community", link: "/community" },
                 { name: "Partnership", link: "/partnership" },
                 { name: "Giving", link: "/give/offering" },
                 { name: "Contact", link: "/contact" }

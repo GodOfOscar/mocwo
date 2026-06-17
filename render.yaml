@@ -1,0 +1,9 @@
+services:
+  - type: web_service
+    name: fhc-backend
+    env: node
+    region: oregon
+    root: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true

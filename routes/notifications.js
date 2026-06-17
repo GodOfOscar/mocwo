@@ -19,14 +19,14 @@ let supabase = null;
 function getSupabase() {
   if (!supabase) {
     supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
     );
   }
   return supabase;
 }
 
-const FROM_EMAIL = process.env.VITE_FROM_EMAIL || "notifications@fathersheartchapel.org";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.VITE_FROM_EMAIL || "notifications@fathersheartchapel.org";
 
 /**
  * Send notification to all subscribers about a livestream

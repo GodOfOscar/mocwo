@@ -56,6 +56,8 @@ VITE_YOUTUBE_API_KEY=your_youtube_api_key
 ### Step 7: Verify All Tables
 Check that all these tables exist in your database:
 - ✓ `admin_users` - Admin authentication
+- ✓ `admin_settings` - System configurations (maintenance mode, page access)
+- ✓ `admin_activity_log` - Audit logs for admin actions
 - ✓ `partnerships` - Partnership donations
 - ✓ `news` - Site news/stories
 - ✓ `live_messages` - Live page chat
@@ -74,6 +76,14 @@ Check that all these tables exist in your database:
 - Stores admin user information
 - Used for authentication and authorization
 - **Fields**: id, email, password_hash, full_name, role, is_active, created_at, updated_at
+
+### 13. admin_settings
+- Stores system-wide configuration flags
+- **Fields**: key (PK), value, created_at, updated_at
+
+### 14. admin_activity_log
+- Audit trail for administrative actions
+- **Fields**: id (PK), admin_email, action, details, created_at
 
 ### 2. partnerships
 - Records partnership donations and level signups

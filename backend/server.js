@@ -1,28 +1,43 @@
 // server.js
 import dotenv from "dotenv";
+
+// Load environment variables first and as early as possible
+dotenv.config();
+
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import notificationRoutes from "../routes/notifications.js"; // adjust path if needed
-
-// Load environment variables first
-dotenv.config();
+import notificationRoutes from "../routes/notifications.js";
 
 // ✅ Validate essential environment variables
 if (!process.env.SUPABASE_URL) {
-  console.error("❌ Missing SUPABASE_URL");
+  console.error("❌ Missing SUPABASE_URL in .env");
+  process.exit(1);
+} else if (!process.env.SUPABASE_URL.startsWith("https://")) {
+  console.error("❌ SUPABASE_URL must start with 'https://'. Please check your .env file.");
   process.exit(1);
 }
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY");
+
+if (!process.env.SUPABASE_ANON_KEY && !process.env.VITE_SUPABASE_ANON_KEY) {
+  console.error("❌ Missing SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY in .env");
   process.exit(1);
+}
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SERVICE_KEY) {
+  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY in .env");
+  process.exit(1);
+}
+
+if (!process.env.RESEND_API_KEY) {
+  console.warn("⚠️  RESEND_API_KEY is not set. Email functionality will be disabled.");
+}
+if (!process.env.PRAYER_EMAIL_RECIPIENTS) {
+  console.warn("⚠️  PRAYER_EMAIL_RECIPIENTS is not set. Prayer request emails will be disabled.");
 }
 console.log("✅ Environment variables loaded");
-console.log("🔑 SUPABASE_URL:", process.env.SUPABASE_URL);
-console.log("🔑 SUPABASE_SERVICE_ROLE_KEY starts with:", process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20) + "...");
 
 // Express setup
 const app = express();
@@ -33,7 +48,33 @@ app.use(bodyParser.json({ limit: "1mb" }));
 app.use("/api/notifications", notificationRoutes);
 
 // Supabase client
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL, 
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+);
+
+const isAdminSettingsTableMissingError = (error) => {
+  const message = error?.message || error?.msg || error?.error || "";
+  return (
+    error?.code === "PGRST205" ||
+    /Could not find the table\s+'(?:public\.)?admin_settings'/i.test(message) ||
+    /relation .*admin_settings does not exist/i.test(message)
+  );
+};
+
+// Connectivity check at startup
+supabase.from("admin_settings").select("key").limit(1).then(({ error }) => {
+  if (error) {
+    if (isAdminSettingsTableMissingError(error)) {
+      console.warn("⚠️  Supabase schema check passed, but admin_settings is missing. Run the missing migration to create it.");
+    } else {
+      console.error("⚠️  Supabase connectivity check failed:", error.message);
+      console.error("💡 Check your SUPABASE_URL and internet connection.");
+    }
+  } else {
+    console.log("📡 Supabase connection verified");
+  }
+});
 
 // WhAPI.cloud configuration
 const WHAPI_TOKEN = process.env.WHAPI_TOKEN;
@@ -50,6 +91,128 @@ const PRAYER_EMAIL_RECIPIENTS = (process.env.PRAYER_EMAIL_RECIPIENTS || "").spli
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 // ------------------ Endpoints ------------------
+
+// Robust System Logger
+const logSystemEvent = async (level, action, details, email = "system") => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${level.toUpperCase()}] ${action}:`, details);
+
+  try {
+    await supabase.from("admin_activity_log").insert([{
+      admin_email: email,
+      action: action,
+      details: typeof details === 'object' ? JSON.stringify(details) : details
+    }]);
+  } catch (err) {
+    console.error(`[CRITICAL] Failed to write to Supabase log:`, err.message);
+  }
+};
+
+const logAdminActivity = (email, action, details) => logSystemEvent("info", action, details, email);
+
+// NEW: Middleware to check admin page access
+const checkAdminPageAccess = async (req, res, next) => {
+  // Extract the page key from the request path (e.g., 'admin-events' from '/api/admin-events')
+  const pageKey = req.path.split('/')[2]; // Assuming path is like /api/admin-events
+
+  // Admin dashboard and master admin are always accessible
+  if (!pageKey || pageKey === 'admin' || pageKey === 'admin-master') {
+    return next();
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "admin_page_access")
+      .maybeSingle();
+
+    if (error) {
+      if (isAdminSettingsTableMissingError(error)) {
+        console.warn("⚠️ admin_settings table is missing. Admin page access check is bypassed until migration is applied.");
+        return next();
+      }
+      console.error("Error fetching admin page access settings:", error.message);
+      return res.status(500).json({ success: false, error: "Server error checking page access" });
+    }
+
+    const accessSettings = data?.value ? JSON.parse(data.value) : {};
+    if (accessSettings[pageKey] === false) {
+      return res.status(403).json({ success: false, error: "Access to this admin page is currently disabled." });
+    }
+    next();
+  } catch (err) {
+    console.error("Error in checkAdminPageAccess middleware:", err.message);
+    res.status(500).json({ success: false, error: "Server error checking page access" });
+  }
+};
+
+// Middleware to check for maintenance mode
+app.use(async (req, res, next) => {
+  // Allow access to admin API routes even during maintenance
+  // This is crucial for the admin panel to function and allow turning off maintenance mode
+  if (req.path.startsWith('/api/admin') || req.path === '/api/status') {
+    return next();
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "maintenance_mode")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching maintenance mode setting:", error.message);
+      // If we can't fetch the setting, assume not in maintenance to avoid locking out
+      return next();
+    }
+
+    if (data?.value === 'true') {
+      // If maintenance mode is on, respond with 503
+      return res.status(503).json({ message: "Site is currently under maintenance. Please check back later." });
+    }
+  } catch (err) {
+    console.error("Error in maintenance mode middleware:", err.message);
+    // If any error occurs in middleware, proceed to avoid blocking legitimate requests
+  }
+  next();
+});
+
+// Apply the new middleware to all admin routes except the main admin dashboard and master admin
+app.use('/api/admin-partnerships', checkAdminPageAccess);
+app.use('/api/admin-memberships', checkAdminPageAccess);
+app.use('/api/admin-prayers', checkAdminPageAccess);
+app.use('/api/admin-news', checkAdminPageAccess);
+app.use('/api/admin-resources', checkAdminPageAccess);
+app.use('/api/admin-media-files', checkAdminPageAccess);
+app.use('/api/admin-services', checkAdminPageAccess);
+app.use('/api/admin-events', checkAdminPageAccess);
+app.use('/api/admin-devotionals', checkAdminPageAccess);
+app.use('/api/admin-carousel', checkAdminPageAccess);
+
+
+// Endpoint to check maintenance status (accessible during maintenance)
+app.get("/api/status", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("admin_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
+    if (error) throw error;
+    return res.json({ success: true, maintenanceMode: data?.value === 'true' });
+  } catch (err) {
+    console.error("Error in /api/status:", err.message || err);
+    if (isAdminSettingsTableMissingError(err)) {
+      return res.status(500).json({
+        success: false,
+        error: "Supabase table admin_settings is missing. Run the migration to create it."
+      });
+    }
+    const isConnectionError = err.message?.includes('fetch failed');
+    res.status(500).json({ 
+      success: false, 
+      error: isConnectionError ? "Database connection error (fetch failed)" : "Server error" 
+    });
+  }
+});
 
 // Send prayer request (WhatsApp or Email)
 app.post("/api/sendPrayer", async (req, res) => {
@@ -128,29 +291,24 @@ app.post("/api/verify-admin", async (req, res) => {
   if (!email) return res.status(400).json({ success: false, error: "Email is required" });
 
   try {
-    const response = await axios.get(
-      `${process.env.SUPABASE_URL}/rest/v1/admin_users?email=eq.${encodeURIComponent(email)}&select=*`,
-      {
-        headers: {
-          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json"
-        },
-      }
-    );
+    const { data: admin, error } = await supabase
+      .from("admin_users")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (response.data.length > 0) {
-      const admin = response.data[0];
-      if (admin.role === "admin" && admin.is_active === true) {
-        return res.json({ success: true, isAdmin: true, admin });
-      }
+    if (error) throw error;
+
+    if (admin && admin.role === "admin" && admin.is_active === true) {
+      return res.json({ success: true, isAdmin: true, admin });
     }
 
     return res.status(403).json({ success: false, isAdmin: false, error: "Not an admin" });
 
   } catch (error) {
-    console.error("VERIFY ADMIN ERROR:", error.response?.data || error.message);
-    return res.status(500).json({ success: false, error: "Server error", details: error.response?.data || error.message });
+    const message = error.response?.data || error.message || error;
+    console.error("VERIFY ADMIN ERROR:", message);
+    return res.status(500).json({ success: false, error: "Server error", details: message });
   }
 });
 
@@ -169,23 +327,32 @@ app.post("/api/admin-login", async (req, res) => {
   }
 
   try {
-    const response = await axios.post(
-      `${process.env.SUPABASE_URL}/auth/v1/token?grant_type=password`,
-      { email, password },
-      {
-        headers: {
-          apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
-          "Content-Type": "application/json"
-        },
-      }
-    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    return res.json({ success: true, data: response.data });
+    if (error) throw error;
+
+    if (!data?.session) {
+      console.error("ADMIN LOGIN ERROR: login succeeded but no session was returned", data);
+      return res.status(500).json({ success: false, error: "Login succeeded but no session tokens were returned." });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        ...data.session,
+        user: data.user,
+      },
+    });
   } catch (error) {
-    console.error("ADMIN LOGIN ERROR:", error.response?.data || error.message);
-    const message = error.response?.data?.error_description || error.response?.data?.error || error.message || "Login failed";
-    return res.status(401).json({ success: false, error: message });
+    const message = error.message || "Login failed";
+    console.error("ADMIN LOGIN ERROR:", message);
+    
+    // Differentiate network failures (500) from authentication failures (401)
+    const status = message.includes('fetch failed') ? 500 : 401;
+    return res.status(status).json({ success: false, error: message });
   }
 });
 
@@ -200,23 +367,14 @@ app.post("/api/create-admin", async (req, res) => {
   try {
     // 1. Create Supabase Auth user
     console.log(`[ADMIN] Creating auth user for ${email}...`);
-    const authResponse = await axios.post(
-      `${process.env.SUPABASE_URL}/auth/v1/admin/users`,
-      {
-        email,
-        password,
-        email_confirm: true
-      },
-      {
-        headers: {
-          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    });
 
-    const userId = authResponse.data.id;
+    if (authError) throw authError;
+    const userId = authUser.user.id;
     console.log(`[ADMIN] ✅ Auth user created with ID: ${userId}`);
 
     // 2. Update admin_users table to link auth user
@@ -231,6 +389,8 @@ app.post("/api/create-admin", async (req, res) => {
     } else {
       console.log(`[ADMIN] ✅ Admin user linked to auth`);
     }
+
+    await logAdminActivity("system", "CREATE_ADMIN", `Created admin: ${email} (${full_name})`);
 
     return res.status(201).json({
       success: true,
@@ -263,13 +423,108 @@ app.post("/api/create-admin", async (req, res) => {
   }
 });
 
+// ------------------ Admin Activity Logs ------------------
+app.get("/api/admin/logs", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("admin_activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/admin/log-action", async (req, res) => {
+  const { email, action, details } = req.body;
+  await logAdminActivity(email || "unknown", action, details);
+  res.json({ success: true });
+});
+
+// ------------------ System Settings (Master Password) ------------------
+app.get("/api/admin/settings/:key", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", req.params.key)
+      .maybeSingle();
+    
+    if (error) throw error;
+    res.json({ success: true, value: data?.value });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/admin/settings", async (req, res) => {
+  const { key, value } = req.body;
+  try {
+    const { error } = await supabase.from("admin_settings").upsert({ key, value });
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// NEW: Endpoints for Admin Page Access settings
+app.get("/api/admin/page-access", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "admin_page_access")
+      .maybeSingle();
+    
+    if (error) throw error;
+    res.json({ success: true, settings: data?.value ? JSON.parse(data.value) : {} });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/admin/page-access", async (req, res) => {
+  const { settings } = req.body; // settings should be a JSON object
+  try {
+    const { error } = await supabase.from("admin_settings").upsert({ key: "admin_page_access", value: JSON.stringify(settings) });
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // JSON parse error handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    console.error('JSON parse error:', err.message);
+    logSystemEvent("warn", "JSON_PARSE_ERROR", { message: err.message, path: req.path });
     return res.status(400).json({ success: false, error: 'Invalid JSON payload' });
   }
   next(err);
+});
+
+// Global Error Handler (Must be last middleware)
+app.use((err, req, res, next) => {
+  const statusCode = err.status || 500;
+  const errorDetails = {
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+    path: req.originalUrl,
+    method: req.method,
+    body: req.body
+  };
+
+  logSystemEvent("error", "UNCAUGHT_EXPRESS_ERROR", errorDetails);
+
+  res.status(statusCode).json({
+    success: false,
+    error: err.message || "Internal Server Error"
+  });
 });
 
 // API 404 fallback
@@ -279,4 +534,15 @@ app.use((req, res) => {
 
 // ------------------ Start server ------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Prayer SMS server running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`✅ Prayer SMS server running on port ${PORT}`));
+
+// Handle crashes outside of Express
+process.on("unhandledRejection", (reason, promise) => {
+  logSystemEvent("critical", "UNHANDLED_REJECTION", { reason: reason?.message || reason });
+});
+
+process.on("uncaughtException", (err) => {
+  logSystemEvent("critical", "UNCAUGHT_EXCEPTION", { message: err.message, stack: err.stack });
+  // Give the server time to log before exiting
+  setTimeout(() => process.exit(1), 1000);
+});

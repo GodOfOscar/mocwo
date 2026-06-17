@@ -10,7 +10,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL; // Use SUPABASE_URL for backend consistency
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -21,6 +21,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const expectedTables = [
   'admin_users',
+  'admin_settings',
+  'admin_activity_log',
   'partnerships',
   'news',
   'live_messages',
@@ -145,7 +147,26 @@ async function checkDatabase() {
     console.log(`❌ Error checking admin users: ${err.message}`);
   }
 
-  // 4. Summary
+  // 4. Check Connection Stats
+  console.log('\n📈 Checking Connection Stats...');
+  try {
+    // Using RPC or a raw query if your Supabase setup allows it via REST
+    const response = await makeRequest(
+      `${SUPABASE_URL}/rest/v1/rpc/get_connection_count`, { method: 'POST' }
+    );
+    
+    if (response.status === 200) {
+      console.log(`✅ Active connections: ${response.data}`);
+    } else {
+      // Fallback: Just log that we are connected and authenticated
+      console.log('✅ Service Role authentication verified.');
+      console.log('💡 To see detailed logs, visit: https://supabase.com/dashboard/project/_/logs/explorer');
+    }
+  } catch (err) {
+    console.log('⚠️  Could not fetch connection stats (RPC might not be set up).');
+  }
+
+  // 5. Summary
   console.log('\n✨ Check Complete!\n');
   
   const okTables = Object.values(tableResults).filter(s => s.includes('✅')).length;

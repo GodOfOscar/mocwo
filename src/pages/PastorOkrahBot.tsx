@@ -2,23 +2,31 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, X, Send, Bot, User, Loader2, Heart, DollarSign, Calendar } from "lucide-react";
+import { MessageSquare, X, Send, Bot, User, Loader2, Heart, DollarSign, Calendar, Headset } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type Message = { sender: "ai" | "user"; text: string };
 
-export default function PastorOkrahBot() {
+export default function PastorOscarBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [input, setInput] = useState("");
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
-      text: "God bless you! I am Pastor Okrah. How can I assist you with your enquiries about our ministry today?",
+      text: "God bless you! I am Pastor Oscar, your AI Church Assistant. I'm here to help with your enquiries about our doctrine, schedules, ministries, and events. How can I assist you today?",
     },
   ]);
   
+  const suggestions = [
+    "When is the next fasting program?",
+    "How do I join the choir?",
+    "What time is Sunday service?",
+    "Our church doctrine"
+  ];
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,13 +35,14 @@ export default function PastorOkrahBot() {
     }
   }, [messages, isOpen]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (text?: string) => {
+    const userMsg = (text || input).trim();
+    if (!userMsg || isLoading) return;
 
-    const userMsg = input.trim();
     setMessages((prev) => [...prev, { sender: "user", text: userMsg }]);
     setInput("");
     setIsLoading(true);
+    setAiError(false);
 
     try {
       const response = await fetch("/api/ai/chat", {
@@ -57,11 +66,18 @@ export default function PastorOkrahBot() {
       console.error("Chat Error:", error);
       setMessages((prev) => [
         ...prev,
-        { sender: "ai", text: "I'm sorry, I am currently indisposed. May I pray for you and try again later?" },
+        { sender: "ai", text: "I'm sorry, I am currently indisposed and unable to answer that right now. If you have a specific question I couldn't address, would you like to speak with a human representative? Use the 'Human Support' button below." },
       ]);
+      setAiError(true);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTalkToHuman = () => {
+    const waNumber = "233243527174";
+    const text = encodeURIComponent("Hello Pastor, I have a question that the AI assistant couldn't answer. I'd like to speak with a human representative. 🙏");
+    window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
   };
 
   return (
@@ -86,7 +102,7 @@ export default function PastorOkrahBot() {
                 <Bot className="w-6 h-6" />
               </div>
               <div>
-                <p className="font-bold text-sm">Pastor Okrah</p>
+                <p className="font-bold text-sm">Pastor Oscar</p>
                 <p className="text-[10px] opacity-80 uppercase tracking-wider">Site Assistant</p>
               </div>
             </div>
@@ -133,13 +149,33 @@ export default function PastorOkrahBot() {
                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
                   <Bot size={16} />
                 </div>
-                <div className="px-4 py-2 rounded-2xl text-sm bg-white text-slate-400 italic">Pastor Okrah is typing...</div>
+                <div className="px-4 py-2 rounded-2xl text-sm bg-white text-slate-400 italic flex items-center gap-2">
+                  <span>Pastor Oscar is typing</span>
+                  <span className="flex items-center">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce ml-0.5" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce ml-0.5" style={{ animationDelay: '0.4s' }}></span>
+                  </span>
+                </div>
               </div>
             )}
           </CardContent>
 
           {/* Footer Input */}
           <div className="p-4 bg-white border-t border-slate-100">
+            {/* Suggested Questions */}
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-2 no-scrollbar -mx-1 px-1">
+              {suggestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSend(q)}
+                  className="whitespace-nowrap px-3 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm shrink-0"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-2 gap-2 mb-2">
               {/* Quick Action: Request Prayer */}
               <Button
@@ -170,19 +206,44 @@ export default function PastorOkrahBot() {
               </Button>
             </div>
 
-            {/* Quick Action: Register Event */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsOpen(false);
-                navigate("/register-event");
-              }}
-              className="w-full mb-3 flex items-center justify-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 font-bold rounded-xl h-10 shadow-sm"
-            >
-              <Calendar size={16} className="fill-orange-100" />
-              Register Event
-            </Button>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {/* Quick Action: Register Event */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate("/register-event");
+                }}
+                className="flex items-center justify-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 font-bold rounded-xl h-10 shadow-sm"
+              >
+                <Calendar size={16} className="fill-orange-100" />
+                Events
+              </Button>
+
+              {/* Quick Action: Talk to Human */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTalkToHuman}
+                className={`flex items-center justify-center gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-xl h-10 shadow-sm transition-all duration-300 ${
+                  aiError ? 'animate-glow-pulse border-blue-400 text-blue-700 bg-blue-50/50 scale-[1.02]' : ''
+                }`}
+              >
+                <Headset size={16} className="text-blue-500" />
+                Human Support
+              </Button>
+            </div>
+            <style>{`
+              @keyframes glowing-pulse {
+                0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+              }
+              .animate-glow-pulse {
+                animation: glowing-pulse 2s infinite;
+              }
+            `}</style>
 
             <div className="flex gap-2">
               <Input
@@ -202,7 +263,7 @@ export default function PastorOkrahBot() {
               </Button>
             </div>
             <p className="text-[9px] text-center text-slate-400 mt-2">
-              Pastor Okrah is here to help with ministry enquiries.
+              Pastor Oscar is here to help with ministry enquiries.
             </p>
           </div>
         </Card>

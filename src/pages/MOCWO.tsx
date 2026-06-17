@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import CC from "@/assets/cc.jpeg";
 import S1 from "@/assets/sunday/1.jpeg";
 import S2 from "@/assets/sunday/2.jpeg";
 import S3 from "@/assets/sunday/3.jpeg";
@@ -161,9 +160,9 @@ const MOCWO = () => {
 
         {/* Hero content */}
         <div className="relative z-10 max-w-4xl px-4 py-20">
-          <div className="mb-6 inline-block">
-            <span className="inline-block bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text text-lg font-bold tracking-wider uppercase">
-              Youth Movement
+          <div className="mb-6 inline-block px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20">
+            <span className="text-sm font-bold text-blue-100 tracking-wider uppercase">
+              Evangelical Movement
             </span>
           </div>
           
@@ -182,7 +181,7 @@ const MOCWO = () => {
           </p>
           
           <p className="text-base md:text-lg mb-10 opacity-85 max-w-3xl mx-auto leading-relaxed">
-            Empowering the next generation with purpose, faith, and vision. We're not just reaching students—we're transforming lives and building kingdom leaders.
+            Empowering the next generation with purpose, faith, and vision. We're not just reaching people—we're transforming lives and building kingdom leaders.
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
@@ -191,24 +190,24 @@ const MOCWO = () => {
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-8 py-6 text-lg font-bold rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
             >
-              🎓 Explore Our Outreaches
+              Explore Our Outreaches
             </Button>
 
             <Link to="/partnership">
               <Button
                 size="lg"
-                className="bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white/20 px-8 py-6 text-lg font-bold rounded-full transition-all duration-300 hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-8 py-6 text-lg font-bold rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
               >
-                🤝 Partner With Us
+                Partner With Us
               </Button>
             </Link>
 
             <Link to="/give/mocwo">
               <Button
                 size="lg"
-                className="bg-white/10 backdrop-blur-md border-2 border-white text-white hover:bg-white/20 px-8 py-6 text-lg font-bold rounded-full transition-all duration-300 hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-8 py-6 text-lg font-bold rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
               >
-                💖 Support Mission
+                Support Mission
               </Button>
             </Link>
           </div>
@@ -512,6 +511,7 @@ const MOCWO = () => {
                 { name: "Home", link: "/" },
                 { name: "Services", link: "/services" },
                 { name: "MOCWO", link: "/mocwo" },
+                { name: "Community", link: "/community" },
                 { name: "Partnership", link: "/partnership" },
                 { name: "Contact", link: "/contact" }
               ].map((item, index) => (

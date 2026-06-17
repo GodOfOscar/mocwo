@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Footer from "@/components/Footer";
-import { Crown, Star, Sparkles, Heart, TrendingUp, Shield, Award, Handshake, CheckCircle, Users, Globe, BookOpen, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Zap, Target } from "lucide-react";
+import { Crown, Star, Sparkles, Heart, TrendingUp, Shield, Award, Handshake, CheckCircle, Users, Globe, BookOpen, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Zap, Target, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import HeroCarousel from "@/components/ui/hero-carousel";
+import { useToast } from "@/components/ui/use-toast";
+import { paystackConfig } from "@/config/paystack";
 
 import hero1 from "../assets/hero1.jpeg";
 import tImage from "../assets/t.jpg";
@@ -27,6 +29,16 @@ const mImages = Array.from({ length: 30 }, (_, i) => {
 })
   .filter((img): img is string => !!img);
 
+declare global {
+  interface Window {
+    PaystackPop: {
+      setup: (options: any) => {
+        openIframe: () => void;
+      };
+    };
+  }
+}
+
 console.log("Partnership mImages loaded:", mImages.length, mImages);
 
 const Partnership = () => {
@@ -40,7 +52,10 @@ const Partnership = () => {
     message: ""
   });
 
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCarouselImages();
@@ -121,11 +136,11 @@ const Partnership = () => {
 
   const partnershipLevels = [
     {
-      title: "Bronze Partner",
-      amount: "$50/month",
+      title: "Seed Partner",
+      amount: "₵ 50/month",
       icon: Heart,
       color: "from-orange-400 to-orange-600",
-      description: "Begin your partnership journey",
+      description: "Planting seeds of hope and joining our global intercession family",
       benefits: [                   
         "Monthly prayer support",
         "Access to partner events",
@@ -134,11 +149,11 @@ const Partnership = () => {
       ]
     },
     {
-      title: "Silver Partner",
-      amount: "$100/month",
+      title: "Vision Partner",
+      amount: "₵ 100/month",
       icon: Star,
       color: "from-gray-400 to-gray-600",
-      description: "Strengthen your impact",
+      description: "Walking closer with us as we transform communities together",
       benefits: [
         "All Bronze benefits",
         "Quarterly ministry calls",
@@ -148,11 +163,11 @@ const Partnership = () => {
       ]
     },
     {
-      title: "Gold Partner",
-      amount: "$250/month",
+      title: "Kingdom Pillar",
+      amount: "₵ 250/month",
       icon: Sparkles,
       color: "from-yellow-400 to-yellow-600",
-      description: "Amplify your influence",
+      description: "Leading the charge in global mission and kingdom advancement",
       benefits: [
         "All Silver benefits",
         "Annual partner retreat",
@@ -170,6 +185,52 @@ const Partnership = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.email || !formData.amount || !formData.paymentMethod) {
+      toast({
+        title: "Required Fields",
+        description: "Please fill in your email, amount and payment method.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Lead user to the respective payment method
+    if (formData.paymentMethod === 'card' || formData.paymentMethod === 'mobile-money') {
+      const handler = (window as any).PaystackPop.setup({
+        key: paystackConfig.publicKey,
+        email: formData.email,
+        amount: parseFloat(formData.amount) * 100, // Amount in pesewas/kobo
+        currency: "GHS",
+        ref: `PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        onClose: () => {
+          toast({
+            title: "Payment Required",
+            description: "Please complete the payment process to submit your partnership application.",
+          });
+          setIsProcessing(false);
+        },
+        onSuccess: (response: any) => {
+          savePartnershipData(response.reference);
+        },
+      });
+      handler.openIframe();
+    } else {
+      // For manual verification methods
+      if (formData.paymentMethod === 'bank-transfer') {
+        toast({
+          title: "Awaiting Transfer",
+          description: "Please follow the bank transfer instructions below. Your application will be processed once verified.",
+        });
+      }
+      // Submit for manual verification
+      savePartnershipData("MANUAL_VERIFICATION_REQUIRED");
+    }
+  };
+
+  const savePartnershipData = async (reference: string) => {
     try {
       const { error } = await supabase
         .from('partnerships')
@@ -180,24 +241,33 @@ const Partnership = () => {
           level: formData.level,
           amount: parseFloat(formData.amount) || 0,
           payment_method: formData.paymentMethod,
-          message: formData.message,
-          status: 'approved'
+          message: `${formData.message} | Reference: ${reference}`,
+          status: reference === "MANUAL_VERIFICATION_REQUIRED" ? 'pending' : 'approved'
         }]);
 
       if (error) throw error;
 
-      alert("Partnership application submitted successfully!");
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        level: "",
-        amount: "",
-        paymentMethod: "",
-        message: ""
+      toast({
+        title: "Success! 🙏",
+        description: "Redirecting to your partnership summary...",
+      });
+
+      // Redirect to success page with data
+      navigate('/partnership-success', { 
+        state: { 
+          name: formData.name, 
+          level: formData.level, 
+          amount: formData.amount 
+        } 
       });
     } catch (error: any) {
-      alert("Error submitting application: " + error.message);
+      toast({
+        title: "Submission Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -314,7 +384,10 @@ const Partnership = () => {
               <CardContent className="p-8 text-center">
                 <div className="text-5xl mb-4">📱</div>
                 <h3 className="text-xl font-bold text-white mb-3">Mobile Money</h3>
-                <p className="text-blue-100">Convenient mobile payments for easy giving</p>
+                <p className="text-blue-100 mb-3">Convenient mobile payments for easy giving</p>
+                <div className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                  <p className="text-sm font-black text-white tracking-wider">024 287 5432</p>
+                </div>
               </CardContent>
             </Card>
             <Card className="border-0 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 shadow-lg">
@@ -395,9 +468,9 @@ const Partnership = () => {
                         <SelectValue placeholder="Select partnership level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="bronze">🧡 Bronze Partner - $50/month</SelectItem>
-                        <SelectItem value="silver">⭐ Silver Partner - $100/month</SelectItem>
-                        <SelectItem value="gold">✨ Gold Partner - $250/month</SelectItem>
+                        <SelectItem value="Seed Partner">🧡 Seed Partner - ₵ 50/month</SelectItem>
+                        <SelectItem value="Vision Partner">⭐ Vision Partner - ₵ 100/month</SelectItem>
+                        <SelectItem value="Kingdom Pillar">✨ Kingdom Pillar - ₵ 250/month</SelectItem>
 
                         <SelectItem value="custom">💎 Custom Amount</SelectItem>
                       </SelectContent>
@@ -405,7 +478,7 @@ const Partnership = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="amount" className="text-gray-700 font-bold mb-2 block">Monthly Partnership Amount ($)</Label>
+                    <Label htmlFor="amount" className="text-gray-700 font-bold mb-2 block">Monthly Partnership Amount (₵)</Label>
                     <Input
                       id="amount"
                       type="number"
@@ -447,9 +520,17 @@ const Partnership = () => {
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 text-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300 font-bold text-lg"
+                    disabled={isProcessing}
+                    className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 text-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300 font-bold text-lg disabled:opacity-70"
                   >
-                    Submit Partnership Application
+                    {isProcessing ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processing Payment...
+                      </span>
+                    ) : (
+                      "Submit Partnership Application"
+                    )}
                   </Button>
                 </form>
               </CardContent>

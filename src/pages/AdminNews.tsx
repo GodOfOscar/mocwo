@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Newspaper, Trash2, Edit2, Plus, Lock, Image } from "lucide-react";
+import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
 
 interface NewsItem {
@@ -29,6 +30,7 @@ const AdminNews = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordProtected, setIsPasswordProtected] = useState(true);
   const [passwordInput, setPasswordInput] = useState("");
+  const [isAccessRestricted, setIsAccessRestricted] = useState(false); // NEW state for access restriction
   const [passwordError, setPasswordError] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -37,7 +39,20 @@ const AdminNews = () => {
     e.preventDefault();
     setPasswordError("");
     
-    if (passwordInput === "teritorial4" || passwordInput === "pastorokrah1") {
+    if (passwordInput === "teritorial4" || passwordInput === "pastorokrah1") { // Existing password check
+      // NEW: Check page access after successful password entry
+      fetch("/api/admin/page-access")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.settings['admin-news'] === false) {
+            setIsAccessRestricted(true);
+          }
+        })
+        .catch(error => console.error("Error checking page access:", error))
+        .finally(() => {
+          setIsPasswordProtected(false);
+          setPasswordInput("");
+        });
       setIsPasswordProtected(false);
       setPasswordInput("");
     } else {
@@ -192,6 +207,25 @@ const AdminNews = () => {
           </Card>
         </div>
       ) : (
+        isAccessRestricted ? ( // NEW: Restricted access message
+          <div className="min-h-[80vh] flex items-center justify-center px-0">
+            <Card className="w-full max-w-md bg-slate-900 text-white shadow-2xl border-0">
+              <CardHeader className="text-center">
+                <XCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
+                <CardTitle className="text-2xl font-bold font-serif">Access Restricted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-red-200 mb-4">
+                  Access to the News Manager has been temporarily disabled by the Master Administrator.
+                  Please contact your Master Admin for further assistance.
+                </p>
+                <Button onClick={() => navigate('/admin')} className="w-full bg-red-600 hover:bg-red-700 font-bold">
+                  Back to Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
         // Main Content
         <>
           {/* Header */}
@@ -443,6 +477,7 @@ const AdminNews = () => {
             </Card>
           </div>
         </>
+        )
       )}
     </div>
   );
