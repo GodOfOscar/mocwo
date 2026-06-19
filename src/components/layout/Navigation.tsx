@@ -186,7 +186,7 @@ const Navigation = () => {
                   </span>
                 </Link>
               ))}
-              <Link to="/admin" className="ml-6">
+              <Link to="/admin" className="ml-6 hidden md:flex">
                 <Button 
                   variant="outline" 
                   size="sm" 
