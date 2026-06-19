@@ -6,7 +6,7 @@ const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
   ? ''
-  : VITE_API_URL || 'https://mocwo.onrender.com';
+  : VITE_API_URL || 'https://mocwo-backend.onrender.com';
 
 console.log('[API] Using base URL:', API_BASE_URL || '/api');
 
