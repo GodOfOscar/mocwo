@@ -10,7 +10,7 @@ import cors from "cors";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import notificationRoutes from "../routes/notifications.js";
+import notificationRoutes from "./routes/notifications.js";
 
 // ✅ Validate essential environment variables
 if (!process.env.SUPABASE_URL) {
