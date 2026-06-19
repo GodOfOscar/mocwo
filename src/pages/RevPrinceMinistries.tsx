@@ -147,7 +147,7 @@ export default function RevPrinceMinistries() {
               </blockquote>
               <div className="mt-8 flex gap-4">
                 <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-bold hover:shadow-lg">
-                  <Link to="/contact">Invite For Ministry</Link>
+                  <a href="https://wa.me/233243527174?text=Hello%20Rev.%20Prince%2C%20I%20would%20like%20to%20invite%20you%20for%20ministry." target="_blank" rel="noreferrer">Invite For Ministry</a>
                 </Button>
                 <Button asChild variant="outline" className="px-8 py-3 rounded-lg font-bold">
                   <Link to="/partnership">Learn More</Link>

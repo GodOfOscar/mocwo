@@ -475,7 +475,7 @@ const Contact = () => {
                 <Button 
                   size="lg" 
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg font-bold rounded-full transition-all hover:shadow-lg"
-                >
+                  onClick={() => window.open('https://wa.me/233243527174', '_blank')}                >
                   💬 WhatsApp Support
                 </Button>
               </div>

@@ -36,14 +36,14 @@ const HeroCarousel = ({
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!autoPlay || !cardMode) return;
+    if (!autoPlay) return;
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, interval);
 
     return () => clearInterval(timer);
-  }, [autoPlay, interval, slides.length, cardMode]);
+  }, [autoPlay, interval, slides.length]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);

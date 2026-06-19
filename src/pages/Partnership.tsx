@@ -326,9 +326,9 @@ const Partnership = () => {
       <HeroCarousel slides={carouselSlides} showContent={false} cardMode={true} />
 
       {/* Dancing text animation */}
-      <div className="relative overflow-hidden h-14 bg-gradient-to-r from-cyan-50 via-blue-50 to-cyan-50 mt-4 mb-8">
+      <div className="relative overflow-hidden h-14 bg-gradient-to-r from-sky-700/30 via-blue-700/30 to-sky-700/30 border border-blue-400/80 mt-4 mb-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="inline-flex whitespace-nowrap text-lg sm:text-3xl font-extrabold text-blue-700 tracking-widest animate-marquee">
+          <div className="inline-flex whitespace-nowrap text-lg sm:text-3xl font-extrabold text-white tracking-widest animate-marquee">
             <span className="mx-8">Partner with us to empower communities</span>
             <span className="mx-8">Partner with us and multiply your impact</span>
             <span className="mx-8">Partner with us to feed, shelter & educate</span>
