@@ -1,63 +1,34 @@
-// server.js
-import dotenv from "dotenv";
-import ws from "ws";
-
-// Load environment variables first and as early as possible
-dotenv.config();
-
 import express from "express";
-import bodyParser from "body-parser";
 import cors from "cors";
-import axios from "axios";
-import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import dotenv from "dotenv";
+
 import notificationRoutes from "./routes/notifications.js";
 
-// ✅ Validate essential environment variables
-if (!process.env.SUPABASE_URL) {
-  console.error("❌ Missing SUPABASE_URL in .env");
-  process.exit(1);
-} else if (!process.env.SUPABASE_URL.startsWith("https://")) {
-  console.error("❌ SUPABASE_URL must start with 'https://'. Please check your .env file.");
-  process.exit(1);
-}
+dotenv.config();
 
-if (!process.env.SUPABASE_ANON_KEY && !process.env.VITE_SUPABASE_ANON_KEY) {
-  console.error("❌ Missing SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY in .env");
-  process.exit(1);
-}
-
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SERVICE_KEY) {
-  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY in .env");
-  process.exit(1);
-}
-
-if (!process.env.RESEND_API_KEY) {
-  console.warn("⚠️  RESEND_API_KEY is not set. Email functionality will be disabled.");
-}
-if (!process.env.PRAYER_EMAIL_RECIPIENTS) {
-  console.warn("⚠️  PRAYER_EMAIL_RECIPIENTS is not set. Prayer request emails will be disabled.");
-}
-console.log("✅ Environment variables loaded");
-
-// Express setup
 const app = express();
-app.use(cors());
-app.use(bodyParser.json({ limit: "1mb" }));
 
-// Register notification routes
+app.use(cors());
+app.use(express.json());
+
+// ✅ ROUTES
 app.use("/api/notifications", notificationRoutes);
 
-// Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
-  {
-    realtime: {
-      transport: ws
-    }
-  }
-);
+// ✅ HEALTH CHECK (ADD THIS)
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "Backend is running 🚀" });
+});
+
+// ✅ ROOT ROUTE (fixes "Cannot GET /")
+app.get("/", (req, res) => {
+  res.json({ success: true, message: "MOCWO API is live" });
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 const isAdminSettingsTableMissingError = (error) => {
   const message = error?.message || error?.msg || error?.error || "";
