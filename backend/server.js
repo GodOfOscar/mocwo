@@ -1,5 +1,6 @@
 // server.js
 import dotenv from "dotenv";
+import ws from "ws";
 
 // Load environment variables first and as early as possible
 dotenv.config();
@@ -49,8 +50,13 @@ app.use("/api/notifications", notificationRoutes);
 
 // Supabase client
 const supabase = createClient(
-  process.env.SUPABASE_URL, 
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
+  {
+    realtime: {
+      transport: ws
+    }
+  }
 );
 
 const isAdminSettingsTableMissingError = (error) => {
