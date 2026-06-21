@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ShieldAlert, UserPlus, Trash2, Lock, ArrowLeft, RefreshCw, UserCheck, UserX, History, ShieldCheck, KeyRound, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 const AdminMaster = () => {
   const [admins, setAdmins] = useState<any[]>([]);
@@ -62,7 +63,7 @@ const AdminMaster = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const masterPassResponse = await fetch("/api/admin/settings/master_password");
+        const masterPassResponse = await fetch(`${API_BASE_URL}/api/admin/settings/master_password`);
         const masterPassData = await masterPassResponse.json();
         if (masterPassData.success) setMasterPassword(masterPassData.value);
       } catch (error) {
@@ -70,7 +71,7 @@ const AdminMaster = () => {
       }
 
       try {
-        const maintenanceResponse = await fetch("/api/status");
+        const maintenanceResponse = await fetch(`${API_BASE_URL}/api/status`);
         const maintenanceData = await maintenanceResponse.json();
         if (maintenanceData.success) setMaintenanceMode(maintenanceData.maintenanceMode);
       } catch (error) {
@@ -78,7 +79,7 @@ const AdminMaster = () => {
       }
 
       try {
-        const accessRes = await fetch("/api/admin/page-access");
+        const accessRes = await fetch(`${API_BASE_URL}/api/admin/page-access`);
         const accessData = await accessRes.json();
         if (accessData.success) setPageSettings(accessData.settings);
       } catch (error) {
@@ -98,7 +99,7 @@ const AdminMaster = () => {
 
   const logAction = async (action: string, details: string) => {
     try {
-      await fetch("/api/admin/log-action", {
+      await fetch(`${API_BASE_URL}/api/admin/log-action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: currentUserEmail || "master", action, details }),
@@ -125,7 +126,7 @@ const AdminMaster = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch("/api/admin/logs");
+      const response = await fetch(`${API_BASE_URL}/api/admin/logs`);
       const result = await response.json();
       if (result.success) setLogs(result.data || []);
     } catch (error: any) {
@@ -137,7 +138,7 @@ const AdminMaster = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const response = await fetch("/api/create-admin", {
+      const response = await fetch(`${API_BASE_URL}/api/create-admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newAdmin),
@@ -161,7 +162,7 @@ const AdminMaster = () => {
     e.preventDefault();
     if (!newMasterPassword) return;
     try {
-      const response = await fetch("/api/admin/settings", {
+      const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "master_password", value: newMasterPassword }),
@@ -180,7 +181,7 @@ const AdminMaster = () => {
   const handleToggleMaintenanceMode = async (checked: boolean) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/admin/settings", {
+      const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "maintenance_mode", value: checked.toString() }),
@@ -268,7 +269,7 @@ const AdminMaster = () => {
     setShowConfirmModal(false); // Close modal immediately
     
     try {
-      const response = await fetch("/api/admin/settings", {
+      const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: page, value: value.toString() }), // Ensure value is a string for API

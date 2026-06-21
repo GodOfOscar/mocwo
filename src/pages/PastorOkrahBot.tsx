@@ -45,7 +45,7 @@ export default function PastorOscarBot() {
     setAiError(false);
 
     try {
-      const response = await fetch("/api/ai/chat", {
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg }),

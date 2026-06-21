@@ -1,10 +1,18 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 import notificationRoutes from "./routes/notifications.js";
 
 dotenv.config();
+
+// Initialize Supabase client for backend operations
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+);
 
 const app = express();
 
@@ -38,12 +46,6 @@ app.get("/health", (req, res) => {
 // ✅ ROOT ROUTE (fixes "Cannot GET /")
 app.get("/", (req, res) => {
   res.json({ success: true, message: "MOCWO API is live" });
-});
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
 
 const isAdminSettingsTableMissingError = (error) => {

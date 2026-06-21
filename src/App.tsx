@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 import Navigation from "./components/layout/Navigation";
 import AdminLayout from "./pages/AdminLayout";
@@ -65,7 +66,7 @@ export default function App() {
   useEffect(() => {
     const checkMaintenanceStatus = async () => {
       try {
-        const response = await fetch("/api/status");
+        const response = await fetch(`${API_BASE_URL}/api/status`);
         const data = await response.json();
         if (data.success && data.maintenanceMode) {
           setIsMaintenanceMode(true);

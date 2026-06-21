@@ -12,6 +12,7 @@ import { Lock, Users, CreditCard, TrendingUp, DollarSign, Calendar, Heart, BookO
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 /* ─── Inline styles for animations (scoped to admin page) ─── */
 const adminStyles = `
@@ -609,13 +610,13 @@ const Admin = () => {
 
   useEffect(() => {
     const initAdmin = async () => {
-      const response = await fetch("/api/admin/settings/master_password");
+      const response = await fetch(`${API_BASE_URL}/api/admin/settings/master_password`);
       const data = await response.json();
       if (data.success) setMasterPasswordFromDB(data.value);
 
       // Fetch maintenance mode status from the backend
       try {
-        const maintenanceResponse = await fetch("/api/status");
+        const maintenanceResponse = await fetch(`${API_BASE_URL}/api/status`);
         const maintenanceData = await maintenanceResponse.json();
         if (maintenanceData.success) setIsMaintenanceMode(maintenanceData.maintenanceMode);
       } catch (error) {

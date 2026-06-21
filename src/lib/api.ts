@@ -2,11 +2,13 @@
  * API client functions for prayer requests and other backend operations
  */
 
-const VITE_API_URL = import.meta.env.VITE_API_URL;
+export const VITE_API_URL = import.meta.env.VITE_API_URL;
 
-const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
+export const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
   ? ''
-  : VITE_API_URL || 'https://mocwo-backend.onrender.com';
+  : (VITE_API_URL && !/^https?:\/\/localhost(:|$)/i.test(VITE_API_URL)
+      ? VITE_API_URL
+      : 'https://mocwo-backend.onrender.com');
 
 console.log('[API] Using base URL:', API_BASE_URL || '/api');
 

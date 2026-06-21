@@ -628,7 +628,7 @@ export default function PrayerAI() {
 
           <div className="border-t border-white/20 pt-8 text-center">
             <p className="text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} Fathers Heart Chapel International. Prayer Line 24/7.
+              &copy; {new Date().getFullYear()} Martyrs Of Christ World Outreach. Prayer Line 24/7.
             </p>
           </div>
         </div>

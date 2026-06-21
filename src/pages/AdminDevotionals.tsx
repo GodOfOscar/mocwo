@@ -49,7 +49,7 @@ const AdminDevotionals = () => {
 
     if (passwordInput === "teritorial10" || passwordInput === "pastorokrah1") {
       // NEW: Check page access after successful password entry
-      fetch("/api/admin/page-access")
+      fetch(`${API_BASE_URL}/api/admin/page-access`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.settings['admin-devotionals'] === false) {

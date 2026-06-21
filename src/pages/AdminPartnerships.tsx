@@ -38,7 +38,7 @@ const AdminPartnerships = () => {
     
     if (passwordInput === "teritorial1" || passwordInput === "pastorokrah1") { // Existing password check
       // NEW: Check page access after successful password entry
-      fetch("/api/admin/page-access")
+      fetch(`${API_BASE_URL}/api/admin/page-access`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.settings['admin-partnerships'] === false) {

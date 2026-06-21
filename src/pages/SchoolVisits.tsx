@@ -253,7 +253,7 @@ export default function SchoolVisits() {
         </div>
 
         <div className="mt-12 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Fathers Heart Chapel International. All rights reserved.
+          &copy; {new Date().getFullYear()} Martyrs Of Christ World Outreach. All rights reserved.
         </div>
       </footer>
     </div>

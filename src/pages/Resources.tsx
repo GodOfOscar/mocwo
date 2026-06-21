@@ -484,7 +484,7 @@ const Resources = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-          &copy; {new Date().getFullYear()} Fathers Heart Chapel International. All rights reserved.
+          &copy; {new Date().getFullYear()} Martyrs Of Christ World Outreach. All rights reserved.
         </div>
       </footer>
 
