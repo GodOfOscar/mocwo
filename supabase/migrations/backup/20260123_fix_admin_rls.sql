@@ -9,11 +9,13 @@ DROP POLICY IF EXISTS "Admins can update admin users" ON public.admin_users;
 -- 1. Public access to check if an email exists in admin_users (for login)
 -- 2. Admins to view and update their own records
 
+DROP POLICY IF EXISTS "Allow public to check admin access" ON public.admin_users;
 CREATE POLICY "Allow public to check admin access"
   ON public.admin_users
   FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can update their own record" ON public.admin_users;
 CREATE POLICY "Admins can update their own record"
   ON public.admin_users
   FOR UPDATE

@@ -1,270 +1,364 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect, FormEvent } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { news } from "@/data/news";
-import { Calendar, MapPin, User, Mail, Phone, Loader2, ArrowLeft, CheckCircle2, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import Footer from "@/components/Footer";
-import Navigation from "@/components/layout/Navigation";
-import hero5 from "@/assets/hero5.jpeg";
+import { Calendar, MapPin, Loader2, CheckCircle2 } from "lucide-react";
+import { useParams } from "react-router-dom";
 
 const RegisterEvent = () => {
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [event, setEvent] = useState<any | null>(null);
+  const [registrationCount, setRegistrationCount] = useState(0);
+  const [displayedCount, setDisplayedCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [schoolError, setSchoolError] = useState("");
-  const [eventList, setEventList] = useState<any[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const navigate = useNavigate();
+  const [gender, setGender] = useState("Male");
+  const { id } = useParams();
   const { toast } = useToast();
 
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      event_id: selectedEvent.id.toString(),
-      event_name: selectedEvent.title,
-      full_name: formData.get("fullName") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      location: formData.get("location") as string,
-      school: formData.get("school") as string,
-      notes: formData.get("notes") as string,
+      try {
+        const eventId = Number(id);
+        const eventQuery = isNaN(eventId) ? id : eventId;
+
+        const { data: eventData, error: eventError } = await supabase
+          .from("events")
+          .select("*")
+          .eq("id", eventQuery)
+          .single();
+
+        if (eventError) throw eventError;
+        setEvent(eventData);
+
+        const { count: registrationCount = 0, error: countError } = await supabase
+          .from("event_registrations")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", eventQuery);
+
+        if (countError) throw countError;
+        setRegistrationCount(registrationCount || 0);
+        setDisplayedCount(0);
+      } catch (error: any) {
+        console.error("Error loading event:", error);
+        toast({
+          title: "Unable to load event",
+          description: error?.message ?? "Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    if (!data.school.trim()) {
+    if (id) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [id, toast]);
+
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!event) return;
+
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const full_name = formData.get("fullName")?.toString().trim() ?? "";
+    const email = formData.get("email")?.toString().trim() ?? "";
+    const phone = formData.get("phone")?.toString().trim() ?? "";
+    const location = formData.get("location")?.toString().trim() ?? "";
+    const school = formData.get("school")?.toString().trim() ?? "";
+    const notes = formData.get("notes")?.toString().trim() ?? "";
+
+    if (!school) {
       setSchoolError("Please enter your school or institution.");
       setIsSubmitting(false);
       return;
     }
 
     try {
-      const { error } = await supabase.from("event_registrations").insert([data]);
-      if (error) throw error;
+      const eventId = Number(id);
+      const eventQuery = isNaN(eventId) ? id : eventId;
+
+      // Check for existing registration by email or phone
+      let alreadyRegistered = false;
+
+      if (email) {
+        const { count: emailCount, error: emailErr } = await supabase
+          .from("event_registrations")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", eventQuery)
+          .eq("email", email);
+
+        if (emailErr) throw emailErr;
+        if ((emailCount || 0) > 0) alreadyRegistered = true;
+      }
+
+      if (!alreadyRegistered && phone) {
+        const { count: phoneCount, error: phoneErr } = await supabase
+          .from("event_registrations")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", eventQuery)
+          .eq("phone", phone);
+
+        if (phoneErr) throw phoneErr;
+        if ((phoneCount || 0) > 0) alreadyRegistered = true;
+      }
+
+      if (alreadyRegistered) {
+        setIsSubmitting(false);
+        toast({
+          title: "Already registered",
+          description: "You have already registered for this event using the same email or phone number.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error, data } = await supabase.from("event_registrations").insert([
+        {
+          event_id: eventQuery,
+          event_name: event.title,
+          full_name,
+          email,
+          phone,
+          location,
+          school,
+          gender,
+          notes,
+        },
+      ]);
+
+      if (error) {
+        console.error("Insert error:", error);
+        throw error;
+      }
       
+      console.log("Registration inserted successfully:", data);
+
+      setRegistrationCount((current) => current + 1);
       setIsSuccess(true);
       toast({
-        title: "Registration Successful!",
-        description: `You have successfully registered for ${selectedEvent.title}.`,
+        title: "Registration successful",
+        description: `You have successfully registered for ${event.title}.`,
       });
     } catch (error: any) {
+      let errorMessage = "Unable to submit registration.";
+      
+      // Check for duplicate registration constraint violations
+      if (error?.message?.includes("unique_event_email")) {
+        errorMessage = "This email has already been registered for this event.";
+      } else if (error?.message?.includes("unique_event_phone")) {
+        errorMessage = "This phone number has already been registered for this event.";
+      }
+      
       toast({
-        title: "Registration Failed",
-        description: error.message,
+        title: "Registration failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      setSchoolError(""); // Clear error on successful submission
     }
   };
 
+  const formattedDate = event?.start_date
+    ? new Date(event.start_date).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "TBA";
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
-          .select('*')
-          .eq('is_active', true)
-          .order('start_date', { ascending: true });
+    if (registrationCount > 0) {
+      let start = 0;
+      const duration = 800;
+      const increment = Math.max(1, Math.ceil(registrationCount / (duration / 30)));
+      const interval = window.setInterval(() => {
+        start += increment;
+        if (start >= registrationCount) {
+          setDisplayedCount(registrationCount);
+          window.clearInterval(interval);
+        } else {
+          setDisplayedCount(start);
+        }
+      }, 30);
 
-        if (eventsError) throw eventsError;
+      return () => window.clearInterval(interval);
+    }
 
-        const { data: regsData, error: regsError } = await supabase
-          .from('event_registrations')
-          .select('event_id');
-        if (regsError) throw regsError;
+    setDisplayedCount(registrationCount);
+  }, [registrationCount]);
 
-        const registrationCounts = regsData.reduce((acc: Record<string, number>, reg: any) => {
-          acc[reg.event_id] = (acc[reg.event_id] || 0) + 1;
-          return acc;
-        }, {});
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="mx-auto max-w-xl rounded-[2rem] border border-slate-200 bg-white/95 p-12 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-6">
+            <Loader2 className="w-14 h-14 text-blue-600 animate-spin" />
+            <div className="text-center">
+              <p className="text-xl font-semibold text-slate-900">Loading event details</p>
+              <p className="mt-2 text-slate-500">We're fetching your registration information. Please wait a moment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        const mappedEvents = (eventsData || []).map(ev => ({
-          ...ev,
-          registrationCount: registrationCounts[ev.id] || 0,
-          image: hero5 // Default image for DB events, replace with actual image field if available
-        }));
-        setEventList(mappedEvents);
-      } catch (err) {
-        console.error("Error loading events:", err);
-        // Fallback to news if DB table is empty or error occurs
-        setEventList(news.filter(item => item.category === "Event" || item.category === "Camp"));
-      } finally {
-        setIsLoadingEvents(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white flex items-center justify-center">
+        <div className="mx-auto max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-12 shadow-2xl">
+          <div className="text-center">
+            <span className="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">Event not found</span>
+            <h1 className="mt-6 text-5xl font-black text-slate-900">Something went missing.</h1>
+            <p className="mt-4 text-lg leading-8 text-slate-600">The event you are trying to register for is unavailable.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navigation />
-      <div className="container mx-auto px-4 py-32">
-        <Button 
-          variant="ghost" 
-          className="mb-8 hover:bg-blue-50 text-blue-700 font-bold"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
+      <div className="relative overflow-hidden pb-24">
+        <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-r from-blue-500 via-sky-400 to-cyan-400 opacity-20 blur-3xl" />
+        <div className="container mx-auto px-4 pt-20">
+          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-2xl p-8 md:p-12 backdrop-blur-xl">
+            <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+              <div className="space-y-8">
+                <div className="max-w-3xl">
+                  <span className="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">Register for {event.title}</span>
+                  <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-900 sm:text-6xl">{event.title}</h1>
+                  <p className="mt-6 text-lg leading-8 text-slate-600">{event.description || 'Reserve your seat and join us for an unforgettable event experience with community, worship, and life-changing teaching.'}</p>
+                </div>
 
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-black text-blue-900 mb-4 tracking-tight">Register for an Event</h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
-            Join us for powerful encounters and spiritual renewal. Select an event below to register.
-          </p>
-        </div>
-
-        {isLoadingEvents ? (
-          <div className="flex flex-col items-center py-20">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-slate-500 font-medium animate-pulse">Loading upcoming programs...</p>
-          </div>
-        ) : !isSuccess ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {eventList.length === 0 ? (
-              <div className="col-span-full text-center py-20">
-                <p className="text-xl text-slate-500">No upcoming events found at this time.</p>
-              </div>
-            ) : eventList.map((event) => (
-              <Card key={event.id} className="overflow-hidden border-0 shadow-card hover:shadow-divine transition-all group">
-                <div className="h-48 overflow-hidden relative">
-                  <img src={event.image} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                    {event.category}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Date & Time</p>
+                    <p className="mt-4 text-2xl font-semibold text-slate-900">{formattedDate}</p>
+                  </div>
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Location</p>
+                    <p className="mt-4 text-2xl font-semibold text-slate-900">{event.location || 'Online / TBA'}</p>
                   </div>
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-blue-900">{event.title}</CardTitle>
-                  <CardDescription className="space-y-1.5 mt-2">
-                    <div className="flex items-center gap-2 font-bold text-blue-600">
-                      <Calendar className="h-4 w-4" /> {event.date}
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-8 text-white shadow-2xl">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.24em] text-sky-200">Attendee Count</p>
+                      <p className="mt-2 text-4xl font-black text-white">{displayedCount}</p>
                     </div>
-                    <div className="flex items-center gap-2 font-semibold text-slate-500 text-xs">
-                      <Users className="h-3.5 w-3.5" /> 
-                      {event.registrationCount} {event.registrationCount === 1 ? 'person registered' : 'people registered'}
+                    <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-sky-100">Live</div>
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    <div className="rounded-3xl bg-white/10 p-4">
+                      <p className="text-sm text-sky-200">Event Type</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{event.event_type || 'Event'}</p>
                     </div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-600 text-sm mb-6 line-clamp-2">{event.excerpt}</p>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700 font-bold rounded-full"
-                    onClick={() => setSelectedEvent(event)}
-                  >
-                    Register to Attend
-                  </Button>
-                  {event.capacity > 0 && (
-                    <div className="mt-4">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-blue-600 h-2.5 rounded-full" 
-                          style={{ width: `${Math.min((event.registrationCount / event.capacity) * 100, 100)}%` }}
-                        ></div>
+                    <div className="rounded-3xl bg-white/10 p-4">
+                      <p className="text-sm text-sky-200">Registration</p>
+                      <p className="mt-2 text-lg font-semibold text-white">Open for all</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-xl">
+                  <div className="mb-6">
+                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Secure your spot</p>
+                    <h2 className="mt-3 text-2xl font-black text-slate-900">Register Now</h2>
+                  </div>
+                  {isSuccess ? (
+                    <div className="space-y-6 text-center">
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-700">
+                        <CheckCircle2 className="h-12 w-12" />
                       </div>
-                      <p className="text-xs text-slate-500 mt-1 text-right">
-                        {event.registrationCount} / {event.capacity} registered
-                        {event.registrationCount >= event.capacity && <span className="text-red-500 font-bold ml-1"> (FULL)</span>}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )) }
-          </div>
-        ) : (
-          <Card className="max-w-md mx-auto border-0 shadow-divine text-center p-12 animate-in zoom-in-95 duration-300 rounded-3xl">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-12 h-12 text-green-600" />
-            </div>
-            <h2 className="text-3xl font-black text-blue-900 mb-2">Registration Received!</h2>
-            <p className="text-slate-600 mb-8 font-medium">
-              We have received your registration for <strong>{selectedEvent?.title}</strong>. We look forward to seeing you!
-            </p>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 font-bold rounded-full px-8"
-              onClick={() => {
-                setIsSuccess(false);
-                setSelectedEvent(null);
-              }}
-            >
-              Done
-            </Button>
-          </Card>
-        )}
-      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-slate-900">Registration Received</h3>
+                        <p className="mt-3 text-slate-600">Thanks for registering. We’ll see you at the event!</p>
+                      </div>
 
-      {/* Popup Registration Form */}
-      {selectedEvent && !isSuccess && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-lg shadow-2xl animate-in slide-in-from-bottom-10 duration-300 rounded-3xl overflow-hidden border-0 my-auto">
-            <div className="bg-gradient-to-r from-blue-950 to-blue-800 p-8 text-white relative">
-              <button 
-                onClick={() => setSelectedEvent(null)}
-                className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <h2 className="text-2xl font-black mb-1">Event Registration</h2>
-              <p className="opacity-80 text-sm font-bold uppercase tracking-wider">{selectedEvent.title}</p>
-            </div>
-            <CardContent className="p-8">
-              <form onSubmit={handleRegister} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="font-bold text-slate-700">Full Name</Label>
-                  <Input id="fullName" name="fullName" placeholder="Enter your name" className="rounded-xl border-slate-200 h-12" required />
+                    </div>
+                  ) : (
+                    <form onSubmit={handleRegister} className="space-y-5">
+                      <div className="space-y-3">
+                        <Label htmlFor="fullName" className="font-bold text-slate-700">Full Name</Label>
+                        <Input id="fullName" name="fullName" placeholder="Enter your full name" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-3">
+                          <Label htmlFor="email" className="font-bold text-slate-700">Email Address</Label>
+                          <Input id="email" name="email" type="email" placeholder="email@address.com" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                        </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="phone" className="font-bold text-slate-700">Phone Number</Label>
+                          <Input id="phone" name="phone" placeholder="+233..." className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="school" className="font-bold text-slate-700">School / Institution</Label>
+                        <Input
+                          id="school"
+                          name="school"
+                          placeholder="Enter your school or institution"
+                          className="rounded-2xl border-slate-200 h-12 bg-white"
+                          onChange={() => schoolError && setSchoolError("")}
+                          required
+                        />
+                        {schoolError && <p className="text-red-500 text-sm mt-1">{schoolError}</p>}
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="location" className="font-bold text-slate-700">Location</Label>
+                        <Input id="location" name="location" placeholder="City / Country" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="gender" className="font-bold text-slate-700">Gender</Label>
+                        <select
+                          id="gender"
+                          name="gender"
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 h-12 bg-white px-3"
+                        >
+                          <option>Male</option>
+                          <option>Female</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="notes" className="font-bold text-slate-700">Special Notes (Optional)</Label>
+                        <Textarea id="notes" name="notes" placeholder="Any specific requirements?" className="rounded-2xl border-slate-200 bg-white resize-none" rows={3} />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-700 h-14 font-black text-lg rounded-full shadow-lg transition-all"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Confirm Registration"}
+                      </Button>
+                    </form>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="font-bold text-slate-700">Email Address</Label>
-                    <Input id="email" name="email" type="email" placeholder="email@address.com" className="rounded-xl border-slate-200 h-12" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="font-bold text-slate-700">Phone Number</Label>
-                    <Input id="phone" name="phone" placeholder="+233..." className="rounded-xl border-slate-200 h-12" required />
-                  </div>
-                </div>
-              <div className="space-y-2">
-                <Label htmlFor="school" className="font-bold text-slate-700">School / Institution</Label>
-                <Input 
-                  id="school" 
-                  name="school" 
-                  placeholder="Enter your school or institution" 
-                  className="rounded-xl border-slate-200 h-12"
-                  onChange={() => { if (schoolError) setSchoolError(""); }}
-                />
-                {schoolError && <p className="text-red-500 text-sm mt-1">{schoolError}</p>}
               </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="font-bold text-slate-700">Location</Label>
-                  <Input id="location" name="location" placeholder="City / Country" className="rounded-xl border-slate-200 h-12" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="font-bold text-slate-700">Special Notes (Optional)</Label>
-                  <Textarea id="notes" name="notes" placeholder="Any specific requirements?" className="rounded-xl border-slate-200 resize-none" rows={2} />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 h-14 font-black text-lg rounded-full shadow-lg transition-all mt-4"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Confirm My Registration"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
-      )}
-      <Footer />
+      </div>
     </div>
   );
 };

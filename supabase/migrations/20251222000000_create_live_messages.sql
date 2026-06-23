@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.live_messages (
   is_highlighted boolean DEFAULT false,
   created_at timestamptz DEFAULT now()
 );
+
 -- RLS: allow inserts from authenticated anon or authenticated clients (adjust for your policy)
 -- You may want to add policies in Supabase dashboard.
 

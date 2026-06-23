@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Users, Trash2, Lock } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 interface MembershipRequest {
   id: string;
@@ -68,8 +69,10 @@ const AdminMemberships = () => {
   };
 
   useEffect(() => {
-    fetchMembershipRequests();
-  }, []);
+    if (!isPasswordProtected) {
+      fetchMembershipRequests();
+    }
+  }, [isPasswordProtected]);
 
   const fetchMembershipRequests = async () => {
     try {

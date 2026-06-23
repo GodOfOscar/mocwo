@@ -11,11 +11,10 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
     status TEXT DEFAULT 'pending', -- pending, confirmed, cancelled
     created_at TIMESTAMPTZ DEFAULT now()
 );
-
 -- Enable Row Level Security
 ALTER TABLE public.event_registrations ENABLE ROW LEVEL SECURITY;
-
 -- Allow public to register (Insert only)
+DROP POLICY IF EXISTS "Allow public registration" ON public.event_registrations;
 CREATE POLICY "Allow public registration" 
 ON public.event_registrations FOR INSERT 
 TO public 

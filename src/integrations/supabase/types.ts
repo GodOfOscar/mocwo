@@ -318,33 +318,87 @@ export type Database = {
       events: {
         Row: {
           created_at: string
-          date: string
-          description: string | null
+          end_date: string | null
+          event_type: string | null
           id: string
+          image_url: string | null
+          is_active: boolean
           location: string | null
-          time: string | null
+          registration_link: string | null
+          start_date: string
           title: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          date: string
-          description?: string | null
+          end_date?: string | null
+          event_type?: string | null
           id?: string
+          image_url?: string | null
+          is_active?: boolean
           location?: string | null
-          time?: string | null
+          registration_link?: string | null
+          start_date: string
           title: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          date?: string
-          description?: string | null
+          end_date?: string | null
+          event_type?: string | null
           id?: string
+          image_url?: string | null
+          is_active?: boolean
           location?: string | null
-          time?: string | null
+          registration_link?: string | null
+          start_date?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      event_registrations: {
+        Row: {
+          created_at: string
+          email: string
+          event_id: string
+          event_name: string
+          full_name: string
+          gender: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          phone: string
+          school: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_id: string
+          event_name: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phone: string
+          school?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_id?: string
+          event_name?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          phone?: string
+          school?: string | null
+          status?: string
         }
         Relationships: []
       }

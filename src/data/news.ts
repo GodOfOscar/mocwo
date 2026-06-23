@@ -2,6 +2,7 @@
 import hero1 from "@/assets/hero1.jpeg";
 import hero2 from "@/assets/hero2.jpeg";
 import hero3 from "@/assets/hero3.jpeg";
+import pneuma1 from "@/assets/pnuema1.png";
 
 export interface NewsItem {
   id: number;
@@ -89,7 +90,7 @@ export const news: NewsItem[] = [
     excerpt:
       "Join us in June 2026 at the CCB Auditorium for an unforgettable night of worship, prayer, and revival with the power of the Holy Spirit.",
     date: "Jun, 2026",
-    image: hero3,
+    image: pneuma1,
     link: "/news/pneumatikos-watch-night",
     category: "Event",
     author: "MOCWO Events Team",
@@ -117,7 +118,7 @@ export const news: NewsItem[] = [
       <strong>Date:</strong> June 2026 (Exact date to be announced)<br>
       <strong>Time:</strong> 10:00 PM - 6:00 AM</p>
     `,
-    images: [hero3, hero1],
+    images: [pneuma1, hero1],
     videos: []
   },
   {

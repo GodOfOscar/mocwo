@@ -13,19 +13,15 @@ CREATE TABLE IF NOT EXISTS public.church_schedule (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
-
 -- Enable Row Level Security
 ALTER TABLE public.church_schedule ENABLE ROW LEVEL SECURITY;
-
 -- Make policy creation idempotent
 DROP POLICY IF EXISTS "Allow public read access for church_schedule" ON public.church_schedule;
-
 -- Create policy to allow anyone to read the schedule
 CREATE POLICY "Allow public read access for church_schedule" 
 ON public.church_schedule FOR SELECT 
 TO public 
 USING (true);
-
 -- Seed the table with your current data
 INSERT INTO public.church_schedule (title, day, time_string, description, details, image, color, live_link, order_index)
 VALUES 

@@ -14,10 +14,9 @@ VALUES (
   true
 )
 ON CONFLICT (email) DO NOTHING;
-
 -- Usage notes:
 -- 1) Create the Supabase Auth user (same email) in the Supabase Dashboard and set a secure password.
 -- 2) Alternatively, use the Supabase Admin API to create the user programmatically.
 -- 3) Ensure the email in `admin_users` matches the Auth user's email exactly.
 -- 4) After both records exist, the Admin page will allow sign-in via Supabase Auth, and the code
---    will check `admin_users` to confirm admin privileges.
+--    will check `admin_users` to confirm admin privileges.;

@@ -7,10 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar, Users, Trash2, Edit2, Plus, Lock, ArrowLeft, CheckCircle2, Clock, MapPin, Download, Filter, X, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 
 const AdminEvents = () => {
@@ -26,6 +28,7 @@ const AdminEvents = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedRegistrationIds, setSelectedRegistrationIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -66,17 +69,45 @@ const AdminEvents = () => {
   useEffect(() => {
     if (!isPasswordProtected) {
       fetchData();
+      
+      // Subscribe to real-time changes in event_registrations
+      const regsSubscription = supabase
+        .channel('event_registrations_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'event_registrations' },
+          (payload: any) => {
+            console.log('Registration change detected:', payload);
+            fetchData(); // Refresh data when any change occurs
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
+
+      return () => {
+        supabase.removeChannel(regsSubscription);
+      };
     }
   }, [isPasswordProtected]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const { data: eventsData } = await supabase.from('events').select('*').order('created_at', { ascending: false });
-      const { data: regsData } = await supabase.from('event_registrations').select('*').order('created_at', { ascending: false });
+      const { data: eventsData, error: eventsError } = await supabase.from('events').select('*').order('created_at', { ascending: false });
+      if (eventsError) console.error('Events error:', eventsError);
+      
+      const { data: regsData, error: regsError } = await supabase.from('event_registrations').select('*').order('created_at', { ascending: false });
+      if (regsError) console.error('Registrations error:', regsError);
+      
+      console.log('Fetched events:', eventsData?.length || 0);
+      console.log('Fetched registrations:', regsData?.length || 0);
+      
       setEvents(eventsData || []);
       setRegistrations(regsData || []);
+      setSelectedRegistrationIds([]);
     } catch (error: any) {
+      console.error('Fetch error:', error);
       toast({ title: "Error fetching data", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -109,6 +140,37 @@ const AdminEvents = () => {
     fetchData();
   };
 
+  const handleDeleteSelectedRegistrations = async () => {
+    if (selectedRegistrationIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedRegistrationIds.length} selected registration(s)? This action cannot be undone.`)) return;
+
+    try {
+      const { error } = await supabase.from('event_registrations').delete().in('id', selectedRegistrationIds);
+      if (error) throw error;
+      toast({ title: "Success", description: `${selectedRegistrationIds.length} registration(s) deleted.` });
+      setSelectedRegistrationIds([]);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error deleting registrations", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAllFilteredRegistrations = async () => {
+    if (filteredRegistrations.length === 0) return;
+    if (!confirm(`Are you sure you want to delete all ${filteredRegistrations.length} visible registration(s)? This action cannot be undone.`)) return;
+
+    try {
+      const filteredIds = filteredRegistrations.map((reg) => String(reg.id));
+      const { error } = await supabase.from('event_registrations').delete().in('id', filteredIds);
+      if (error) throw error;
+      toast({ title: "Success", description: `Deleted ${filteredRegistrations.length} registration(s).` });
+      setSelectedRegistrationIds([]);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error deleting registrations", description: error.message, variant: "destructive" });
+    }
+  };
+
   const handleDeleteAllRegistrationsForEvent = async () => {
     if (filterEventName === "all") return; // Should not happen if button is disabled
     if (!confirm(`Are you sure you want to delete ALL registrations for "${filterEventName}"? This action cannot be undone.`)) return;
@@ -117,6 +179,7 @@ const AdminEvents = () => {
       const { error } = await supabase.from('event_registrations').delete().eq('event_name', filterEventName);
       if (error) throw error;
       toast({ title: "Success", description: `All registrations for "${filterEventName}" deleted.` });
+      setSelectedRegistrationIds([]);
       fetchData();
     } catch (error: any) {
       toast({ title: "Error deleting registrations", description: error.message, variant: "destructive" });
@@ -346,6 +409,14 @@ const AdminEvents = () => {
                       Member Registrations ({isAnyFilterActive ? `${filteredRegistrations.length} of ${registrations.length}` : registrations.length})
                     </CardTitle>
                     <div className="flex flex-wrap items-center gap-4">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={fetchData}
+                        className="text-orange-400 border-orange-400 hover:bg-orange-400/10"
+                      >
+                        ↻ Refresh
+                      </Button>
                       <div className="flex items-center gap-2 relative">
                         <Search size={16} className="absolute left-3 text-slate-400" />
                         <Input 
@@ -402,6 +473,30 @@ const AdminEvents = () => {
                         </Button>
                       )}
                       
+                      {selectedRegistrationIds.length > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDeleteSelectedRegistrations}
+                          className="gap-2 h-9"
+                        >
+                          <Trash2 size={16} />
+                          Delete Selected
+                        </Button>
+                      )}
+
+                      {filteredRegistrations.length > 0 && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={handleDeleteAllFilteredRegistrations}
+                          className="gap-2 h-9"
+                        >
+                          <Trash2 size={16} />
+                          Delete Visible
+                        </Button>
+                      )}
+
                       {filterEventName !== "all" && (
                         <Button 
                           variant="destructive" 
@@ -413,8 +508,6 @@ const AdminEvents = () => {
                           Delete All for "{filterEventName}"
                         </Button>
                       )}
-
-
 
                       {filteredRegistrations.length > 0 && (
                         <Button 
@@ -434,6 +527,18 @@ const AdminEvents = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-slate-50">
+                            <TableHead className="font-bold text-slate-900 w-12">
+                              <Checkbox
+                                checked={filteredRegistrations.length > 0 && filteredRegistrations.every(reg => selectedRegistrationIds.includes(String(reg.id)))}
+                                onCheckedChange={() => {
+                                  if (filteredRegistrations.length > 0 && filteredRegistrations.every(reg => selectedRegistrationIds.includes(String(reg.id)))) {
+                                    setSelectedRegistrationIds([]);
+                                  } else {
+                                    setSelectedRegistrationIds(filteredRegistrations.map(reg => String(reg.id)));
+                                  }
+                                }}
+                              />
+                            </TableHead>
                             <TableHead className="font-bold text-slate-900">Program</TableHead>
                             <TableHead className="font-bold text-slate-900">Member Name</TableHead>
                             <TableHead className="font-bold text-slate-900">Contact</TableHead>
@@ -445,13 +550,26 @@ const AdminEvents = () => {
                         <TableBody>
                           {filteredRegistrations.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={5} className="text-center py-12 text-slate-400 font-medium">
+                              <TableCell colSpan={7} className="text-center py-12 text-slate-400 font-medium">
                                 No registrations found for this selection.
                               </TableCell>
                             </TableRow>
                           ) : (
                             filteredRegistrations.map((reg) => (
                               <TableRow key={reg.id} className="hover:bg-orange-50/30 transition-colors">
+                                <TableCell className="w-12">
+                                  <Checkbox
+                                    checked={selectedRegistrationIds.includes(String(reg.id))}
+                                    onCheckedChange={() => {
+                                      const regId = String(reg.id);
+                                      setSelectedRegistrationIds((prev) =>
+                                        prev.includes(regId)
+                                          ? prev.filter((id) => id !== regId)
+                                          : [...prev, regId]
+                                      );
+                                    }}
+                                  />
+                                </TableCell>
                                 <TableCell className="font-bold text-orange-700">{reg.event_name}</TableCell>
                                 <TableCell className="font-semibold">{reg.full_name}</TableCell>
                                 <TableCell>

@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -34,6 +37,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, "../dist");
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+} else {
+  console.warn(`⚠️ Frontend build not found at ${distPath}. SPA routes will not be served from Express.`);
+}
 
 // ✅ ROUTES
 app.use("/api/notifications", notificationRoutes);
@@ -520,6 +533,15 @@ app.use((err, req, res, next) => {
     success: false,
     error: err.message || "Internal Server Error"
   });
+});
+
+// Serve SPA for non-API GET routes when frontend build exists
+app.get(/^(?!\/api).*/, (req, res) => {
+  const indexPath = path.join(distPath, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return res.status(404).json({ success: false, error: `Cannot ${req.method} ${req.originalUrl}` });
 });
 
 // API 404 fallback

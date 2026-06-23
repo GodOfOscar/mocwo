@@ -176,7 +176,7 @@ export default function PastorOscarBot() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="grid grid-cols-3 gap-2 mb-2">
               {/* Quick Action: Request Prayer */}
               <Button
                 variant="outline"
@@ -204,23 +204,23 @@ export default function PastorOscarBot() {
                 <DollarSign size={16} className="fill-green-100" />
                 Give
               </Button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {/* Quick Action: Register Event */}
+              {/* Quick Action: Events */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setIsOpen(false);
-                  navigate("/register-event");
+                  navigate("/events");
                 }}
                 className="flex items-center justify-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 font-bold rounded-xl h-10 shadow-sm"
               >
                 <Calendar size={16} className="fill-orange-100" />
                 Events
               </Button>
+            </div>
 
+            <div className="grid grid-cols-2 gap-2 mb-3">
               {/* Quick Action: Talk to Human */}
               <Button
                 variant="outline"

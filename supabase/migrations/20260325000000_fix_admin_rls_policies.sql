@@ -4,7 +4,6 @@
 -- Admin users table policies
 DROP POLICY IF EXISTS "Admins can view admin users" ON public.admin_users;
 DROP POLICY IF EXISTS "Admins can update admin users" ON public.admin_users;
-
 CREATE POLICY "Admins can view admin users"
   ON public.admin_users
   FOR SELECT
@@ -16,7 +15,6 @@ CREATE POLICY "Admins can view admin users"
       AND au.is_active = true
     )
   );
-
 CREATE POLICY "Admins can update admin users"
   ON public.admin_users
   FOR UPDATE

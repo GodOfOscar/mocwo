@@ -9,5 +9,4 @@
 
 -- Create index for faster filtering by method
 CREATE INDEX IF NOT EXISTS idx_prayer_requests_method ON public.prayer_requests(method);
-
--- All existing policies remain in effect and support email method
+-- All existing policies remain in effect and support email method;

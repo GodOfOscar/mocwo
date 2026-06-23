@@ -394,7 +394,7 @@ const About = () => {
           <div className="border-t border-white/10 pt-12">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-sm text-gray-500">
-                &copy; {new Date().getFullYear()} Fathers Heart Chapel International. All rights reserved.
+                &copy; {new Date().getFullYear()} Martyrs Of Christ World Outreach. All rights reserved.
               </p>
               <p className="text-sm text-gray-500">
                 Transforming Lives • Impacting Nations • Serving God
