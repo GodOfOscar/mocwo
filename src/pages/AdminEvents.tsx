@@ -33,6 +33,7 @@ const AdminEvents = () => {
     title: "",
     description: "",
     start_date: "",
+    end_date: "",
     location: "",
     event_type: "Event",
     is_active: true
@@ -94,17 +95,22 @@ const AdminEvents = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const { data: eventsData, error: eventsError } = await supabase.from('events').select('*').order('created_at', { ascending: false });
-      if (eventsError) console.error('Events error:', eventsError);
-      
-      const { data: regsData, error: regsError } = await supabase.from('event_registrations').select('*').order('created_at', { ascending: false });
-      if (regsError) console.error('Registrations error:', regsError);
-      
-      console.log('Fetched events:', eventsData?.length || 0);
-      console.log('Fetched registrations:', regsData?.length || 0);
-      
-      setEvents(eventsData || []);
-      setRegistrations(regsData || []);
+      const eventsResponse = await fetch(`${API_BASE_URL}/api/admin-events`);
+      if (!eventsResponse.ok) {
+        const err = await eventsResponse.json().catch(() => null);
+        throw new Error(err?.error || `Events fetch failed (${eventsResponse.status})`);
+      }
+      const eventsResult = await eventsResponse.json();
+
+      const regsResponse = await fetch(`${API_BASE_URL}/api/admin-events/registrations`);
+      if (!regsResponse.ok) {
+        const err = await regsResponse.json().catch(() => null);
+        throw new Error(err?.error || `Registrations fetch failed (${regsResponse.status})`);
+      }
+      const regsResult = await regsResponse.json();
+
+      setEvents(eventsResult.data || []);
+      setRegistrations(regsResult.data || []);
       setSelectedRegistrationIds([]);
     } catch (error: any) {
       console.error('Fetch error:', error);
@@ -117,17 +123,33 @@ const AdminEvents = () => {
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingId) {
-        const { error } = await supabase.from('events').update(form).eq('id', editingId);
-        if (error) throw error;
-        toast({ title: "Event updated" });
-      } else {
-        const { error } = await supabase.from('events').insert([form]);
-        if (error) throw error;
-        toast({ title: "Event created" });
+      const eventPayload = {
+        title: form.title,
+        description: form.description,
+        start_date: form.start_date,
+        end_date: form.end_date || null,
+        location: form.location,
+        event_type: form.event_type,
+        is_active: form.is_active,
+      };
+
+      const endpoint = editingId ? `${API_BASE_URL}/api/admin-events/${editingId}` : `${API_BASE_URL}/api/admin-events`;
+      const method = editingId ? 'PUT' : 'POST';
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventPayload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Event save failed (${response.status})`);
       }
+
+      const result = await response.json();
+      toast({ title: editingId ? "Event updated" : "Event created" });
       setEditingId(null);
-      setForm({ title: "", description: "", start_date: "", location: "", event_type: "Event", is_active: true });
+      setForm({ title: "", description: "", start_date: "", end_date: "", location: "", event_type: "Event", is_active: true });
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -135,9 +157,28 @@ const AdminEvents = () => {
   };
 
   const handleDeleteEvent = async (id: string) => {
+    if (!id) {
+      toast({ title: "Error", description: "Event ID is missing.", variant: "destructive" });
+      return;
+    }
+
     if (!confirm("Delete this event?")) return;
-    await supabase.from('events').delete().eq('id', id);
-    fetchData();
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin-events/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Delete failed (${response.status})`);
+      }
+
+      toast({ title: "Event deleted", description: "The event has been removed successfully." });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Delete failed", description: error.message || "Unable to delete the event.", variant: "destructive" });
+    }
   };
 
   const handleDeleteSelectedRegistrations = async () => {
@@ -145,8 +186,17 @@ const AdminEvents = () => {
     if (!confirm(`Are you sure you want to delete ${selectedRegistrationIds.length} selected registration(s)? This action cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase.from('event_registrations').delete().in('id', selectedRegistrationIds);
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/admin-events/registrations`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedRegistrationIds }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Delete failed (${response.status})`);
+      }
+
       toast({ title: "Success", description: `${selectedRegistrationIds.length} registration(s) deleted.` });
       setSelectedRegistrationIds([]);
       fetchData();
@@ -161,8 +211,17 @@ const AdminEvents = () => {
 
     try {
       const filteredIds = filteredRegistrations.map((reg) => String(reg.id));
-      const { error } = await supabase.from('event_registrations').delete().in('id', filteredIds);
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/admin-events/registrations`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: filteredIds }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Delete failed (${response.status})`);
+      }
+
       toast({ title: "Success", description: `Deleted ${filteredRegistrations.length} registration(s).` });
       setSelectedRegistrationIds([]);
       fetchData();
@@ -176,8 +235,17 @@ const AdminEvents = () => {
     if (!confirm(`Are you sure you want to delete ALL registrations for "${filterEventName}"? This action cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase.from('event_registrations').delete().eq('event_name', filterEventName);
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/admin-events/registrations`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_name: filterEventName }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Delete failed (${response.status})`);
+      }
+
       toast({ title: "Success", description: `All registrations for "${filterEventName}" deleted.` });
       setSelectedRegistrationIds([]);
       fetchData();
@@ -360,7 +428,7 @@ const AdminEvents = () => {
                         {editingId && (
                           <Button variant="ghost" onClick={() => {
                             setEditingId(null);
-                            setForm({ title: "", description: "", start_date: "", location: "", event_type: "Event", is_active: true });
+                            setForm({ title: "", description: "", start_date: "", end_date: "", location: "", event_type: "Event", is_active: true });
                           }}>Cancel</Button>
                         )}
                       </div>
@@ -390,7 +458,15 @@ const AdminEvents = () => {
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="sm" onClick={() => {
                               setEditingId(event.id);
-                              setForm(event);
+                              setForm({
+                                title: event.title || "",
+                                description: event.description || "",
+                                start_date: event.start_date || "",
+                                end_date: event.end_date || "",
+                                location: event.location || "",
+                                event_type: event.event_type || "Event",
+                                is_active: event.is_active ?? true,
+                              });
                             }}><Edit2 size={16} /></Button>
                             <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDeleteEvent(event.id)}><Trash2 size={16} /></Button>
                           </TableCell>
@@ -522,6 +598,41 @@ const AdminEvents = () => {
                       )}
                     </div>
                   </CardHeader>
+
+                  {/* Analytics Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                    <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Total Registered</span>
+                        <Users className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div className="text-3xl font-black text-slate-900">{filteredRegistrations.length}</div>
+                      <div className="text-xs text-slate-500 mt-2">{isAnyFilterActive ? 'Filtered results' : 'All registrations'}</div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Males</span>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">♂</div>
+                      </div>
+                      <div className="text-3xl font-black text-blue-600">{filteredRegistrations.filter(r => r.gender === 'Male').length}</div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        {filteredRegistrations.length > 0 ? `${((filteredRegistrations.filter(r => r.gender === 'Male').length / filteredRegistrations.length) * 100).toFixed(1)}%` : '0%'} of total
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Females</span>
+                        <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-700">♀</div>
+                      </div>
+                      <div className="text-3xl font-black text-pink-600">{filteredRegistrations.filter(r => r.gender === 'Female').length}</div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        {filteredRegistrations.length > 0 ? `${((filteredRegistrations.filter(r => r.gender === 'Female').length / filteredRegistrations.length) * 100).toFixed(1)}%` : '0%'} of total
+                      </div>
+                    </div>
+                  </div>
+
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <Table>
@@ -541,6 +652,7 @@ const AdminEvents = () => {
                             </TableHead>
                             <TableHead className="font-bold text-slate-900">Program</TableHead>
                             <TableHead className="font-bold text-slate-900">Member Name</TableHead>
+                            <TableHead className="font-bold text-slate-900">Email</TableHead>
                             <TableHead className="font-bold text-slate-900">Contact</TableHead>
                             <TableHead className="font-bold text-slate-900">School</TableHead>
                             <TableHead className="font-bold text-slate-900">Location</TableHead>
@@ -550,7 +662,7 @@ const AdminEvents = () => {
                         <TableBody>
                           {filteredRegistrations.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                              <TableCell colSpan={8} className="text-center py-12 text-slate-400 font-medium">
                                 No registrations found for this selection.
                               </TableCell>
                             </TableRow>
@@ -572,12 +684,12 @@ const AdminEvents = () => {
                                 </TableCell>
                                 <TableCell className="font-bold text-orange-700">{reg.event_name}</TableCell>
                                 <TableCell className="font-semibold">{reg.full_name}</TableCell>
-                                <TableCell>
-                                  <div className="flex flex-col text-xs">
-                                    <span>{reg.email}</span>
-                                    <span className="text-slate-500">{reg.phone}</span>
-                                  </div>
+                                <TableCell className="text-sm">
+                                  <a href={`mailto:${reg.email}`} className="text-blue-600 hover:underline">
+                                    {reg.email}
+                                  </a>
                                 </TableCell>
+                                <TableCell className="text-sm">{reg.phone || "N/A"}</TableCell>
                                 <TableCell className="text-sm">{reg.school || "N/A"}</TableCell>
                                 <TableCell className="text-sm">{reg.location || "N/A"}</TableCell>
                                 <TableCell className="text-xs text-slate-500">

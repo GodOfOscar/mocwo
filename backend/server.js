@@ -27,17 +27,20 @@ const app = express();
 
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://mocwo.org",
-      "https://mocwo-1.onrender.com"
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    // Allow all origins in development, restrict in production
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = [
+        "https://mocwo.org",
+        "https://mocwo-1.onrender.com"
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     } else {
-      callback(new Error("Not allowed by CORS"));
+      // Allow all origins in development
+      callback(null, true);
     }
   },
   credentials: true
@@ -222,7 +225,7 @@ app.get("/api/status", async (req, res) => {
       });
     }
     const isConnectionError = err.message?.includes('fetch failed');
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: isConnectionError ? "Database connection error (fetch failed)" : "Server error" 
     });
@@ -514,6 +517,145 @@ app.post("/api/admin/page-access", async (req, res) => {
   }
 });
 
+// Admin Events CRUD endpoints (service-role authenticated)
+app.get('/api/admin-events', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN EVENTS FETCH ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to fetch events' });
+  }
+});
+
+app.post('/api/admin-events', async (req, res) => {
+  const {
+    title,
+    description,
+    start_date,
+    end_date,
+    location,
+    event_type,
+    image_url,
+    registration_link,
+    is_active,
+  } = req.body;
+
+  if (!title || !start_date || !location) {
+    return res.status(400).json({ success: false, error: 'Title, start date, and location are required.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .insert([{ title, description, start_date, end_date, location, event_type, image_url, registration_link, is_active }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN EVENTS CREATE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to create event' });
+  }
+});
+
+app.put('/api/admin-events/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    title,
+    description,
+    start_date,
+    end_date,
+    location,
+    event_type,
+    image_url,
+    registration_link,
+    is_active,
+  } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Event ID is required.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ title, description, start_date, end_date, location, event_type, image_url, registration_link, is_active })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN EVENTS UPDATE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to update event' });
+  }
+});
+
+app.delete('/api/admin-events/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Event ID is required.' });
+  }
+
+  try {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN EVENTS DELETE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to delete event' });
+  }
+});
+
+app.get('/api/admin-events/registrations', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN EVENT REGISTRATIONS FETCH ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to fetch registrations' });
+  }
+});
+
+app.delete('/api/admin-events/registrations', async (req, res) => {
+  const { ids, event_name } = req.body;
+
+  if ((!ids || ids.length === 0) && !event_name) {
+    return res.status(400).json({ success: false, error: 'Provide ids or event_name to delete registrations.' });
+  }
+
+  try {
+    let query = supabase.from('event_registrations').delete();
+
+    if (ids && ids.length > 0) {
+      query = query.in('id', ids);
+    } else if (event_name) {
+      query = query.eq('event_name', event_name);
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN EVENT REGISTRATIONS DELETE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to delete registrations' });
+  }
+});
+
 // JSON parse error handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
@@ -570,3 +712,4 @@ process.on("uncaughtException", (err) => {
   // Give the server time to log before exiting
   setTimeout(() => process.exit(1), 1000);
 });
+
