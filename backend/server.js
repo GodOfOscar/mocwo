@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import ws from "ws";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -15,6 +16,11 @@ dotenv.config();
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+  {
+    realtime: {
+      transport: ws,
+    },
+  }
 );
 
 const app = express();
