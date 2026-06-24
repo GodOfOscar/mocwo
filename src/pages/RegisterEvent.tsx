@@ -1,12 +1,11 @@
 import { useState, useEffect, FormEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 const RegisterEvent = () => {
@@ -26,8 +25,7 @@ const RegisterEvent = () => {
       setIsLoading(true);
 
       try {
-        const eventId = Number(id);
-        const eventQuery = isNaN(eventId) ? id : eventId;
+const eventQuery = id ? String(id) : "";
 
         const { data: eventData, error: eventError } = await supabase
           .from("events")
@@ -85,8 +83,7 @@ const RegisterEvent = () => {
     }
 
     try {
-      const eventId = Number(id);
-      const eventQuery = isNaN(eventId) ? id : eventId;
+      const eventQuery = id ? String(id) : "";
 
       // Check for existing registration by email or phone
       let alreadyRegistered = false;
@@ -171,12 +168,31 @@ const RegisterEvent = () => {
   };
 
   const formattedDate = event?.start_date
-    ? new Date(event.start_date).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
+    ? new Date(event.start_date).toLocaleDateString("en-GB", {
+        weekday: "long",
+        month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: "GMT",
       })
+    : "TBA";
+
+  const formattedTime = event?.start_date
+    ? (() => {
+        const d = new Date(event.start_date);
+        const y = d.getUTCFullYear();
+        const m = d.getUTCMonth();
+        const day = d.getUTCDate();
+        const forced = new Date(Date.UTC(y, m, day, 19, 0, 0));
+        return forced
+          .toLocaleTimeString("en-GB", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+            timeZone: "UTC",
+          })
+          .replace(" GMT", " (GMT)");
+      })()
     : "TBA";
 
   useEffect(() => {
@@ -246,8 +262,9 @@ const RegisterEvent = () => {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Date & Time</p>
+                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Date</p>
                     <p className="mt-4 text-2xl font-semibold text-slate-900">{formattedDate}</p>
+                    <p className="mt-2 text-sm text-slate-500">{formattedTime}</p>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
                     <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Location</p>

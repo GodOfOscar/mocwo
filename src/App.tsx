@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "@/lib/api";
+import LockScreen from "./components/LockScreen";
 
 import Navigation from "./components/layout/Navigation";
 import AdminLayout from "./pages/AdminLayout";
@@ -61,12 +62,13 @@ import AdminMaster from "./pages/AdminMaster";
 
 const AppRoutes = () => {
   const location = useLocation();
-  const hideNav = location.pathname.startsWith('/register-event');
-  const hideBot = location.pathname.startsWith('/register-event');
+  const hideEventsUi = location.pathname.startsWith('/register-event') || location.pathname.startsWith('/events');
+  const hideBot = hideEventsUi;
+  const hideInstallBanner = hideEventsUi;
 
   return (
     <>
-      {!hideNav && <Navigation />}
+      {!hideEventsUi && <Navigation />}
       <Routes>
         {/* Main Pages */}
         <Route path="/" element={<Home />} />
@@ -125,7 +127,7 @@ const AppRoutes = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       {!hideBot && <PastorOscarBot />}
-      <InstallBanner />
+      {!hideInstallBanner && <InstallBanner />}
     </>
   );
 };
@@ -135,6 +137,13 @@ const queryClient = new QueryClient();
 export default function App() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [loadingMaintenanceStatus, setLoadingMaintenanceStatus] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("mocwo_unlocked") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     const checkMaintenanceStatus = async () => {
@@ -161,6 +170,14 @@ export default function App() {
     return <MaintenancePage />;
   }
 
+  if (!isUnlocked) {
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    const allowPaths = currentPath.startsWith("/events") || currentPath.startsWith("/register-event");
+    if (!allowPaths) {
+      return <LockScreen onUnlock={() => setIsUnlocked(true)} />;
+    }
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -173,3 +190,5 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
+
