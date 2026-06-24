@@ -10,8 +10,6 @@ import { useParams } from "react-router-dom";
 
 const RegisterEvent = () => {
   const [event, setEvent] = useState<any | null>(null);
-  const [registrationCount, setRegistrationCount] = useState(0);
-  const [displayedCount, setDisplayedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -35,15 +33,6 @@ const eventQuery = id ? String(id) : "";
 
         if (eventError) throw eventError;
         setEvent(eventData);
-
-        const { count: registrationCount = 0, error: countError } = await supabase
-          .from("event_registrations")
-          .select("id", { count: "exact", head: true })
-          .eq("event_id", eventQuery);
-
-        if (countError) throw countError;
-        setRegistrationCount(registrationCount || 0);
-        setDisplayedCount(0);
       } catch (error: any) {
         console.error("Error loading event:", error);
         toast({
@@ -195,26 +184,9 @@ const eventQuery = id ? String(id) : "";
       })()
     : "TBA";
 
-  useEffect(() => {
-    if (registrationCount > 0) {
-      let start = 0;
-      const duration = 800;
-      const increment = Math.max(1, Math.ceil(registrationCount / (duration / 30)));
-      const interval = window.setInterval(() => {
-        start += increment;
-        if (start >= registrationCount) {
-          setDisplayedCount(registrationCount);
-          window.clearInterval(interval);
-        } else {
-          setDisplayedCount(start);
-        }
-      }, 30);
-
-      return () => window.clearInterval(interval);
-    }
-
-    setDisplayedCount(registrationCount);
-  }, [registrationCount]);
+  const eventDescription = event?.title?.includes("Pneumatikos")
+    ? "Join the gathering of believers across the country and beyond at Pneumatikos Night 2026 – The Way of the Spirit with Rev. Prince Bediako Appau for the new age revival."
+    : event?.description || 'Reserve your seat and join us for an unforgettable event experience with community, worship, and life-changing teaching.';
 
   if (isLoading) {
     return (
@@ -257,7 +229,7 @@ const eventQuery = id ? String(id) : "";
                 <div className="max-w-3xl">
                   <span className="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">Register for {event.title}</span>
                   <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-900 sm:text-6xl">{event.title}</h1>
-                  <p className="mt-6 text-lg leading-8 text-slate-600">{event.description || 'Reserve your seat and join us for an unforgettable event experience with community, worship, and life-changing teaching.'}</p>
+                  <p className="mt-6 text-lg leading-8 text-slate-600">{eventDescription}</p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -276,10 +248,6 @@ const eventQuery = id ? String(id) : "";
               <div className="space-y-6">
                 <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-8 text-white shadow-2xl">
                   <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.24em] text-sky-200">Attendee Count</p>
-                      <p className="mt-2 text-4xl font-black text-white">{displayedCount}</p>
-                    </div>
                     <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-sky-100">Live</div>
                   </div>
                   <div className="mt-6 space-y-4">
