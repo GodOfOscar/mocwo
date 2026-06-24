@@ -8,7 +8,7 @@ export const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
   ? ''
   : (VITE_API_URL && !/^https?:\/\/localhost(:|$)/i.test(VITE_API_URL)
       ? VITE_API_URL
-      : 'https://mocwo-backend.onrender.com');
+      : 'https://mocwo-1.onrender.com');
 
 console.log('[API] Using base URL:', API_BASE_URL || '/api');
 

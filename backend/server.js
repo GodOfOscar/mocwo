@@ -30,7 +30,8 @@ app.use(cors({
     const allowedOrigins = [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://mocwo.org"
+      "https://mocwo.org",
+      "https://mocwo-1.onrender.com"
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
