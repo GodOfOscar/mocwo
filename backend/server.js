@@ -31,6 +31,7 @@ app.use(cors({
     if (process.env.NODE_ENV === 'production') {
       const allowedOrigins = [
         "https://mocwo.org",
+        "https://mocwo.onrender.com",
         "https://mocwo-1.onrender.com"
       ];
       if (!origin || allowedOrigins.includes(origin)) {

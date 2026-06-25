@@ -27,6 +27,8 @@ const AdminEvents = () => {
   const [filterEventName, setFilterEventName] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortKey, setSortKey] = useState<"date" | "name" | "school">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedRegistrationIds, setSelectedRegistrationIds] = useState<string[]>([]);
   const [form, setForm] = useState({
@@ -270,7 +272,20 @@ const AdminEvents = () => {
       reg.school?.toLowerCase().includes(searchTerm.toLowerCase());
 
     return eventMatch && startMatch && endMatch && searchMatch;
+  }).sort((a, b) => {
+    const order = sortOrder === "asc" ? 1 : -1;
+
+    if (sortKey === "name") {
+      return a.full_name.localeCompare(b.full_name, undefined, { sensitivity: 'base' }) * order;
+    }
+    if (sortKey === "school") {
+      return (a.school || "").localeCompare(b.school || "", undefined, { sensitivity: 'base' }) * order;
+    }
+
+    const dateDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return dateDiff * order;
   });
+
 
   const isAnyFilterActive = searchTerm !== "" || filterEventName !== "all" || startDate !== "" || endDate !== "";
 
@@ -521,6 +536,20 @@ const AdminEvents = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <Label className="text-sm text-slate-300">Sort by</Label>
+                        <Select value={sortKey} onValueChange={(value) => setSortKey(value as "date" | "name" | "school") }>
+                          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white h-9">
+                            <SelectValue placeholder="Sort by" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="date">Date Registered</SelectItem>
+                            <SelectItem value="name">Name (A-Z)</SelectItem>
+                            <SelectItem value="school">School</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
                         <Calendar size={16} className="text-orange-400" />
                         <Input 
                           type="date" 
@@ -651,12 +680,36 @@ const AdminEvents = () => {
                               />
                             </TableHead>
                             <TableHead className="font-bold text-slate-900">Program</TableHead>
-                            <TableHead className="font-bold text-slate-900">Member Name</TableHead>
+                            <TableHead
+                              className="font-bold text-slate-900 cursor-pointer hover:text-orange-700"
+                              onClick={() => {
+                                setSortKey("name");
+                                setSortOrder(sortKey === "name" ? (sortOrder === "asc" ? "desc" : "asc") : "asc");
+                              }}
+                            >
+                              Member Name {sortKey === "name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                            </TableHead>
                             <TableHead className="font-bold text-slate-900">Email</TableHead>
                             <TableHead className="font-bold text-slate-900">Contact</TableHead>
-                            <TableHead className="font-bold text-slate-900">School</TableHead>
+                            <TableHead
+                              className="font-bold text-slate-900 cursor-pointer hover:text-orange-700"
+                              onClick={() => {
+                                setSortKey("school");
+                                setSortOrder(sortKey === "school" ? (sortOrder === "asc" ? "desc" : "asc") : "asc");
+                              }}
+                            >
+                              School {sortKey === "school" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                            </TableHead>
                             <TableHead className="font-bold text-slate-900">Location</TableHead>
-                            <TableHead className="font-bold text-slate-900">Date Registered</TableHead>
+                            <TableHead
+                              className="font-bold text-slate-900 cursor-pointer hover:text-orange-700"
+                              onClick={() => {
+                                setSortKey("date");
+                                setSortOrder(sortKey === "date" ? (sortOrder === "asc" ? "desc" : "asc") : "desc");
+                              }}
+                            >
+                              Date Registered {sortKey === "date" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
