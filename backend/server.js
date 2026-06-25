@@ -740,22 +740,6 @@ app.put('/api/admin-events/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/admin-events/:id', async (req, res) => {
-  const { id } = req.params;
-  if (!id) {
-    return res.status(400).json({ success: false, error: 'Event ID is required.' });
-  }
-
-  try {
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    if (error) throw error;
-    return res.json({ success: true });
-  } catch (error) {
-    console.error('ADMIN EVENTS DELETE ERROR:', error.message || error);
-    return res.status(500).json({ success: false, error: error.message || 'Unable to delete event' });
-  }
-});
-
 app.get('/api/admin-events/registrations', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -794,6 +778,22 @@ app.delete('/api/admin-events/registrations', async (req, res) => {
   } catch (error) {
     console.error('ADMIN EVENT REGISTRATIONS DELETE ERROR:', error.message || error);
     return res.status(500).json({ success: false, error: error.message || 'Unable to delete registrations' });
+  }
+});
+
+app.delete('/api/admin-events/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Event ID is required.' });
+  }
+
+  try {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN EVENTS DELETE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to delete event' });
   }
 });
 
