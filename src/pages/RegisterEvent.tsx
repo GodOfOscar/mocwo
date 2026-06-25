@@ -222,50 +222,50 @@ const eventQuery = id ? String(id) : "";
     <div className="min-h-screen bg-slate-50">
       <div className="relative overflow-hidden pb-24">
         <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-r from-blue-500 via-sky-400 to-cyan-400 opacity-20 blur-3xl" />
-        <div className="container mx-auto px-4 pt-20">
-          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-2xl p-8 md:p-12 backdrop-blur-xl">
-            <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+        <div className="container mx-auto px-3 sm:px-4 pt-12 sm:pt-16 md:pt-20">
+          <div className="rounded-xl sm:rounded-2xl lg:rounded-[2rem] border border-slate-200 bg-white shadow-lg sm:shadow-xl lg:shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 backdrop-blur-xl">
+            <div className="grid gap-6 sm:gap-8 lg:gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
               <div className="space-y-8">
                 <div className="max-w-3xl">
-                  <span className="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">Register for {event.title}</span>
-                  <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-900 sm:text-6xl">{event.title}</h1>
-                  <p className="mt-6 text-lg leading-8 text-slate-600">{eventDescription}</p>
+                  <span className="inline-flex rounded-full bg-blue-100 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-blue-700">Register for {event.title}</span>
+                  <h1 className="mt-3 sm:mt-4 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900">{event.title}</h1>
+                  <p className="mt-3 sm:mt-6 text-sm sm:text-base md:text-lg leading-6 sm:leading-8 text-slate-600">{eventDescription}</p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Date</p>
-                    <p className="mt-4 text-2xl font-semibold text-slate-900">{formattedDate}</p>
-                    <p className="mt-2 text-sm text-slate-500">{formattedTime}</p>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm uppercase tracking-[0.24em] text-slate-500">Date</p>
+                    <p className="mt-2 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-900">{formattedDate}</p>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">{formattedTime}</p>
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Location</p>
-                    <p className="mt-4 text-2xl font-semibold text-slate-900">{event.location || 'Online / TBA'}</p>
+                  <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm uppercase tracking-[0.24em] text-slate-500">Location</p>
+                    <p className="mt-2 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-900">{event.location || 'Online / TBA'}</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-8 text-white shadow-2xl">
+                <div className="rounded-2xl sm:rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-6 sm:p-8 text-white shadow-lg sm:shadow-2xl">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-sky-100">Live</div>
+                    <div className="rounded-full bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-sky-100">Live</div>
                   </div>
-                  <div className="mt-6 space-y-4">
-                    <div className="rounded-3xl bg-white/10 p-4">
-                      <p className="text-sm text-sky-200">Event Type</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{event.event_type || 'Event'}</p>
+                  <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
+                    <div className="rounded-2xl sm:rounded-3xl bg-white/10 p-3 sm:p-4">
+                      <p className="text-xs sm:text-sm text-sky-200">Event Type</p>
+                      <p className="mt-1.5 sm:mt-2 text-base sm:text-lg font-semibold text-white">{event.event_type || 'Event'}</p>
                     </div>
-                    <div className="rounded-3xl bg-white/10 p-4">
-                      <p className="text-sm text-sky-200">Registration</p>
-                      <p className="mt-2 text-lg font-semibold text-white">Open for all</p>
+                    <div className="rounded-2xl sm:rounded-3xl bg-white/10 p-3 sm:p-4">
+                      <p className="text-xs sm:text-sm text-sky-200">Registration</p>
+                      <p className="mt-1.5 sm:mt-2 text-base sm:text-lg font-semibold text-white">Open for all</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-xl">
-                  <div className="mb-6">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Secure your spot</p>
-                    <h2 className="mt-3 text-2xl font-black text-slate-900">Register Now</h2>
+                <div className="rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-slate-50 p-4 sm:p-6 shadow-lg sm:shadow-xl">
+                  <div className="mb-4 sm:mb-6">
+                    <p className="text-xs sm:text-sm uppercase tracking-[0.24em] text-slate-500">Secure your spot</p>
+                    <h2 className="mt-2 sm:mt-3 text-xl sm:text-2xl font-black text-slate-900">Register Now</h2>
                   </div>
                   {isSuccess ? (
                     <div className="space-y-6 text-center">
@@ -279,62 +279,62 @@ const eventQuery = id ? String(id) : "";
 
                     </div>
                   ) : (
-                    <form onSubmit={handleRegister} className="space-y-5">
-                      <div className="space-y-3">
-                        <Label htmlFor="fullName" className="font-bold text-slate-700">Full Name</Label>
-                        <Input id="fullName" name="fullName" placeholder="Enter your full name" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                    <form onSubmit={handleRegister} className="space-y-4 sm:space-y-5">
+                      <div className="space-y-2 sm:space-y-3">
+                        <Label htmlFor="fullName" className="font-bold text-sm sm:text-base text-slate-700">Full Name</Label>
+                        <Input id="fullName" name="fullName" placeholder="Enter your full name" className="rounded-xl sm:rounded-2xl border-slate-200 h-10 sm:h-12 bg-white text-sm sm:text-base" required />
                       </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-3">
-                          <Label htmlFor="email" className="font-bold text-slate-700">Email Address</Label>
-                          <Input id="email" name="email" type="email" placeholder="email@address.com" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label htmlFor="email" className="font-bold text-sm sm:text-base text-slate-700">Email Address</Label>
+                          <Input id="email" name="email" type="email" placeholder="email@address.com" className="rounded-xl sm:rounded-2xl border-slate-200 h-10 sm:h-12 bg-white text-sm sm:text-base" required />
                         </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="phone" className="font-bold text-slate-700">Phone Number</Label>
-                          <Input id="phone" name="phone" placeholder="+233..." className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label htmlFor="phone" className="font-bold text-sm sm:text-base text-slate-700">Phone Number</Label>
+                          <Input id="phone" name="phone" placeholder="+233..." className="rounded-xl sm:rounded-2xl border-slate-200 h-10 sm:h-12 bg-white text-sm sm:text-base" required />
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="school" className="font-bold text-slate-700">School / Institution</Label>
+                      <div className="space-y-2 sm:space-y-3">
+                        <Label htmlFor="school" className="font-bold text-sm sm:text-base text-slate-700">School / Institution</Label>
                         <Input
                           id="school"
                           name="school"
                           placeholder="Enter your school or institution"
-                          className="rounded-2xl border-slate-200 h-12 bg-white"
+                          className="rounded-xl sm:rounded-2xl border-slate-200 h-10 sm:h-12 bg-white text-sm sm:text-base"
                           onChange={() => schoolError && setSchoolError("")}
                           required
                         />
-                        {schoolError && <p className="text-red-500 text-sm mt-1">{schoolError}</p>}
+                        {schoolError && <p className="text-red-500 text-xs sm:text-sm mt-1">{schoolError}</p>}
                       </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="location" className="font-bold text-slate-700">Location</Label>
-                        <Input id="location" name="location" placeholder="City / Country" className="rounded-2xl border-slate-200 h-12 bg-white" required />
+                      <div className="space-y-2 sm:space-y-3">
+                        <Label htmlFor="location" className="font-bold text-sm sm:text-base text-slate-700">Location</Label>
+                        <Input id="location" name="location" placeholder="City / Country" className="rounded-xl sm:rounded-2xl border-slate-200 h-10 sm:h-12 bg-white text-sm sm:text-base" required />
                       </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="gender" className="font-bold text-slate-700">Gender</Label>
+                      <div className="space-y-2 sm:space-y-3">
+                        <Label htmlFor="gender" className="font-bold text-sm sm:text-base text-slate-700">Gender</Label>
                         <select
                           id="gender"
                           name="gender"
                           value={gender}
                           onChange={(e) => setGender(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 h-12 bg-white px-3"
+                          className="w-full rounded-xl sm:rounded-2xl border border-slate-200 h-10 sm:h-12 bg-white px-3 text-sm sm:text-base"
                         >
                           <option>Male</option>
                           <option>Female</option>
                         </select>
                       </div>
 
-                      <div className="space-y-3">
-                        <Label htmlFor="notes" className="font-bold text-slate-700">Special Notes (Optional)</Label>
-                        <Textarea id="notes" name="notes" placeholder="Any specific requirements?" className="rounded-2xl border-slate-200 bg-white resize-none" rows={3} />
+                      <div className="space-y-2 sm:space-y-3">
+                        <Label htmlFor="notes" className="font-bold text-sm sm:text-base text-slate-700">Special Notes (Optional)</Label>
+                        <Textarea id="notes" name="notes" placeholder="Any specific requirements?" className="rounded-xl sm:rounded-2xl border-slate-200 bg-white resize-none text-sm sm:text-base" rows={3} />
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 h-14 font-black text-lg rounded-full shadow-lg transition-all"
+                        className="w-full bg-blue-600 hover:bg-blue-700 h-11 sm:h-14 font-black text-base sm:text-lg rounded-full shadow-lg transition-all"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Confirm Registration"}
+                        {isSubmitting ? <Loader2 className="h-5 sm:h-6 w-5 sm:w-6 animate-spin" /> : "Confirm Registration"}
                       </Button>
                     </form>
                   )}
