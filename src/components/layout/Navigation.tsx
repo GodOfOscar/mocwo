@@ -310,7 +310,7 @@ const Navigation = () => {
 
                 {/* Admin Section */}
                 <div 
-                  className="px-2 pt-2"
+                  className="px-2 pt-2 hidden md:block"
                   style={{
                     animationName: isOpen ? 'slideInDown' : 'none',
                     animationDuration: isOpen ? '0.4s' : undefined,
@@ -340,7 +340,7 @@ const Navigation = () => {
                 </div>
 
                 {/* Footer info */}
-                <div className={`px-4 pt-4 mt-2 text-center text-xs border-t pt-4 ${
+                <div className={`px-4 pt-4 mt-2 text-center text-xs border-t pt-4 hidden md:block ${
                   isScrolled
                     ? 'text-gray-500/50 border-gray-200/20'
                     : 'text-muted-foreground/50 border-border/20'
