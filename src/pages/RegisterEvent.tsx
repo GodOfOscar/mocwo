@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { API_BASE_URL } from "@/lib/api";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 
@@ -75,7 +76,7 @@ const eventQuery = id ? String(id) : "";
       const eventQuery = id ? String(id) : "";
 
       // Call backend API to handle registration and SMS
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/events/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/events/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

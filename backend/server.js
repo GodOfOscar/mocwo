@@ -32,9 +32,11 @@ app.use(cors({
       const allowedOrigins = [
         "https://mocwo.org",
         "https://mocwo.onrender.com",
-        "https://mocwo-1.onrender.com"
+        "https://mocwo-1.onrender.com",
       ];
-      if (!origin || allowedOrigins.includes(origin)) {
+      const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+
+      if (!origin || allowedOrigins.includes(origin) || vercelOriginPattern.test(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
