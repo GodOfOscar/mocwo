@@ -59,6 +59,10 @@ const Events = () => {
       })()
     : "7:00 PM (GMT)";
 
+  const eventDescription = event?.title?.includes("Pneumatikos")
+    ? "Join the gathering of believers across the country and beyond at Pneumatikos Night 2026 – The Way of the Spirit with Rev. Prince Bediako Appau for the new age revival."
+    : event?.description || 'An energetic event designed for young people who want to connect, celebrate, and grow together.';
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4 py-10">
@@ -99,7 +103,7 @@ const Events = () => {
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">{event.title}</h1>
-            <p className="max-w-2xl text-lg leading-8 text-slate-300">{event.description || 'An energetic event designed for young people who want to connect, celebrate, and grow together.'}</p>
+            <p className="max-w-2xl text-lg leading-8 text-slate-300">{eventDescription}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     } : false,
     proxy: {
       "/api": {
-        target: "https://mocwo-1.onrender.com",
+        target: "http://localhost:5000",
         changeOrigin: true,
       },
     },

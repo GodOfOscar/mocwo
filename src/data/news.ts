@@ -88,7 +88,7 @@ export const news: NewsItem[] = [
     id: 3,
     title: "Pneumatikos Watch Night - A Night of Spirit Fire and Revival",
     excerpt:
-      "Join us in June 2026 at the CCB Auditorium for an unforgettable night of worship, prayer, and revival with the power of the Holy Spirit.",
+      "Join the gathering of believers across the country and beyond at Pneumatikos Night 2026 – The Way of the Spirit with Rev. Prince Bediako Appau for the new age revival.",
     date: "Jun, 2026",
     image: pneuma1,
     link: "/news/pneumatikos-watch-night",
@@ -96,7 +96,7 @@ export const news: NewsItem[] = [
     author: "MOCWO Events Team",
     readTime: "3 min read",
     content: `
-      <p>Get ready for <strong>Pneumatikos Watch Night</strong> - A Night of Spirit Fire and Revival! Join us in June 2026 at the CCB Auditorium for an unforgettable night of worship, prayer, and revival.</p>
+      <p>Join the gathering of believers across the country and beyond at <strong>Pneumatikos Night 2026 – The Way of the Spirit</strong> with Rev. Prince Bediako Appau for the new age revival.</p>
       
       <h3>Experience the Fire</h3>
       <p>This special watch night service is designed to usher in the power and presence of the Holy Spirit. As we gather in prayer and worship, expect to encounter God's fire that brings revival, renewal, and restoration.</p>

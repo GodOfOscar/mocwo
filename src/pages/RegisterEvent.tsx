@@ -74,43 +74,13 @@ const eventQuery = id ? String(id) : "";
     try {
       const eventQuery = id ? String(id) : "";
 
-      // Check for existing registration by email or phone
-      let alreadyRegistered = false;
-
-      if (email) {
-        const { count: emailCount, error: emailErr } = await supabase
-          .from("event_registrations")
-          .select("id", { count: "exact", head: true })
-          .eq("event_id", eventQuery)
-          .eq("email", email);
-
-        if (emailErr) throw emailErr;
-        if ((emailCount || 0) > 0) alreadyRegistered = true;
-      }
-
-      if (!alreadyRegistered && phone) {
-        const { count: phoneCount, error: phoneErr } = await supabase
-          .from("event_registrations")
-          .select("id", { count: "exact", head: true })
-          .eq("event_id", eventQuery)
-          .eq("phone", phone);
-
-        if (phoneErr) throw phoneErr;
-        if ((phoneCount || 0) > 0) alreadyRegistered = true;
-      }
-
-      if (alreadyRegistered) {
-        setIsSubmitting(false);
-        toast({
-          title: "Already registered",
-          description: "You have already registered for this event using the same email or phone number.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error, data } = await supabase.from("event_registrations").insert([
-        {
+      // Call backend API to handle registration and SMS
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/events/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           event_id: eventQuery,
           event_name: event.title,
           full_name,
@@ -120,31 +90,36 @@ const eventQuery = id ? String(id) : "";
           school,
           gender,
           notes,
-        },
-      ]);
+        }),
+      });
 
-      if (error) {
-        console.error("Insert error:", error);
-        throw error;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setIsSubmitting(false);
+        toast({
+          title: "Registration failed",
+          description: result.error || "Unable to submit registration.",
+          variant: "destructive",
+        });
+        return;
       }
       
-      console.log("Registration inserted successfully:", data);
+      
+      console.log("Registration submitted successfully:", result);
 
-      setRegistrationCount((current) => current + 1);
       setIsSuccess(true);
+      
+      const message = result.sms_sent 
+        ? "Registration successful! An SMS confirmation has been sent to your phone."
+        : "Registration successful! You will receive SMS confirmation shortly.";
+      
       toast({
         title: "Registration successful",
-        description: `You have successfully registered for ${event.title}.`,
+        description: message,
       });
     } catch (error: any) {
-      let errorMessage = "Unable to submit registration.";
-      
-      // Check for duplicate registration constraint violations
-      if (error?.message?.includes("unique_event_email")) {
-        errorMessage = "This email has already been registered for this event.";
-      } else if (error?.message?.includes("unique_event_phone")) {
-        errorMessage = "This phone number has already been registered for this event.";
-      }
+      const errorMessage = error?.message || "Unable to submit registration.";
       
       toast({
         title: "Registration failed",

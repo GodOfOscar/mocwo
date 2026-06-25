@@ -517,6 +517,147 @@ app.post("/api/admin/page-access", async (req, res) => {
   }
 });
 
+// SMS Sender Function using MNOTIFY
+const sendSMSViaMMNotify = async (phoneNumber, message) => {
+  const MNOTIFY_API_KEY = process.env.MNOTIFY_API_KEY;
+  const MNOTIFY_SENDER_ID = process.env.MNOTIFY_SENDER_ID || "MOCWO";
+
+  if (!MNOTIFY_API_KEY) {
+    console.warn("⚠️ MNOTIFY_API_KEY is not configured. SMS will not be sent.");
+    return { success: false, error: "SMS service not configured" };
+  }
+
+  try {
+    const response = await fetch("https://api.mnotify.com/api/sms/quick", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key: MNOTIFY_API_KEY,
+        to: phoneNumber,
+        msg: message,
+        sender_id: MNOTIFY_SENDER_ID,
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.code === "ok" || result.status === "success") {
+      console.log(`✓ SMS sent to ${phoneNumber}`);
+      return { success: true, message: result.message };
+    } else {
+      console.error(`✗ MNOTIFY SMS Error: ${result.message || "Unknown error"}`);
+      return { success: false, error: result.message || "Failed to send SMS" };
+    }
+  } catch (error) {
+    console.error("MNOTIFY Request Error:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+// Event Registration Endpoint
+app.post("/api/events/register", async (req, res) => {
+  const {
+    event_id,
+    event_name,
+    full_name,
+    email,
+    phone,
+    location,
+    school,
+    gender,
+    notes,
+  } = req.body;
+
+  // Validate required fields
+  if (!event_id || !event_name || !full_name || !email || !phone || !school) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required registration fields (event_id, event_name, full_name, email, phone, school)",
+    });
+  }
+
+  try {
+    // Check for existing registration by email
+    if (email) {
+      const { count: emailCount, error: emailErr } = await supabase
+        .from("event_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event_id)
+        .eq("email", email);
+
+      if (emailErr) throw emailErr;
+      if ((emailCount || 0) > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "You have already registered for this event using the same email address.",
+        });
+      }
+    }
+
+    // Check for existing registration by phone
+    if (phone) {
+      const { count: phoneCount, error: phoneErr } = await supabase
+        .from("event_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event_id)
+        .eq("phone", phone);
+
+      if (phoneErr) throw phoneErr;
+      if ((phoneCount || 0) > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "You have already registered for this event using the same phone number.",
+        });
+      }
+    }
+
+    // Insert registration into Supabase
+    const { error: insertError, data } = await supabase
+      .from("event_registrations")
+      .insert([
+        {
+          event_id,
+          event_name,
+          full_name,
+          email,
+          phone,
+          location,
+          school,
+          gender,
+          notes,
+        },
+      ])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    // Send SMS confirmation
+    const smsMessage = `Hi ${full_name}, thank you for registering for ${event_name}! We're excited to have you. You'll receive more details soon. - MOCWO`;
+    const smsResult = await sendSMSViaMMNotify(phone, smsMessage);
+
+    // Log SMS status but don't fail the registration if SMS fails
+    if (!smsResult.success) {
+      console.warn(`⚠️ SMS notification failed for ${phone}, but registration was successful.`);
+    }
+
+    return res.json({
+      success: true,
+      data,
+      sms_sent: smsResult.success,
+      message: "Registration successful! You will receive an SMS confirmation shortly.",
+    });
+  } catch (error) {
+    console.error("EVENT REGISTRATION ERROR:", error.message || error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Unable to process registration",
+    });
+  }
+});
+
 // Admin Events CRUD endpoints (service-role authenticated)
 app.get('/api/admin-events', async (req, res) => {
   try {
