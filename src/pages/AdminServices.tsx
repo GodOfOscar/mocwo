@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL, createAdminService, deleteAdminService, fetchAdminServices, updateAdminService } from "@/lib/api";
 import { Calendar, Clock, Trash2, Edit2, Plus, Lock, MoveUp, MoveDown, ArrowLeft, Link as LinkIcon, RefreshCcw, Power } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
@@ -133,13 +133,9 @@ const AdminServices = () => {
   const fetchServices = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('church_schedule')
-        .select('*')
-        .order('order_index', { ascending: true });
-
-      if (error) throw error;
-      setServices(data || []);
+      const response = await fetchAdminServices();
+      if (!response.success) throw new Error(response.error || "Unable to fetch services");
+      setServices(response.data || []);
     } catch (error: any) {
       toast({ title: "Error fetching services", description: error.message, variant: "destructive" });
     } finally {
@@ -151,20 +147,16 @@ const AdminServices = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('church_schedule')
-          .update(form)
-          .eq('id', editingId);
-        if (error) throw error;
+        const response = await updateAdminService(editingId, { ...form });
+        if (!response.success) throw new Error(response.error || "Unable to update service");
         toast({ title: "Success", description: "Service updated successfully" });
       } else {
         const maxOrder = services.length > 0 ? Math.max(...services.map(s => s.order_index || 0)) : 0;
-        const { error } = await supabase
-          .from('church_schedule')
-          .insert([{ ...form, order_index: maxOrder + 1 }]);
-        if (error) throw error;
+        const response = await createAdminService({ ...form, order_index: maxOrder + 1 });
+        if (!response.success) throw new Error(response.error || "Unable to create service");
         toast({ title: "Success", description: "Service created successfully" });
       }
+
       setForm({ title: "", day: "", time_string: "", description: "", details: "", image: "⛪", color: "from-blue-500 to-blue-600", live_link: "", is_live: false });
       setEditingId(null);
       fetchServices();
@@ -175,9 +167,10 @@ const AdminServices = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this service?')) return;
-    const { error } = await supabase.from('church_schedule').delete().eq('id', id);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
+    const response = await deleteAdminService(id);
+    if (!response.success) {
+      toast({ title: "Error", description: response.error || "Unable to delete service", variant: "destructive" });
+    } else {
       toast({ title: "Deleted" });
       fetchServices();
     }
@@ -189,21 +182,23 @@ const AdminServices = () => {
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     const current = services[idx];
     const other = services[swapIdx];
-    await supabase.from('church_schedule').update({ order_index: other.order_index }).eq('id', current.id);
-    await supabase.from('church_schedule').update({ order_index: current.order_index }).eq('id', other.id);
-    fetchServices();
+
+    try {
+      const first = await updateAdminService(current.id, { order_index: other.order_index });
+      const second = await updateAdminService(other.id, { order_index: current.order_index });
+      if (!first.success || !second.success) {
+        throw new Error(first.error || second.error || "Unable to reorder services");
+      }
+      fetchServices();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
   };
 
   const toggleLive = async (id: string, currentStatus: boolean, silent = false) => {
     try {
-      // Ensure only one service is live at a time
-      if (!currentStatus) {
-        await supabase.from('church_schedule').update({ is_live: false }).neq('id', id);
-      }
-      
-      const { error } = await supabase.from('church_schedule').update({ is_live: !currentStatus }).eq('id', id);
-      if (error) throw error;
-      
+      const response = await updateAdminService(id, { is_live: !currentStatus });
+      if (!response.success) throw new Error(response.error || "Unable to update live status");
       if (!silent) toast({ title: !currentStatus ? "Service is now LIVE" : "Live status removed" });
       fetchServices();
     } catch (error: any) {

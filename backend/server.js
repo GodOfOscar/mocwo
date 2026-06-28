@@ -800,6 +800,107 @@ app.delete('/api/admin-events/:id', async (req, res) => {
   }
 });
 
+// Admin Services CRUD endpoints (service-role authenticated)
+app.get('/api/admin-services', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('church_schedule')
+      .select('*')
+      .order('order_index', { ascending: true });
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN SERVICES FETCH ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to fetch services' });
+  }
+});
+
+app.post('/api/admin-services', async (req, res) => {
+  const {
+    title,
+    day,
+    time_string,
+    description,
+    details,
+    image,
+    color,
+    live_link,
+    is_live,
+    order_index,
+  } = req.body;
+
+  if (!title || !day || !time_string) {
+    return res.status(400).json({ success: false, error: 'Title, day, and time are required.' });
+  }
+
+  try {
+    const nextOrderIndex = typeof order_index === 'number'
+      ? order_index
+      : (await supabase.from('church_schedule').select('order_index', { count: 'exact', head: true })).count || 0;
+
+    const { data, error } = await supabase
+      .from('church_schedule')
+      .insert([{ title, day, time_string, description, details, image, color, live_link, is_live: !!is_live, order_index: nextOrderIndex }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN SERVICES CREATE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to create service' });
+  }
+});
+
+app.put('/api/admin-services/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatePayload = { ...req.body };
+
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Service ID is required.' });
+  }
+
+  try {
+    if (updatePayload.is_live === true) {
+      const { error: clearError } = await supabase
+        .from('church_schedule')
+        .update({ is_live: false })
+        .neq('id', id);
+      if (clearError) throw clearError;
+    }
+
+    const { data, error } = await supabase
+      .from('church_schedule')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN SERVICES UPDATE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to update service' });
+  }
+});
+
+app.delete('/api/admin-services/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Service ID is required.' });
+  }
+
+  try {
+    const { error } = await supabase.from('church_schedule').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN SERVICES DELETE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to delete service' });
+  }
+});
+
 // JSON parse error handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.church_schedule (
     image TEXT, -- Store the emoji here
     color TEXT, -- Tailwind gradient classes (e.g., "from-blue-500 to-blue-600")
     live_link TEXT,
+    is_live BOOLEAN DEFAULT false,
     order_index INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()

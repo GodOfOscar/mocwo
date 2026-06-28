@@ -149,6 +149,62 @@ export async function verifyAdmin(email: string): Promise<ApiResponse> {
   }
 }
 
+export async function fetchAdminServices(): Promise<ApiResponse> {
+  try {
+    const url = `${API_BASE_URL}/api/admin-services`;
+    const response = await safeFetch(url, { method: "GET" });
+    const data = await handleResponse(response);
+    return { success: true, data: data.data, message: "Fetched admin services" };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage, message: errorMessage };
+  }
+}
+
+export async function createAdminService(payload: any): Promise<ApiResponse> {
+  try {
+    const url = `${API_BASE_URL}/api/admin-services`;
+    const response = await safeFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse(response);
+    return { success: true, data: data.data, message: "Service created successfully" };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage, message: errorMessage };
+  }
+}
+
+export async function updateAdminService(id: string, payload: any): Promise<ApiResponse> {
+  try {
+    const url = `${API_BASE_URL}/api/admin-services/${encodeURIComponent(id)}`;
+    const response = await safeFetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse(response);
+    return { success: true, data: data.data, message: "Service updated successfully" };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage, message: errorMessage };
+  }
+}
+
+export async function deleteAdminService(id: string): Promise<ApiResponse> {
+  try {
+    const url = `${API_BASE_URL}/api/admin-services/${encodeURIComponent(id)}`;
+    const response = await safeFetch(url, { method: "DELETE" });
+    const data = await handleResponse(response);
+    return { success: true, data: data.data, message: "Service deleted successfully" };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage, message: errorMessage };
+  }
+}
+
 export async function loginAdmin(email: string, password: string): Promise<ApiResponse> {
   try {
     const url = `${API_BASE_URL}/api/admin-login`;

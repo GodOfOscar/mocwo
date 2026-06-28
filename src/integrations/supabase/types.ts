@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -442,6 +442,7 @@ export type Database = {
           id: string
           image: string | null
           live_link: string | null
+          is_live: boolean
           order_index: number
           time_string: string
           title: string
@@ -456,6 +457,7 @@ export type Database = {
           id?: string
           image?: string | null
           live_link?: string | null
+          is_live?: boolean
           order_index?: number
           time_string: string
           title: string
@@ -470,6 +472,7 @@ export type Database = {
           id?: string
           image?: string | null
           live_link?: string | null
+          is_live?: boolean
           order_index?: number
           time_string?: string
           title?: string
@@ -705,3 +708,5 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+
