@@ -28,17 +28,9 @@ import {
 } from "lucide-react";
 
 import { partnershipLevels } from "@/data/PartnershipLevels";
-import { paystackConfig } from "@/config/paystack";
+import { expresspayConfig } from "@/config/expresspay";
+import { initiatePayment } from "@/lib/payments";
 
-declare global {
-  interface Window {
-    PaystackPop: {
-      setup: (options: any) => {
-        openIframe: () => void;
-      };
-    };
-  }
-}
 
 const GivePage = () => {
   const { type } = useParams<{ type?: string }>();
@@ -50,7 +42,6 @@ const GivePage = () => {
   const [mobileNumber, setMobileNumber] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const paystackRef = useRef<any>(null);
 
   // Match type param to partnership level slug
   const level = partnershipLevels.find((lvl) => lvl.slug === type);
@@ -74,29 +65,29 @@ const GivePage = () => {
 
       setIsProcessing(true);
 
-      const handler = (window as any).PaystackPop.setup({
-        key: paystackConfig.publicKey,
-        email: email,
-        amount: numericAmount * 100,
-        currency: "USD",
-        ref: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        onClose: () => {
-          toast({
-            title: "Payment Cancelled",
-            description: "Partnership registration was not completed",
+      (async () => {
+        try {
+          const reference = `EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          await initiatePayment("libertepay", {
+            amount: numericAmount,
+            currency: "USD",
+            email,
+            reference,
+            channels: ["card"],
           });
-          setIsProcessing(false);
-        },
-        onSuccess: (response: any) => {
+
           toast({
-            title: "🎉 Partnership Successful!",
-            description: `Thank you for becoming a ${level.title}. Transaction ref: ${response.reference}`,
+            title: "Redirecting to payment",
+            description: "A new tab has been opened to complete your payment.",
           });
+
           setIsProcessing(false);
           setEmail("");
-        },
-      });
-      handler.openIframe();
+        } catch (err: any) {
+          toast({ title: "Payment Error", description: err.message || "Failed to start payment", variant: "destructive" });
+          setIsProcessing(false);
+        }
+      })();
     };
 
     return (
@@ -228,7 +219,7 @@ const GivePage = () => {
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email) {
@@ -261,18 +252,15 @@ const GivePage = () => {
     setIsProcessing(true);
 
     if (paymentMethod === "card") {
-      // Use Paystack for card payments
-      initiatePaystackPayment("card");
+      await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["card"] });
     } else if (paymentMethod === "mobile") {
-      // Use Paystack with mobile money channel
-      initiatePaystackPayment("mobile_money", mobileNumber);
+      await initiatePayment("libertepay", { amount: Number(amount), currency, email, phone: mobileNumber, channels: ["mobile_money"] });
     } else if (paymentMethod === "bank") {
-      // Use Paystack with bank transfer channel
-      initiatePaystackPayment("bank_transfer");
+      await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["bank_transfer"] });
     }
   };
 
-  const initiatePaystackPayment = (paymentChannel: string, phone?: string) => {
+  const initiateProviderPayment = async (paymentChannel: string, phone?: string) => {
     const numericAmount = parseInt(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast({
@@ -284,44 +272,30 @@ const GivePage = () => {
       return;
     }
 
-    // Initialize Paystack payment
-    const paymentConfig: any = {
-      key: paystackConfig.publicKey,
-      email: email,
-      amount: numericAmount * 100, // Paystack expects amount in kobo/cents
-      currency: currency,
-      ref: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      channels: [paymentChannel],
-    };
+    try {
+      await initiatePayment("libertepay", {
+        amount: numericAmount,
+        currency,
+        email,
+        phone,
+        channels: [paymentChannel === "mobile_money" ? "mobile_money" : paymentChannel],
+      });
 
-    // Add phone number for mobile money
-    if (phone && paymentChannel === "mobile_money") {
-      paymentConfig.phone = phone;
+      toast({
+        title: "Redirecting to payment",
+        description: "A new tab or window has been opened to complete your payment.",
+      });
+
+      // Reset form state
+      setAmount("");
+      setEmail("");
+      setPaymentMethod("");
+      setMobileNumber("");
+    } catch (err: any) {
+      toast({ title: "Payment Error", description: err.message || "Failed to start payment", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
     }
-
-    const handler = (window as any).PaystackPop.setup({
-      ...paymentConfig,
-      onClose: () => {
-        toast({
-          title: "Payment Cancelled",
-          description: "Your payment was not completed",
-        });
-        setIsProcessing(false);
-      },
-      onSuccess: (response: any) => {
-        toast({
-          title: "Payment Successful! 🎉",
-          description: `Thank you for your ${currentGive.title}. Transaction ref: ${response.reference}`,
-        });
-        setIsProcessing(false);
-        // Reset form
-        setAmount("");
-        setEmail("");
-        setPaymentMethod("");
-        setMobileNumber("");
-      },
-    });
-    handler.openIframe();
   };
 
   return (

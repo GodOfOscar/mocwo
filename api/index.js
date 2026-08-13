@@ -451,5 +451,32 @@ app.post('/verify-admin', async (req, res) => {
   }
 });
 
-// Export app for Vercel serverless functions
+// Create Libeté Pay checkout session (simple redirect-based flow)
+app.post('/create-expresspay-transaction', async (req, res) => {
+  const { amount, currency, email, phone, reference, channels, metadata = {} } = req.body;
+  const MERCHANT = process.env.LIBERTEPAY_MERCHANT_ID || process.env.EXPRESSPAY_MERCHANT_ID || process.env.VITE_EXPRESSPAY_MERCHANT_ID;
+  const API_KEY = process.env.LIBERTEPAY_SECRET_KEY || process.env.EXPRESSPAY_API_KEY || process.env.VITE_EXPRESSPAY_API_KEY;
+  const CHECKOUT_BASE = process.env.LIBERTEPAY_CHECKOUT_URL || process.env.EXPRESSPAY_CHECKOUT_URL || process.env.VITE_EXPRESSPAY_CHECKOUT_URL || 'https://checkout.libertepay.com';
+  const provider = metadata.provider || 'libertepay';
+
+  if (!MERCHANT || !API_KEY) {
+    return res.status(500).json({ error: 'Libeté Pay not configured on server' });
+  }
+
+  const params = new URLSearchParams({
+    merchant_id: MERCHANT,
+    amount: String(amount || 0),
+    currency: currency || 'GHS',
+    ref: reference || 'ref',
+    email: email || '',
+    phone: phone || '',
+    provider,
+    channel: Array.isArray(channels) && channels.length ? channels[0] : 'card',
+  });
+
+  const checkoutUrl = `${CHECKOUT_BASE}?${params.toString()}`;
+
+  return res.status(200).json({ checkoutUrl, reference: reference || null, provider });
+});
+
 export default app;

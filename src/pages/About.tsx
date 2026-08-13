@@ -56,54 +56,53 @@ const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode;
   );
 };
 
-const FlipCard = ({ point }: { point: { year: string; title: string; description: string; icon: string; image: string } }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+const StoryImageCarousel = () => {
+  const slides = [p1_1, p1_2, p1_3, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16, p1_1, p1_2, p1_3, p1_6, p1_7, p1_8, p1_9, p1_10, p1_11, p1_12, p1_13, p1_14, p1_15, p1_16];
 
   return (
-    <div
-      className="h-80 cursor-pointer perspective"
-      onClick={() => setIsFlipped(!isFlipped)}
-      style={{ perspective: "1000px" }}
-    >
-      <div
-        className="relative w-full h-full transition-transform duration-500 ease-in-out"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-        }}
-      >
-        {/* Front of card */}
-        <div
-          className="absolute w-full h-full bg-white rounded-lg shadow-lg p-8 flex flex-col justify-center items-center border-0"
-          style={{ backfaceVisibility: "hidden" }}
-        >
-          <div className="text-5xl font-bold text-white mb-4">{point.year}</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">{point.title}</h3>
-          <p className="text-gray-600 text-center text-sm leading-relaxed">{point.description}</p>
-          <div className="mt-4 text-xs text-gray-400 font-semibold">Click to flip</div>
-        </div>
+    <div className="relative overflow-hidden bg-transparent p-0">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-white/70 via-white/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-white/70 via-white/40 to-transparent" />
 
-        {/* Back of card */}
-        <div
-          className="absolute w-full h-full rounded-lg shadow-lg overflow-hidden relative"
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
-          <img 
-            src={point.image} 
-            alt={point.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center pb-6">
-            <p className="text-white text-center font-semibold text-sm leading-relaxed px-4">
-              {point.year === "2000" && "Started with vision and faith"}
-              {point.year === "2010" && "Grew across continents"}
-              {point.year === "2024" && "Transforming millions globally"}
-            </p>
+      <style>{`
+        @keyframes storyScroll {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        @keyframes imageBounce {
+          0%, 100% { transform: translateY(0) scale(1); }
+          25% { transform: translateY(-10px) scale(1.02); }
+          50% { transform: translateY(-24px) scale(1.04); }
+          75% { transform: translateY(-10px) scale(1.02); }
+        }
+        .story-carousel-track {
+          width: max-content;
+          animation: storyScroll 32s linear infinite;
+          will-change: transform;
+        }
+        .story-carousel-track:hover {
+          animation-play-state: paused;
+        }
+        .story-bounce {
+          animation: imageBounce 4.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+          transform-origin: center;
+        }
+      `}</style>
+
+      <div className="flex gap-4 story-carousel-track">
+        {slides.map((image, idx) => (
+          <div
+            key={`${image}-${idx}`}
+            className="group relative h-60 w-72 flex-shrink-0 overflow-hidden border border-slate-200/70 bg-slate-100 shadow-[0_12px_35px_rgba(15,23,42,0.16)] sm:h-72 sm:w-80"
+          >
+            <img
+              src={image}
+              alt={`Story image ${idx + 1}`}
+              className="story-bounce h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-transparent" />
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -256,12 +255,6 @@ const About = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const storyPointsData = [
-    { year: "2000", title: "Foundation Year", description: "Established with a mission to spread God's love globally", icon: "🌱", image: p1_1 },
-    { year: "2010", title: "Growth Expansion", description: "Extending the Gospel across Ghana and the nations of the world.", icon: "🌍", image: p1_6 },
-    { year: "2024", title: "Global Impact", description: "Impacting millions through digital and physical ministry", icon: "✨", image: p1_7 },
-  ];
-
   const visionPoints = [
     "A non-denominational movement of evangelical Christians in the world",
     "Strong passion for soulwinning and discipleship",
@@ -384,10 +377,8 @@ const About = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {storyPointsData.map((point, idx) => (
-              <FlipCard key={idx} point={point} />
-            ))}
+          <div className="w-full">
+            <StoryImageCarousel />
           </div>
         </div>
       </ScrollReveal>
@@ -395,8 +386,6 @@ const About = () => {
       {/* Early Beginning Section */}
       <ScrollReveal className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <ImageCarousel />
-          
           <div>
             <div className="inline-block px-4 py-2 bg-cyan-100 rounded-full mb-6">
               <p className="text-sm font-semibold text-cyan-700">Our Journey</p>
@@ -411,7 +400,7 @@ const About = () => {
               </p>
               
               <p className="text-lg leading-relaxed">
-                In 2008, he was given the right hand of fellowship to start a new campus outreach ministry called Martyrs of Christ Youth Network, which became Martyrs of Christ World Outreach in 2016. That same year, Father's Heart Chapel International was established, becoming the discipleship hub for souls reached out to and the embassy for training missionaries to various campuses and villages.
+                In 2008, he was given the right hand of fellowship to start a new campus outreach ministry called Martyrs of Christ Youth Network, which became Martyrs of Christ World Outreach in 2016. That same year, the ministry also launched a discipleship hub for souls reached out to and the embassy for training missionaries to various campuses and villages.
               </p>
               
               <p className="text-lg leading-relaxed">

@@ -193,7 +193,9 @@ PRAYER_EMAIL_RECIPIENTS=pastor@church.com,admin@church.com
 # ============================================
 # OTHER SERVICES
 # ============================================
-VITE_PAYSTACK_PUBLIC_KEY=pk_xxxx
+VITE_EXPRESSPAY_MERCHANT_ID=
+VITE_EXPRESSPAY_API_KEY=
+VITE_EXPRESSPAY_CHECKOUT_URL=
 ```
 
 ---

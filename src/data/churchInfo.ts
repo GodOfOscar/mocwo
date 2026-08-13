@@ -40,7 +40,7 @@ export const churchGeneralInfo = {
   founder: "Rev. Prince Appau Bediako",
   coLeader: "Prophetess Mrs. Beatrice Appau Bediako",
   ministryName: "Mothers of Christ World Outreach (MOCWO)",
-  churchName: "Father's Heart Chapel International",
+  churchName: "Martyrs of Christ World Outreach",
   locations: {
     kumasi: "Sawaba, Off Sofoline Rd",
     accra: "Legon"

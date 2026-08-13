@@ -4,11 +4,15 @@
 
 export const VITE_API_URL = import.meta.env.VITE_API_URL;
 
+const DEFAULT_API_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : 'https://mocwo-1.onrender.com';
+
 export const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
   ? ''
   : (VITE_API_URL && !/^https?:\/\/localhost(:|$)/i.test(VITE_API_URL)
       ? VITE_API_URL
-      : 'https://mocwo-1.onrender.com');
+      : DEFAULT_API_URL);
 
 console.log('[API] Using base URL:', API_BASE_URL || '/api');
 

@@ -7,30 +7,34 @@ import S2 from "@/assets/sunday/2.jpeg";
 import S3 from "@/assets/sunday/3.jpeg";
 import S4 from "@/assets/sunday/4.jpeg";
 import S5 from "@/assets/sunday/5.jpeg";
+import schoolsIcon from "@/assets/icons/schools.png";
+import soulsIcon from "@/assets/icons/souls won.png";
+import clansIcon from "@/assets/icons/active clans.png";
+import communitiesIcon from "@/assets/icons/communities.png";
 import { Book, Play, Pause, ChevronLeft, ChevronRight, Download, Headphones, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Zap, Target, Users, Globe } from "lucide-react";
 
 const objectives = [
   {
     title: "Soul Winning",
-    description: "Proclaim the Gospel and lead students to Christ",
+    description: "Proclaiming the Gospel and leading people to Christ",
     icon: Target,
     gradient: "from-red-500 to-pink-500"
   },
   {
     title: "Spiritual Growth",
-    description: "Nurture young believers through discipleship and prayer",
+    description: "Nurturing all believers through discipleship and wholistic transformation",
     icon: Zap,
     gradient: "from-yellow-500 to-orange-500"
   },
   {
     title: "Moral Transformation",
-    description: "Build strong Christian values and godly character",
+    description: "Building strong Christian values and godly character",
     icon: Users,
     gradient: "from-green-500 to-teal-500"
   },
   {
     title: "Community Impact",
-    description: "Partner with schools and churches to transform lives",
+    description: "Partnering with various institutions to transform lives and communities",
     icon: Globe,
     gradient: "from-blue-500 to-purple-500"
   },
@@ -39,27 +43,27 @@ const objectives = [
 const achievements = [
   {
     title: "Schools Reached",
-    number: "500+",
-    description: "Institutions visited with the Gospel message",
-    icon: "🏫"
+    number: "250+",
+    description: "This includes schools, orphanages, prisons, hospitals, etc.",
+    icon: schoolsIcon
   },
   {
     title: "Souls Won",
     number: "15,000+",
-    description: "Students and staff reached for Christ",
-    icon: "👥"
+    description: "About 15,000 documented salvation testimonies and counting",
+    icon: soulsIcon
   },
   {
-    title: "Discipleship Groups",
-    number: "100+",
-    description: "Fellowship and Bible study groups established",
-    icon: "🤝"
+    title: "Active Clans",
+    number: "3",
+    description: "Consisting of our clan system for discipleship and mentorship, including Lamad, Shammah, Benaiah",
+    icon: clansIcon
   },
   {
     title: "Communities Impacted",
     number: "200+",
     description: "Families and neighborhoods transformed",
-    icon: "🌍"
+    icon: communitiesIcon
   },
 ];
 
@@ -231,13 +235,15 @@ const MOCWO = () => {
               </div>
               <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-blue-600 to-cyan-600 text-transparent bg-clip-text">
-                  Transforming Youth
+                  Transforming the World
                 </span>
                 <br />
-                One School at a Time
+                One Soul at a Time
               </h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                MOCWO is a Christ-centered evangelical movement born from a burning passion to reach the unreached. We believe that every student matters, every life has value, and every soul deserves to hear the Good News.
+                MOCWO is a Christ-centered evangelical movement born from a burning passion to reach out to all souls across the world. We believe that every soul matters, every life has value, and everyone deserves to hear the Good News of the Gospel.
+
+Through discipleship, we're raising a generation of kingdom disciples who will be agents of change for their schools, communities, nations, and wherever they find themselves.
               </p>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                 Through dynamic worship, powerful teaching, and authentic mentorship, we're raising a generation of kingdom disciples who will change their schools, communities, and nations.
@@ -351,7 +357,7 @@ const MOCWO = () => {
                 Our Impact
               </span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Numbers that represent transformed lives and changed destinies</p>
+            {/* <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Numbers that represent transformed lives and changed destinies</p> */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -359,7 +365,9 @@ const MOCWO = () => {
               <Card key={idx} className="border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:scale-105 group relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 to-cyan-600/0 group-hover:from-blue-600/10 group-hover:to-cyan-600/10 transition-all"></div>
                 <CardContent className="p-8 text-center relative z-10">
-                  <div className="text-6xl mb-4 group-hover:scale-125 transition-transform">{ach.icon}</div>
+                  <div className="mb-4 group-hover:scale-105 transition-transform">
+                    <img src={ach.icon} alt={ach.title} className="mx-auto h-20 w-20 object-contain" />
+                  </div>
                   <CountUp target={ach.number} />
                   <h4 className="text-xl font-bold mb-2">{ach.title}</h4>
                   <p className="text-muted-foreground text-sm">
@@ -389,7 +397,7 @@ const MOCWO = () => {
             <Link to="/schools">
               <Card className="border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:scale-105 group overflow-hidden cursor-pointer h-full">
                 <div className="h-32 bg-gradient-to-r from-blue-600 to-cyan-500 relative overflow-hidden flex items-center justify-center">
-                  <div className="text-6xl group-hover:scale-125 transition-transform">🏫</div>
+                  <img src={schoolsIcon} alt="Schools" className="h-24 w-24 object-contain" />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80"></div>
                 </div>
 
@@ -411,7 +419,7 @@ const MOCWO = () => {
             <Link to="/communities">
               <Card className="border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:scale-105 group overflow-hidden cursor-pointer h-full">
                 <div className="h-32 bg-gradient-to-r from-cyan-600 to-blue-600 relative overflow-hidden flex items-center justify-center">
-                  <div className="text-6xl group-hover:scale-125 transition-transform">🌍</div>
+                  <img src={communitiesIcon} alt="Communities" className="h-24 w-24 object-contain" />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80"></div>
                 </div>
 

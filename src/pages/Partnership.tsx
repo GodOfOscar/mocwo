@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
 import HeroCarousel from "@/components/ui/hero-carousel";
 import { useToast } from "@/components/ui/use-toast";
-import { paystackConfig } from "@/config/paystack";
+import { expresspayConfig } from "@/config/expresspay";
+import { initiatePayment } from "@/lib/payments";
 
 import hero1 from "../assets/hero1.jpeg";
 import tImage from "../assets/t.jpg";
@@ -29,15 +30,7 @@ const mImages = Array.from({ length: 30 }, (_, i) => {
 })
   .filter((img): img is string => !!img);
 
-declare global {
-  interface Window {
-    PaystackPop: {
-      setup: (options: any) => {
-        openIframe: () => void;
-      };
-    };
-  }
-}
+// Payment provider integrations are handled via `/create-expresspay-transaction` endpoint
 
 console.log("Partnership mImages loaded:", mImages.length, mImages);
 
@@ -53,6 +46,9 @@ const Partnership = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showReturningForm, setShowReturningForm] = useState(false);
+  const [returningForm, setReturningForm] = useState({ name: "", level: "", paymentMethod: "" });
+  const [existingPartner, setExistingPartner] = useState<any>(null);
   const { toast } = useToast();
   const [carouselSlides, setCarouselSlides] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -78,7 +74,7 @@ const Partnership = () => {
 
         const slides = data.map((img: any, idx: number) => ({
           id: img.id,
-          title: `Partnership Highlight`,
+          // title: `Partnership Highlight`,
           subtitle: "Our mission is to impact nations together",
           description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
           location: "Global Ministry",
@@ -94,7 +90,7 @@ const Partnership = () => {
         const slides = allCarouselImages.length > 0
           ? allCarouselImages.map((img, idx) => ({
               id: idx + 1,
-              title: `Partnership Highlights ${idx + 1}`,
+              // title: `Partnership Highlights ${idx + 1}`,
               subtitle: "Our mission is to impact nations together",
               description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
               location: "Global Ministry",
@@ -122,7 +118,7 @@ const Partnership = () => {
 
       const slides = allCarouselImages.map((img, idx) => ({
         id: idx + 1,
-        title: `Partnership Highlights ${idx + 1}`,
+        // title: `Partnership Highlights ${idx + 1}`,
         subtitle: "Our mission is to impact nations together",
         description: "Partner with us to empower outreach, transform communities, and share the gospel across the world.",
         location: "Global Ministry",
@@ -188,7 +184,34 @@ const Partnership = () => {
 
   const getMinimumAmount = (level: string) => partnershipMinimums[level] ?? 0;
 
+  const normalizePartnerName = (name: string) => name.trim().replace(/\s+/g, ' ');
+
+  const findPartnerByName = async (name: string) => {
+    const normalizedName = normalizePartnerName(name);
+    if (!normalizedName) return null;
+
+    const { data, error } = await supabase
+      .from('partnerships')
+      .select('*')
+      .ilike('name', normalizedName)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Partner lookup failed:', error);
+      return null;
+    }
+
+    return data && data.length > 0 ? data[0] : null;
+  };
+
   const handleInputChange = (field: string, value: string) => {
+    if (field === "name") {
+      setExistingPartner(null);
+      setShowReturningForm(false);
+      setReturningForm(prev => ({ ...prev, name: value }));
+    }
+
     if (field === "level") {
       const minAmount = getMinimumAmount(value);
       setFormData(prev => ({
@@ -220,12 +243,39 @@ const Partnership = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.email || !formData.amount || !formData.paymentMethod) {
+
+    const normalizedName = normalizePartnerName(formData.name);
+
+    if (!normalizedName || !formData.email || !formData.amount || !formData.paymentMethod) {
       toast({
         title: "Required Fields",
-        description: "Please fill in your email, amount and payment method.",
+        description: "Please fill in your name, email, amount and payment method.",
         variant: "destructive",
+      });
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, name: normalizedName }));
+
+    const partner = await findPartnerByName(normalizedName);
+    if (partner) {
+      setExistingPartner(partner);
+      setShowReturningForm(true);
+      setReturningForm({
+        name: partner.name,
+        level: partner.level || formData.level || "",
+        paymentMethod: formData.paymentMethod || "",
+      });
+      setFormData(prev => ({
+        ...prev,
+        name: partner.name,
+        email: partner.email || prev.email,
+        phone: partner.phone || prev.phone,
+      }));
+      toast({
+        title: "Existing Partner Found",
+        description: "This name already exists in our partner records. Please complete payment in the returning partner section.",
+        variant: "default",
       });
       return;
     }
@@ -247,24 +297,28 @@ const Partnership = () => {
 
     // Lead user to the respective payment method
     if (formData.paymentMethod === 'card' || formData.paymentMethod === 'mobile-money') {
-      const handler = (window as any).PaystackPop.setup({
-        key: paystackConfig.publicKey,
-        email: formData.email,
-        amount: parseFloat(formData.amount) * 100, // Amount in pesewas/kobo
-        currency: "GHS",
-        ref: `PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        onClose: () => {
-          toast({
-            title: "Payment Required",
-            description: "Please complete the payment process to submit your partnership application.",
-          });
-          setIsProcessing(false);
-        },
-        onSuccess: (response: any) => {
-          savePartnershipData(response.reference);
-        },
-      });
-      handler.openIframe();
+      try {
+        const reference = `EXP-PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        await initiatePayment('expresspay', {
+          amount: parseFloat(formData.amount),
+          currency: 'GHS',
+          email: formData.email,
+          phone: formData.phone,
+          reference,
+          channels: [formData.paymentMethod === 'mobile-money' ? 'mobile_money' : 'card']
+        });
+
+        toast({
+          title: "Redirecting to payment",
+          description: "A new tab has been opened to complete your payment.",
+        });
+
+        // Save as pending verification; final approval will be done after webhook/verification
+        await savePartnershipData('AWAITING_VERIFICATION');
+      } catch (err: any) {
+        toast({ title: 'Payment Error', description: err.message || 'Failed to initiate payment', variant: 'destructive' });
+        setIsProcessing(false);
+      }
     } else {
       // For manual verification methods
       if (formData.paymentMethod === 'bank-transfer') {
@@ -314,6 +368,94 @@ const Partnership = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Returning partner handlers
+  const handleReturningInputChange = (field: string, value: string) => {
+    setReturningForm(prev => {
+      const next = { ...prev, [field]: value };
+
+      if (field === 'level') {
+        const amount = getMinimumAmount(value) || 0;
+        setFormData(current => ({ ...current, amount: String(amount), level: value }));
+        return next;
+      }
+
+      return next;
+    });
+  };
+
+  const handleReturningSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const normalizedName = normalizePartnerName(returningForm.name);
+    if (!normalizedName || !returningForm.level || !returningForm.paymentMethod) {
+      toast({ title: 'Required Fields', description: 'Please fill name, level and payment method.', variant: 'destructive' });
+      return;
+    }
+
+    setIsProcessing(true);
+    const reference = `RETURN-PARTNER-${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+    const amount = getMinimumAmount(returningForm.level) || 0;
+    setFormData(prev => ({ ...prev, level: returningForm.level, amount: String(amount) }));
+
+    try {
+      const partner = existingPartner || await findPartnerByName(normalizedName);
+      if (!partner) {
+        setShowReturningForm(false);
+        setFormData(prev => ({
+          ...prev,
+          name: normalizedName,
+          level: returningForm.level,
+          amount: String(amount),
+          paymentMethod: returningForm.paymentMethod,
+        }));
+        toast({
+          title: 'New Partner Registration',
+          description: 'No existing partner record was found for that name. Please complete the new partnership form below.',
+          variant: 'default',
+        });
+        return;
+      }
+
+      const paymentEmail = partner.email || formData.email || '';
+      const paymentPhone = partner.phone || formData.phone || '';
+
+      if (returningForm.paymentMethod === 'card' || returningForm.paymentMethod === 'mobile-money') {
+        await initiatePayment('expresspay', {
+          amount,
+          currency: 'GHS',
+          email: paymentEmail,
+          phone: paymentPhone,
+          reference,
+          channels: [returningForm.paymentMethod === 'mobile-money' ? 'mobile_money' : 'card']
+        });
+
+        toast({ title: 'Redirecting to payment', description: 'Complete payment in the new tab.' });
+      } else {
+        toast({ title: 'Awaiting Transfer', description: 'Please follow the transfer instructions.' });
+      }
+
+      const { error } = await supabase.from('partnerships').insert([{
+        name: partner.name,
+        email: paymentEmail,
+        phone: paymentPhone,
+        level: returningForm.level,
+        amount,
+        payment_method: returningForm.paymentMethod,
+        message: `Returning partner payment for existing partner name ${partner.name} | Reference: ${reference}`,
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+
+      toast({ title: 'Recorded', description: 'Your returning partner payment is recorded and pending verification.' });
+      setShowReturningForm(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to process returning partner', variant: 'destructive' });
     } finally {
       setIsProcessing(false);
     }
@@ -450,6 +592,79 @@ const Partnership = () => {
       </section>
 
 
+
+      {/* Returning Partner Section */}
+      <section id="returning-partner" className="py-12 bg-gradient-to-b from-slate-50 to-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto mb-6">
+            <Card className="border-0 shadow-[0_20px_50px_-20px_rgba(14,116,144,0.35)] overflow-hidden rounded-3xl">
+              <div className="h-2 bg-gradient-to-r from-blue-700 via-sky-500 to-cyan-500" />
+              <CardContent className="p-6 md:p-8 bg-white">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-500 text-white shadow-lg">
+                      <Handshake className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-900">Already a Partner?</h3>
+                      <p className="text-sm text-slate-600 mt-1">If you're already a partner and want to fulfill your monthly obligation, use the quick form below.</p>
+                    </div>
+                  </div>
+                  <div>
+                    <Button onClick={() => setShowReturningForm(s => !s)} className="rounded-full bg-slate-900 text-white hover:bg-slate-800 px-6" variant="outline">{showReturningForm ? 'Hide Panel' : 'Already a partner'}</Button>
+                  </div>
+                </div>
+
+                {showReturningForm && (
+                  <form onSubmit={handleReturningSubmit} className="mt-8 space-y-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4 md:p-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <Label className="text-slate-700 font-bold mb-2 block">Full Name *</Label>
+                        <Input value={returningForm.name} onChange={(e) => handleReturningInputChange('name', e.target.value)} placeholder="Your full name" className="border-2 focus:border-blue-500 transition-all" required />
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-700 font-bold mb-2 block">Partnership Level *</Label>
+                        <Select value={returningForm.level} onValueChange={(v)=> handleReturningInputChange('level', v)}>
+                          <SelectTrigger className="w-full border-2 focus:border-blue-500 transition-all">
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Bronze Partner">Bronze Partner</SelectItem>
+                            <SelectItem value="Silver Partner">Silver Partner</SelectItem>
+                            <SelectItem value="Gold Partner">Gold Partner</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-700 font-bold mb-2 block">Payment Method *</Label>
+                        <Select value={returningForm.paymentMethod} onValueChange={(v)=> handleReturningInputChange('paymentMethod', v)}>
+                          <SelectTrigger className="w-full border-2 focus:border-blue-500 transition-all">
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="mobile-money">Mobile Money</SelectItem>
+                            <SelectItem value="card">Credit/Debit Card</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <Button type="submit" disabled={isProcessing} className="rounded-full bg-gradient-to-r from-blue-700 to-cyan-600 text-white hover:opacity-90">Submit Payment</Button>
+                      <Button type="button" variant="ghost" onClick={() => setShowReturningForm(false)} className="rounded-full">Cancel</Button>
+                    </div>
+                  </form>
+                )}
+
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
 
       {/* Partnership Application Form */}
       <section id="application" className="py-24 bg-white">
@@ -602,7 +817,7 @@ const Partnership = () => {
                 </span>
               </h2>
               <p className="text-lg text-gray-700 mb-6 leading-relaxed font-medium">
-                Partnership with Fathers Heart Chapel International is about being part of something BIGGER than yourself and reaching far beyond your personal sphere of influence.
+                Partnership with Martyrs of Christ World Outreach is about being part of something BIGGER than yourself and reaching far beyond your personal sphere of influence.
               </p>
               <p className="text-lg text-gray-700 mb-8 leading-relaxed">
                 Through your partnership, we're able to reach millions through satellite broadcasting, support missionary work, feed the hungry, care for orphans, and build churches that transform communities across the globe.
@@ -762,3 +977,4 @@ const Partnership = () => {
 };
 
 export default Partnership;
+

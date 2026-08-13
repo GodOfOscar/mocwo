@@ -10,6 +10,10 @@ import hero2 from "@/assets/hero2.jpeg";
 import hero3 from "@/assets/hero3.jpeg";
 import hero6 from "@/assets/hero6.jpg";
 import vid from "@/assets/vid.mp4";
+import liveIcon from "@/assets/icons/livestream.png";
+import prayerIcon from "@/assets/icons/prayer request.png";
+import outreachIcon from "@/assets/icons/evangelic outreach.png";
+import resourcesIcon from "@/assets/icons/resources.png";
 import NewsCarousel from "@/components/ui/news-carousel";
 import { news } from "@/data/news";
 import { Heart, BookOpen, Users, Globe, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Radio } from "lucide-react";
@@ -19,7 +23,7 @@ const Home = () => {
     {
       id: 1,
       title: "REACHING OUT TO THE UNREACHED",
-      subtitle: "Welcome to Martyrs of Christ World Outreach & Father's Heart Chapel Int'l",
+      subtitle: "Welcome to Martyrs of Christ World Outreach",
       description: "We are mandated to fulfill the Great Commission by reaching all people and making Christ known where His name is still unknown (Mark 16:15).",
       image: hero1,
       ctaText: "Join Our Family",
@@ -136,11 +140,10 @@ const Home = () => {
   ];
 
   const features = [
-    { title: "Live Streaming", description: "Join our services from anywhere in the world", icon: "📺", link: "/live" },
-    { title: "Prayer Request", description: "Submit your prayer needs and receive support", icon: "🙏", link: "/Prayer-ai"},
-    { title: "Evangelical Outreach", description: "Making a difference in our local and global communities", icon: "🌍", link: "/MOCWO" },
-    { title: "Resources", description: "Access sermons, books, and study materials", icon: "📖", link: "/resources" },
-    { title: "The Martyrs World", description: "Interact with members beyond Sunday service", icon: "🤝", link: "/community" }
+    { title: "Live Streaming", description: "Join our services from anywhere in the world", iconSrc: liveIcon, link: "/live" },
+    { title: "Prayer Request", description: "Submit your prayer needs and receive support", iconSrc: prayerIcon, link: "/Prayer-ai" },
+    { title: "Evangelical Outreach", description: "Making a difference in our local and global communities", iconSrc: outreachIcon, link: "/MOCWO" },
+    { title: "Resources", description: "Access sermons, books, and study materials", iconSrc: resourcesIcon, link: "/resources" }
   ];
 
   // `news` imported from src/data/news
@@ -223,7 +226,7 @@ const Home = () => {
                   <Card className="h-full border-0 shadow-card hover:shadow-divine transition-all duration-300 group-hover:scale-105">
                     <CardContent className="p-6 text-center">
                       <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${action.gradient} flex items-center justify-center mx-auto mb-4 shadow-glow`}>
-                        <Icon className="w-8 h-8 text-white" />
+                        <Icon className="w-10 h-10 text-white" />
                       </div>
                       <h3 className="text-xl font-bold mb-2 text-foreground">{action.title}</h3>
                       <p className="text-muted-foreground">{action.description}</p>
@@ -255,6 +258,9 @@ const Home = () => {
         <div className="absolute inset-0 bg-black/20" /> 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center text-white">
+            <div className="inline-block px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30 mb-6">
+              <span className="text-sm font-semibold uppercase tracking-widest text-cyan-200">Welcome to our story</span>
+            </div>
             <h2 className="text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight tracking-tight">
               <span className="text-gradient-animated">Welcome to Martyrs Of Christ World Outreach</span>
             </h2>
@@ -282,12 +288,22 @@ const Home = () => {
               Discover the many ways you can be part of our community and grow in your faith journey.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <Link key={index} to={feature.link || "#"} className="no-underline">
                 <Card className="text-center border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:scale-105 cursor-pointer h-full">
                   <CardContent className="p-6">
-                    <div className="text-4xl mb-4">{feature.icon}</div>
+                    <div className="mb-4 flex justify-center">
+                      {feature.iconSrc ? (
+                        <img
+                          src={feature.iconSrc}
+                          alt={`${feature.title} icon`}
+                          className="mx-auto h-20 w-20 object-contain"
+                        />
+                      ) : (
+                        <span className="text-4xl">{feature.icon}</span>
+                      )}
+                    </div>
                     <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground">{feature.description}</p>
                   </CardContent>

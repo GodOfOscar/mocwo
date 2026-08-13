@@ -327,7 +327,7 @@ const About = () => {
             {/* About */}
             <div className="animate-fade-in-up" style={{ animationDelay: "0s" }}>
               <h3 className="text-2xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-                Fathers Heart Chapel
+                Martyrs Of Christ World Outreach
               </h3>
               <p className="text-gray-400 leading-relaxed font-light">
                 Transforming lives through faith, worship, and service. Impacting nations for God's kingdom across the globe.

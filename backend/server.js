@@ -13,9 +13,16 @@ import notificationRoutes from "./routes/notifications.js";
 dotenv.config();
 
 // Initialize Supabase client for backend operations
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+if (!process.env.SUPABASE_URL) {
+  console.error("🚨 Missing SUPABASE_URL environment variable. Backend cannot connect to Supabase.");
+}
+if (!SUPABASE_KEY) {
+  console.error("🚨 Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY environment variable. Backend cannot bypass RLS.");
+}
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
+  SUPABASE_KEY,
   {
     realtime: {
       transport: ws,
@@ -25,31 +32,70 @@ const supabase = createClient(
 
 const app = express();
 
+const allowedOrigins = [
+  "https://mocwo.org",
+  "https://mocwo.onrender.com",
+  "https://mocwo-1.onrender.com",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
+];
+const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+const localhostOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?\/?$/i;
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.replace(/\/$/, "");
+  if (allowedOrigins.includes(normalizedOrigin) || vercelOriginPattern.test(normalizedOrigin)) {
+    return true;
+  }
+
+  if (localhostOriginPattern.test(normalizedOrigin)) {
+    return true;
+  }
+
+  try {
+    const { hostname } = new URL(normalizedOrigin);
+    // Allow localhost and common private IP ranges (for development)
+    if (["localhost", "127.0.0.1", "0.0.0.0"].includes(hostname)) {
+      return true;
+    }
+    // Allow private IP ranges (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+    const ip = hostname;
+    if (/^10\.\d+\.\d+\.\d+$/.test(ip)) return true; // 10.0.0.0/8
+    if (/^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(ip)) return true; // 172.16.0.0/12
+    if (/^192\.168\.\d+\.\d+$/.test(ip)) return true; // 192.168.0.0/16
+    return false;
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow all origins in development, restrict in production
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = [
-        "https://mocwo.org",
-        "https://mocwo.onrender.com",
-        "https://mocwo-1.onrender.com",
-      ];
-      const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
-
-      if (!origin || allowedOrigins.includes(origin) || vercelOriginPattern.test(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    } else {
-      // Allow all origins in development
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
+    } else {
+      console.warn("⚠️ CORS origin rejected:", origin);
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
+
+// Middleware to handle payload-too-large errors from body parsers
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    console.error('Payload too large for request', { path: req.path, size: req.headers['content-length'] });
+    return res.status(413).json({ success: false, error: 'Payload too large. Try uploading smaller files or use the admin upload with reduced file sizes.' });
+  }
+  next(err);
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -133,8 +179,11 @@ const logAdminActivity = (email, action, details) => logSystemEvent("info", acti
 
 // NEW: Middleware to check admin page access
 const checkAdminPageAccess = async (req, res, next) => {
-  // Extract the page key from the request path (e.g., 'admin-events' from '/api/admin-events')
-  const pageKey = req.path.split('/')[2]; // Assuming path is like /api/admin-events
+  const mountedBase = req.baseUrl || req.originalUrl || req.path || "";
+  const pageKey = mountedBase
+    .replace(/^\/api\//, "")
+    .replace(/^\//, "")
+    .split('/')[0];
 
   // Admin dashboard and master admin are always accessible
   if (!pageKey || pageKey === 'admin' || pageKey === 'admin-master') {
@@ -157,7 +206,15 @@ const checkAdminPageAccess = async (req, res, next) => {
       return res.status(500).json({ success: false, error: "Server error checking page access" });
     }
 
-    const accessSettings = data?.value ? JSON.parse(data.value) : {};
+    let accessSettings = {};
+    if (data?.value) {
+      try {
+        accessSettings = JSON.parse(data.value);
+      } catch {
+        accessSettings = {};
+      }
+    }
+
     if (accessSettings[pageKey] === false) {
       return res.status(403).json({ success: false, error: "Access to this admin page is currently disabled." });
     }
@@ -201,16 +258,386 @@ app.use(async (req, res, next) => {
 });
 
 // Apply the new middleware to all admin routes except the main admin dashboard and master admin
-app.use('/api/admin-partnerships', checkAdminPageAccess);
-app.use('/api/admin-memberships', checkAdminPageAccess);
-app.use('/api/admin-prayers', checkAdminPageAccess);
-app.use('/api/admin-news', checkAdminPageAccess);
-app.use('/api/admin-resources', checkAdminPageAccess);
-app.use('/api/admin-media-files', checkAdminPageAccess);
-app.use('/api/admin-services', checkAdminPageAccess);
-app.use('/api/admin-events', checkAdminPageAccess);
-app.use('/api/admin-devotionals', checkAdminPageAccess);
-app.use('/api/admin-carousel', checkAdminPageAccess);
+const requireSupabaseServiceKey = (req, res, next) => {
+  if (!process.env.SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('Supabase not configured for admin operation:', { path: req.originalUrl });
+    return res.status(500).json({ success: false, error: 'Supabase not configured on server. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.' });
+  }
+  next();
+};
+
+app.use('/api/admin-partnerships', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-memberships', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-prayers', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-news', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-resources', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-media-files', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-services', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-events', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-devotionals', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-carousel', requireSupabaseServiceKey, checkAdminPageAccess);
+app.use('/api/admin-testimonials', requireSupabaseServiceKey, checkAdminPageAccess);
+
+const normalizeMonth = (value) => String(value || "").trim().toLowerCase();
+const validateMonth = (month) => /^[a-z0-9-_]+$/.test(month);
+
+const getStoragePublicUrl = async (bucket, path) => {
+  const { data, error } = await supabase.storage.from(bucket).getPublicUrl(path);
+  if (error) throw error;
+  return (data?.publicUrl || data?.public_url || "");
+};
+
+app.get('/api/admin-devotionals/list', async (req, res) => {
+  const month = normalizeMonth(req.query.month);
+  if (!month || !validateMonth(month)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing month query parameter.' });
+  }
+
+  try {
+    const { data, error } = await supabase.storage.from('devotionals').list(month, {
+      limit: 100,
+      sortBy: { column: 'name', order: 'asc' },
+    });
+    if (error) throw error;
+
+    const items = await Promise.all(
+      (data || []).map(async (item) => {
+        const path = `${month}/${item.name}`;
+        const url = await getStoragePublicUrl('devotionals', path);
+        return { name: item.name, path, size: item.size, url };
+      })
+    );
+
+    res.json({ success: true, data: items });
+  } catch (error) {
+    console.error('ADMIN DEVOTIONALS LIST ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to list devotional assets.' });
+  }
+});
+
+app.post('/api/admin-devotionals/upload', async (req, res) => {
+  const { month, folder, fileName, base64, mimeType } = req.body;
+  const folderName = normalizeMonth(folder || month);
+
+  if (!folderName || !validateMonth(folderName) || !fileName || !base64 || !mimeType) {
+    return res.status(400).json({ success: false, error: 'Missing required upload payload (month/folder, fileName, base64, mimeType).' });
+  }
+
+  try {
+    const key = `${folderName}/${fileName}`;
+    const fileBuffer = Buffer.from(base64, 'base64');
+    const { error } = await supabase.storage.from('devotionals').upload(key, fileBuffer, {
+      upsert: true,
+      contentType: mimeType,
+    });
+    if (error) throw error;
+
+    const url = await getStoragePublicUrl('devotionals', key);
+    res.json({ success: true, data: { path: key, url } });
+  } catch (error) {
+    console.error('ADMIN DEVOTIONALS UPLOAD ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to upload devotional file.' });
+  }
+});
+
+app.post('/api/admin-devotionals/delete', async (req, res) => {
+  const { paths } = req.body;
+  if (!Array.isArray(paths) || paths.length === 0) {
+    return res.status(400).json({ success: false, error: 'Missing paths to delete.' });
+  }
+
+  try {
+    const { error } = await supabase.storage.from('devotionals').remove(paths);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN DEVOTIONALS DELETE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to delete devotional file(s).' });
+  }
+});
+
+app.get('/api/admin-devotionals/settings', async (req, res) => {
+  const month = normalizeMonth(req.query.month);
+  if (!month || !validateMonth(month)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing month query parameter.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('devotional_settings')
+      .select('theme, bg_color, cover_image_url')
+      .eq('month', month)
+      .maybeSingle();
+
+    if (error) throw error;
+    res.json({ success: true, data: data || null });
+  } catch (error) {
+    console.error('ADMIN DEVOTIONALS SETTINGS FETCH ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to fetch devotional settings.' });
+  }
+});
+
+app.post('/api/admin-devotionals/settings', async (req, res) => {
+  const { month, theme, bg_color, cover_image_url } = req.body;
+  const normalizedMonth = normalizeMonth(month);
+
+  if (!normalizedMonth || !validateMonth(normalizedMonth)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing month.' });
+  }
+
+  try {
+    const { error } = await supabase.from('devotional_settings').upsert({
+      month: normalizedMonth,
+      theme: theme || null,
+      bg_color: bg_color || null,
+      cover_image_url: cover_image_url || null,
+    });
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN DEVOTIONALS SETTINGS SAVE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to save devotional settings.' });
+  }
+});
+
+const normalizePage = (page) => normalizeMonth(page);
+const normalizeLink = (link) => {
+  let value = String(link || '').trim();
+  if (!value) return value;
+  value = value.replace(/^\/+/, '');
+  return `/${value}`;
+};
+
+app.get('/api/admin-news/list', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('news')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('ADMIN NEWS LIST ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to list news items.' });
+  }
+});
+
+app.get('/api/news', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('news')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('PUBLIC NEWS FETCH ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to fetch public news.' });
+  }
+});
+
+app.post('/api/admin-news/save', async (req, res) => {
+  const { id, title, excerpt, content, date, image, link } = req.body;
+  if (!title || !excerpt || !content) {
+    return res.status(400).json({ success: false, error: 'Missing required news fields.' });
+  }
+
+  const normalizedLink = normalizeLink(link);
+
+  try {
+    let result;
+    if (id) {
+      result = await supabase.from('news').update({ title, excerpt, content, date, image, link: normalizedLink }).eq('id', id);
+    } else {
+      result = await supabase.from('news').insert([{ title, excerpt, content, date, image, link: normalizedLink }]);
+    }
+
+    if (result.error) throw result.error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN NEWS SAVE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to save news item.' });
+  }
+});
+
+app.post('/api/admin-news/delete', async (req, res) => {
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Missing news item id.' });
+  }
+
+  try {
+    const { error } = await supabase.from('news').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN NEWS DELETE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to delete news item.' });
+  }
+});
+
+app.post('/api/admin-news/upload', async (req, res) => {
+  const { folder, fileName, base64, mimeType } = req.body;
+  const normalizedFolder = normalizePage(folder || 'news');
+  if (!normalizedFolder || !fileName || !base64 || !mimeType) {
+    return res.status(400).json({ success: false, error: 'Missing required upload payload.' });
+  }
+
+  try {
+    const key = `${normalizedFolder}/${fileName}`;
+    const fileBuffer = Buffer.from(base64, 'base64');
+    const { error } = await supabase.storage.from('news-images').upload(key, fileBuffer, {
+      upsert: true,
+      contentType: mimeType,
+    });
+    if (error) throw error;
+
+    const url = await getStoragePublicUrl('news-images', key);
+    res.json({ success: true, data: { path: key, url } });
+  } catch (error) {
+    console.error('ADMIN NEWS IMAGE UPLOAD ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to upload news image.' });
+  }
+});
+
+app.get('/api/admin-media-files/list', async (req, res) => {
+  const page = normalizePage(req.query.page);
+  if (!page || !validateMonth(page)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing page query parameter.' });
+  }
+
+  try {
+    const { data, error } = await supabase.storage.from('media-files').list(page, {
+      limit: 100,
+      sortBy: { column: 'name', order: 'asc' },
+    });
+    if (error) throw error;
+
+    const items = await Promise.all(
+      (data || []).map(async (item) => {
+        const path = `${page}/${item.name}`;
+        const url = await getStoragePublicUrl('media-files', path);
+        return { name: item.name, path, size: item.size, url };
+      })
+    );
+
+    res.json({ success: true, data: items });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES LIST ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to list media files.' });
+  }
+});
+
+app.post('/api/admin-media-files/upload', async (req, res) => {
+  const { page, fileName, base64, mimeType } = req.body;
+  const normalizedPage = normalizePage(page);
+  if (!normalizedPage || !fileName || !base64 || !mimeType) {
+    return res.status(400).json({ success: false, error: 'Missing required upload payload.' });
+  }
+
+  try {
+    const key = `${normalizedPage}/${fileName}`;
+    const fileBuffer = Buffer.from(base64, 'base64');
+    const { error } = await supabase.storage.from('media-files').upload(key, fileBuffer, {
+      upsert: true,
+      contentType: mimeType,
+    });
+    if (error) throw error;
+
+    const url = await getStoragePublicUrl('media-files', key);
+    res.json({ success: true, data: { path: key, url } });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES UPLOAD ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to upload media file.' });
+  }
+});
+
+app.post('/api/admin-media-files/delete', async (req, res) => {
+  const { paths } = req.body;
+  if (!Array.isArray(paths) || paths.length === 0) {
+    return res.status(400).json({ success: false, error: 'Missing paths to delete.' });
+  }
+
+  try {
+    const { error } = await supabase.storage.from('media-files').remove(paths);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES DELETE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to delete media file(s).' });
+  }
+});
+
+app.get('/api/admin-media-files/carousel', async (req, res) => {
+  const page = normalizePage(req.query.page);
+  if (!page || !validateMonth(page)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing page query parameter.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('carousel_images')
+      .select('*')
+      .eq('page', page)
+      .order('order_index', { ascending: true });
+    if (error) throw error;
+    res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES CAROUSEL FETCH ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to fetch carousel images.' });
+  }
+});
+
+app.post('/api/admin-media-files/carousel', async (req, res) => {
+  const { page, image_url, image_name, order_index } = req.body;
+  const normalizedPage = normalizePage(page);
+  if (!normalizedPage || !image_url || !image_name) {
+    return res.status(400).json({ success: false, error: 'Missing carousel image payload.' });
+  }
+
+  try {
+    const { error } = await supabase.from('carousel_images').insert([{ page: normalizedPage, image_url, image_name, order_index }]);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES CAROUSEL CREATE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to add carousel image.' });
+  }
+});
+
+app.post('/api/admin-media-files/carousel/delete', async (req, res) => {
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Missing carousel id.' });
+  }
+
+  try {
+    const { error } = await supabase.from('carousel_images').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES CAROUSEL DELETE ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to remove carousel image.' });
+  }
+});
+
+app.post('/api/admin-media-files/carousel/order', async (req, res) => {
+  const { id, order_index } = req.body;
+  if (!id || typeof order_index !== 'number') {
+    return res.status(400).json({ success: false, error: 'Missing carousel order payload.' });
+  }
+
+  try {
+    const { error } = await supabase.from('carousel_images').update({ order_index }).eq('id', id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN MEDIA FILES CAROUSEL ORDER ERROR:', error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || 'Unable to reorder carousel image.' });
+  }
+});
 
 
 // Endpoint to check maintenance status (accessible during maintenance)
@@ -221,16 +648,22 @@ app.get("/api/status", async (req, res) => {
     return res.json({ success: true, maintenanceMode: data?.value === 'true' });
   } catch (err) {
     console.error("Error in /api/status:", err.message || err);
-    if (isAdminSettingsTableMissingError(err)) {
-      return res.status(500).json({
-        success: false,
-        error: "Supabase table admin_settings is missing. Run the migration to create it."
-      });
-    }
     const isConnectionError = err.message?.includes('fetch failed');
-    return res.status(500).json({ 
-      success: false, 
-      error: isConnectionError ? "Database connection error (fetch failed)" : "Server error" 
+    
+    // If Supabase is unreachable, assume maintenance mode is OFF to allow the app to function
+    if (isConnectionError) {
+      console.warn("⚠️ Supabase unreachable in /api/status - assuming maintenance mode is OFF");
+      return res.json({ success: true, maintenanceMode: false, warning: "Database unavailable" });
+    }
+    
+    if (isAdminSettingsTableMissingError(err)) {
+      return res.json({ success: true, maintenanceMode: false, warning: "Admin settings table missing" });
+    }
+    
+    return res.json({ 
+      success: true, 
+      maintenanceMode: false,
+      error: "Server error checking maintenance status" 
     });
   }
 });
@@ -344,7 +777,7 @@ app.post("/api/admin-login", async (req, res) => {
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!anonKey) {
     console.error("ADMIN LOGIN ERROR: missing Supabase anon key");
-    return res.status(500).json({ success: false, error: "Supabase anon key not configured" });
+    return res.json({ success: false, error: "Supabase anon key not configured" });
   }
 
   try {
@@ -357,7 +790,7 @@ app.post("/api/admin-login", async (req, res) => {
 
     if (!data?.session) {
       console.error("ADMIN LOGIN ERROR: login succeeded but no session was returned", data);
-      return res.status(500).json({ success: false, error: "Login succeeded but no session tokens were returned." });
+      return res.json({ success: false, error: "Login succeeded but no session tokens were returned." });
     }
 
     return res.json({
@@ -371,9 +804,13 @@ app.post("/api/admin-login", async (req, res) => {
     const message = error.message || "Login failed";
     console.error("ADMIN LOGIN ERROR:", message);
     
-    // Differentiate network failures (500) from authentication failures (401)
-    const status = message.includes('fetch failed') ? 500 : 401;
-    return res.status(status).json({ success: false, error: message });
+    // Always return 200 with error in body to avoid fetch abort
+    const isConnectionError = message.includes('fetch failed');
+    return res.json({ 
+      success: false, 
+      error: isConnectionError ? "Database connection failed. Backend cannot reach Supabase." : message,
+      isConnectionError
+    });
   }
 });
 
@@ -474,11 +911,25 @@ app.get("/api/admin/settings/:key", async (req, res) => {
       .select("value")
       .eq("key", req.params.key)
       .maybeSingle();
-    
-    if (error) throw error;
-    res.json({ success: true, value: data?.value });
+
+    if (error) {
+      if (isAdminSettingsTableMissingError(error)) {
+        return res.json({ success: true, value: null });
+      }
+      const isConnectionError = error.message?.includes('fetch failed');
+      if (isConnectionError) {
+        console.warn(`⚠️ Supabase unreachable for settings key: ${req.params.key}`);
+        return res.json({ success: true, value: null, warning: "Database unavailable" });
+      }
+      throw error;
+    }
+
+    res.json({ success: true, value: data?.value ?? null });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error(`Error fetching admin setting ${req.params.key}:`, error.message);
+    const isConnectionError = error.message?.includes('fetch failed');
+    // Return graceful response even on errors to avoid blocking UI
+    res.json({ success: true, value: null, warning: isConnectionError ? "Database connection failed" : "Error fetching setting" });
   }
 });
 
@@ -501,19 +952,46 @@ app.get("/api/admin/page-access", async (req, res) => {
       .select("value")
       .eq("key", "admin_page_access")
       .maybeSingle();
-    
-    if (error) throw error;
-    res.json({ success: true, settings: data?.value ? JSON.parse(data.value) : {} });
+
+    if (error) {
+      if (isAdminSettingsTableMissingError(error)) {
+        return res.json({ success: true, settings: {} });
+      }
+      throw error;
+    }
+
+    if (!data?.value) {
+      return res.json({ success: true, settings: {} });
+    }
+
+    let parsedSettings = {};
+    try {
+      parsedSettings = JSON.parse(data.value);
+    } catch {
+      parsedSettings = {};
+    }
+
+    res.json({ success: true, settings: parsedSettings });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.post("/api/admin/page-access", async (req, res) => {
-  const { settings } = req.body; // settings should be a JSON object
+  const { settings } = req.body;
+
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return res.status(400).json({ success: false, error: "A JSON object is required for settings." });
+  }
+
   try {
     const { error } = await supabase.from("admin_settings").upsert({ key: "admin_page_access", value: JSON.stringify(settings) });
-    if (error) throw error;
+    if (error) {
+      if (isAdminSettingsTableMissingError(error)) {
+        return res.json({ success: true });
+      }
+      throw error;
+    }
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -521,41 +999,68 @@ app.post("/api/admin/page-access", async (req, res) => {
 });
 
 // SMS Sender Function using MNOTIFY
+const normalizePhoneNumber = (phoneNumber) => {
+  if (!phoneNumber || typeof phoneNumber !== "string") return "";
+  let digits = phoneNumber.replace(/\D+/g, "");
+
+  // Convert local Ghanaian phone numbers like 054xxx... to 23354xxx...
+  if (digits.startsWith("0") && digits.length === 10) {
+    digits = `233${digits.slice(1)}`;
+  }
+
+  return digits;
+};
+
 const sendSMSViaMMNotify = async (phoneNumber, message) => {
   const MNOTIFY_API_KEY = process.env.MNOTIFY_API_KEY;
   const MNOTIFY_SENDER_ID = process.env.MNOTIFY_SENDER_ID || "MOCWO";
+  const to = normalizePhoneNumber(phoneNumber);
 
   if (!MNOTIFY_API_KEY) {
     console.warn("⚠️ MNOTIFY_API_KEY is not configured. SMS will not be sent.");
     return { success: false, error: "SMS service not configured" };
   }
 
+  if (!to) {
+    console.warn("⚠️ Invalid phone number provided for SMS.");
+    return { success: false, error: "Invalid phone number" };
+  }
+
   try {
+    const payload = new URLSearchParams({
+      key: MNOTIFY_API_KEY,
+      to,
+      msg: message,
+      sender_id: MNOTIFY_SENDER_ID,
+    });
+
     const response = await fetch("https://api.mnotify.com/api/sms/quick", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify({
-        key: MNOTIFY_API_KEY,
-        to: phoneNumber,
-        msg: message,
-        sender_id: MNOTIFY_SENDER_ID,
-      }),
+      body: payload.toString(),
     });
 
-    const result = await response.json();
-    
-    if (result.code === "ok" || result.status === "success") {
-      console.log(`✓ SMS sent to ${phoneNumber}`);
-      return { success: true, message: result.message };
-    } else {
-      console.error(`✗ MNOTIFY SMS Error: ${result.message || "Unknown error"}`);
-      return { success: false, error: result.message || "Failed to send SMS" };
+    const text = await response.text();
+    let result;
+
+    try {
+      result = JSON.parse(text);
+    } catch (parseError) {
+      result = { status: response.ok ? "success" : "error", message: text };
     }
+
+    if (response.ok && (result.code === "ok" || result.status === "success" || result.status === "OK")) {
+      console.log(`✓ SMS sent to ${to}`);
+      return { success: true, message: result.message || "SMS sent" };
+    }
+
+    console.error(`✗ MNOTIFY SMS Error: ${result.message || text || "Unknown error"}`);
+    return { success: false, error: result.message || text || "Failed to send SMS" };
   } catch (error) {
-    console.error("MNOTIFY Request Error:", error.message);
-    return { success: false, error: error.message };
+    console.error("MNOTIFY Request Error:", error?.message || error);
+    return { success: false, error: error?.message || String(error) };
   }
 };
 
@@ -898,6 +1403,62 @@ app.delete('/api/admin-services/:id', async (req, res) => {
   } catch (error) {
     console.error('ADMIN SERVICES DELETE ERROR:', error.message || error);
     return res.status(500).json({ success: false, error: error.message || 'Unable to delete service' });
+  }
+});
+
+// Admin Testimonials CRUD endpoints (service-role authenticated)
+app.get('/api/admin-testimonials', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('testimonials')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN TESTIMONIALS FETCH ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to fetch testimonials' });
+  }
+});
+
+app.put('/api/admin-testimonials/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatePayload = { ...req.body };
+
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Testimony ID is required.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('testimonials')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('ADMIN TESTIMONIALS UPDATE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to update testimony' });
+  }
+});
+
+app.delete('/api/admin-testimonials/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Testimony ID is required.' });
+  }
+
+  try {
+    const { error } = await supabase.from('testimonials').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('ADMIN TESTIMONIALS DELETE ERROR:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || 'Unable to delete testimony' });
   }
 });
 

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/lib/api";
 import { BookOpen, UploadCloud, ArrowLeft, FileText, FolderPlus } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
@@ -90,11 +91,20 @@ const AdminResources = () => {
 
       setResources(items);
     } catch (error: any) {
-      toast({
-        title: "Unable to load resources",
-        description: error.message || "Check bucket configuration",
-        variant: "destructive",
-      });
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Unable to access storage",
+          description: "Storage bucket 'resources' not found or misconfigured. Create the bucket in Supabase or verify project keys.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Unable to load resources",
+          description: errMsg || "Check bucket configuration",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -131,11 +141,20 @@ const AdminResources = () => {
       fetchResources();
       setResources(prev => [{ name: file.name, path: filePath, url: publicUrl, size: file.size }, ...prev]);
     } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message || "Could not upload file",
-        variant: "destructive",
-      });
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Upload failed: storage issue",
+          description: "Bucket 'resources' not found or misconfigured. Create the bucket in Supabase dashboard or verify the project keys.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: errMsg || "Could not upload file",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/lib/api";
 import { Newspaper, Trash2, Edit2, Plus, Lock, Image } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
@@ -35,6 +35,37 @@ const AdminNews = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const fileToBase64 = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          const base64 = result.split(',')[1] || '';
+          resolve(base64);
+        } else {
+          reject(new Error('Unable to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const fetchNews = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/admin-news/list`);
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to fetch news');
+      setNewsItems(json.data || []);
+    } catch (error: any) {
+      toast({ title: 'Error fetching news', description: error.message || String(error), variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
@@ -62,25 +93,10 @@ const AdminNews = () => {
   };
 
   useEffect(() => {
-    fetchNews();
-  }, []);
-
-  const fetchNews = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("news")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setNewsItems(data || []);
-    } catch (error: any) {
-      toast({ title: "Error fetching news", description: error.message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
+    if (!isPasswordProtected) {
+      fetchNews();
     }
-  };
+  }, [isPasswordProtected]);
 
   const handleImageUpload = async (e: any) => {
     const file = e.target.files?.[0];
@@ -88,15 +104,21 @@ const AdminNews = () => {
 
     try {
       setImageUploading(true);
+      const base64 = await fileToBase64(file);
       const fileName = `news-${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('news-images')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = await (supabase as any).storage.from('news-images').getPublicUrl(fileName);
-      const publicUrl = (urlData as any)?.publicUrl || (urlData as any)?.public_url || '';
+      const response = await fetch(`${API_BASE_URL}/api/admin-news/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder: 'news',
+          fileName,
+          base64,
+          mimeType: file.type || 'image/jpeg',
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to upload image');
+      const publicUrl = json.data?.url || '';
 
       setNewsForm(prev => ({ ...prev, image: publicUrl }));
       toast({ title: 'Image uploaded', description: 'Image uploaded to storage.' });
@@ -110,22 +132,22 @@ const AdminNews = () => {
   const handleNewsSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editing) {
-        const { error } = await supabase
-          .from("news")
-          .update(newsForm)
-          .eq("id", editing.id);
-
-        if (error) throw error;
-        toast({ title: "Success", description: "News updated successfully" });
-      } else {
-        const { error } = await supabase
-          .from("news")
-          .insert([newsForm]);
-
-        if (error) throw error;
-        toast({ title: "Success", description: "News created successfully" });
-      }
+      const response = await fetch(`${API_BASE_URL}/api/admin-news/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editing?.id,
+          title: newsForm.title,
+          excerpt: newsForm.excerpt,
+          content: newsForm.content,
+          date: newsForm.date,
+          image: newsForm.image,
+          link: newsForm.link,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to save news item');
+      toast({ title: 'Success', description: editing ? 'News updated successfully' : 'News created successfully' });
 
       setNewsForm({ title: "", excerpt: "", content: "", date: "", image: "", link: "" });
       setEditing(null);
@@ -148,12 +170,13 @@ const AdminNews = () => {
     if (!confirm('Are you sure you want to delete this news item?')) return;
 
     try {
-      const { error } = await supabase
-        .from("news")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/admin-news/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to delete news item');
 
       toast({
         title: "Success",

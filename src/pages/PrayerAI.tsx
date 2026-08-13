@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Phone, MapPin, Send, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { sendPrayerRequest } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = { sender: "ai" | "user"; content: React.ReactNode };
 
@@ -16,6 +17,12 @@ export default function PrayerAI() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [prayer, setPrayer] = useState("");
+  const [showTestimonyPopup, setShowTestimonyPopup] = useState(false);
+  const [testimony, setTestimony] = useState("");
+  const [testimonyName, setTestimonyName] = useState("");
+  const [testimonyEmail, setTestimonyEmail] = useState("");
+  const [testimonyPhone, setTestimonyPhone] = useState("");
+  const [isSubmittingTestimony, setIsSubmittingTestimony] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
@@ -139,7 +146,7 @@ export default function PrayerAI() {
       await sendLeaderNotification();
 
       if (method === 'whatsapp') {
-        const waNumber = "233544733469";
+        const waNumber = "233559929696";
         const text = encodeURIComponent(`🙏 New Prayer Request\n\nName: ${name}\nPhone: ${phone}\nLocation: ${location}\n\nPrayer: ${prayer}`);
         window.location.href = `https://wa.me/${waNumber}?text=${text}`;
         return;
@@ -147,6 +154,57 @@ export default function PrayerAI() {
 
       next();
     }
+  };
+
+  const handleOpenTestimonyPopup = () => setShowTestimonyPopup(true);
+  const handleCloseTestimonyPopup = () => {
+    setShowTestimonyPopup(false);
+    setTestimony("");
+    setTestimonyName("");
+    setTestimonyEmail("");
+    setTestimonyPhone("");
+    setIsSubmittingTestimony(false);
+  };
+
+  const handleSubmitTestimony = async () => {
+    if (!testimony.trim() || !testimonyName.trim()) {
+      window.alert("Please enter your name and testimony before submitting.");
+      return;
+    }
+
+    try {
+      setIsSubmittingTestimony(true);
+      const { error } = await supabase.from("testimonials").insert([
+        {
+          name: testimonyName.trim(),
+          email: testimonyEmail.trim() || null,
+          phone: testimonyPhone.trim() || null,
+          testimony: testimony.trim(),
+          status: "pending",
+          featured: false,
+          media_url: null,
+        },
+      ]);
+
+      if (error) throw error;
+
+      window.alert("Your testimony has been received and is pending review.");
+      handleCloseTestimonyPopup();
+    } catch (error: any) {
+      console.error("Error submitting testimony:", error);
+      window.alert(error.message || "Unable to submit testimony right now. Please try again.");
+    } finally {
+      setIsSubmittingTestimony(false);
+    }
+  };
+
+  const handleSendTestimonyToWhatsApp = () => {
+    const waNumber = "233559929696";
+    const text = encodeURIComponent(
+      `🙏 Testimony Submission\n\n${testimony.trim() || "I want to share my testimony with you."}`
+    );
+    window.open(`https://wa.me/${waNumber}?text=${text}`, "_blank");
+    handleCloseTestimonyPopup();
   };
 
   const resetForm = () => {
@@ -277,7 +335,7 @@ export default function PrayerAI() {
                       >
                         💬 WhatsApp
                       </Button>
-                      <Button
+                      {/* <Button
                         onClick={() => setMethod("email")}
                         className={`transition-all duration-300 text-xs ${
                           method === "email"
@@ -286,7 +344,7 @@ export default function PrayerAI() {
                         }`}
                       >
                         📧 Email
-                      </Button>
+                      </Button> */}
                     </div>
                     <Button
                       className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 text-white hover:shadow-lg transition-all duration-300 font-bold text-sm"
@@ -500,48 +558,107 @@ export default function PrayerAI() {
         </div>
       </section>
 
-      {/* Prayer Leaders Section */}
       <section className="py-20 bg-gradient-to-r from-blue-950 via-blue-900 to-cyan-800 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-10 right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-10 left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Our Prayer Leaders</h2>
-            <p className="text-xl text-blue-100">Dedicated to interceding for your spiritual needs</p>
-          </div>
+        <div className="container mx-auto px-4 relative z-10 flex justify-center">
+          <div className="w-full max-w-4xl">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4">Share Your Testimony With Us</h2>
+              <p className="text-xl text-blue-100">Your testimony can inspire and encourage others. Use the link below to share it directly with our WhatsApp prayer team.</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 max-w-3xl mx-auto gap-8">
-            <Card className="border-0 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 shadow-lg">
-              <CardContent className="p-8 text-center">
-                <div className="text-5xl mb-4">📖</div>
-                <h3 className="text-2xl font-bold text-white mb-2">Rev. Prince Appau</h3>
-                <p className="text-blue-100 mb-4">Senior Prayer Leader</p>
-                <div className="flex items-center justify-center gap-2 text-blue-100">
-                  <Phone className="w-5 h-5" />
-                  <a href="tel:+233243527174" className="hover:text-cyan-300 transition-colors">
-                    +233 24 352 7174
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 shadow-lg">
-              <CardContent className="p-8 text-center">
-                <div className="text-5xl mb-4">🙏</div>
-                <h3 className="text-2xl font-bold text-white mb-2">Prayer Team</h3>
-                <p className="text-blue-100 mb-4">Intercession Ministry</p>
-                <div className="flex items-center justify-center gap-2 text-blue-100">
-                  <Users className="w-5 h-5" />
-                  <span>Dedicated Prayer Warriors</span>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 gap-8 w-full max-w-3xl mx-auto justify-items-center">
+              <Card className="border-0 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-300 shadow-lg">
+                <CardContent className="p-8 text-center">
+                  <div className="text-5xl mb-4">💬</div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Share Your Story</h3>
+                  <p className="text-blue-100 mb-4">Tell us how God has been moving in your life and we will send it to our prayer team.</p>
+                  <button
+                    type="button"
+                    onClick={handleOpenTestimonyPopup}
+                    className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-3 text-white font-semibold hover:bg-cyan-400 transition"
+                  >
+                    Share Your Testimony
+                  </button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
+
+      {showTestimonyPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-cyan-800 px-6 py-5 text-white">
+              <h3 className="text-2xl font-bold">Share Your Testimony</h3>
+              <p className="text-sm text-blue-200 mt-1">Write your testimony below and send it to our WhatsApp prayer line.</p>
+            </div>
+            <div className="p-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Your Name</label>
+                  <Input
+                    value={testimonyName}
+                    onChange={(e) => setTestimonyName(e.target.value)}
+                    placeholder="Enter your name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Email (optional)</label>
+                  <Input
+                    value={testimonyEmail}
+                    onChange={(e) => setTestimonyEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    type="email"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold mb-2 block">Phone (optional)</label>
+                  <Input
+                    value={testimonyPhone}
+                    onChange={(e) => setTestimonyPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold mb-2 block">Your Testimony</label>
+                  <Textarea
+                    value={testimony}
+                    onChange={(e) => setTestimony(e.target.value)}
+                    placeholder="Write your testimony here..."
+                    rows={6}
+                    className="w-full border-2 border-slate-200 focus:border-blue-500 transition-all rounded-3xl resize-none"
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={handleCloseTestimonyPopup} className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitTestimony}
+                  disabled={!testimony.trim() || !testimonyName.trim() || isSubmittingTestimony}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isSubmittingTestimony ? "Submitting..." : "Submit Testimony"}
+                </Button>
+                <Button
+                  onClick={handleSendTestimonyToWhatsApp}
+                  disabled={!testimony.trim()}
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Send to WhatsApp
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Call to Action */}
       <section className="py-20 bg-white">

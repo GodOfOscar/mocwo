@@ -41,6 +41,7 @@ const AdminMaster = () => {
     { id: 'admin-partnerships', name: 'Partnerships Manager' },
     { id: 'admin-memberships', name: 'Memberships Manager' },
     { id: 'admin-carousel', name: 'Carousel Manager' },
+    { id: 'admin-testimonies', name: 'Testimonies Manager' },
   ];
 
   const [newAdmin, setNewAdmin] = useState({ email: "", password: "", full_name: "" });

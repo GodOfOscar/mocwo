@@ -254,8 +254,8 @@ const AdminServices = () => {
           <div className="bg-blue-900 text-white py-12 shadow-lg">
             <div className="w-full px-0 flex justify-between items-center">
               <div>
-                <h1 className="text-4xl font-bold">Service Schedule Manager</h1>
-                <p className="opacity-90">Manage service titles, times, and live stream links.</p>
+                <h1 className="text-4xl font-bold">Live Service Manager</h1>
+                <p className="opacity-90">Manage current live links for the daily service schedule and any extra church programs.</p>
               </div>
               <Button variant="outline" className="text-white border-white/30 hover:bg-white/10" onClick={() => navigate('/admin')}>
                 <ArrowLeft className="mr-2" size={16} /> Back to Dashboard
@@ -296,7 +296,7 @@ const AdminServices = () => {
               <CardHeader className="border-b">
                 <CardTitle className="flex items-center gap-2">
                   {editingId ? <Edit2 className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-blue-600" />}
-                  {editingId ? 'Edit Service Details' : 'Add New Weekly Service'}
+                  {editingId ? 'Edit Service / Program Details' : 'Add Live Link or Extra Program'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
@@ -306,16 +306,16 @@ const AdminServices = () => {
                     <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Sunday Service" required />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Day of Week</Label>
-                    <Input value={form.day} onChange={e => setForm({...form, day: e.target.value})} placeholder="e.g., Sunday" required />
+                    <Label className="font-bold">Day / Program Day</Label>
+                    <Input value={form.day} onChange={e => setForm({...form, day: e.target.value})} placeholder="e.g., Sunday or Special Program" required />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Display Time</Label>
-                    <Input value={form.time_string} onChange={e => setForm({...form, time_string: e.target.value})} placeholder="e.g., 8:00 AM" required />
+                    <Input value={form.time_string} onChange={e => setForm({...form, time_string: e.target.value})} placeholder="e.g., 8:00 AM or 9PM" required />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">YouTube Live Link</Label>
-                    <Input value={form.live_link} onChange={e => setForm({...form, live_link: e.target.value})} placeholder="https://youtube.com/live/..." />
+                    <Label className="font-bold">Current Live Link</Label>
+                    <Input value={form.live_link} onChange={e => setForm({...form, live_link: e.target.value})} placeholder="Paste the current stream or program link here" />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="font-bold">Short Description</Label>
@@ -340,7 +340,7 @@ const AdminServices = () => {
               </CardContent>
             </Card>
             <Card className="shadow-lg border-0">
-              <CardHeader className="border-b"><CardTitle>Live Schedule List</CardTitle></CardHeader>
+                <CardHeader className="border-b"><CardTitle>Current Service & Program Links</CardTitle></CardHeader>
               <CardContent className="pt-6">
                 <Table>
                   <TableHeader>

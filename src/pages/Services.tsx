@@ -14,6 +14,7 @@ const Services = () => {
   const weeklyServices = [
     {
       title: "Sunday Service",
+      day: "Sunday",
       time_string: "8AM | 10AM",
       description: "Our main worship service with powerful praise, worship, and the Word",
       image: "🎵",
@@ -24,6 +25,7 @@ const Services = () => {
     },
     {
       title: "Monday TikTok Live",
+      day: "Monday",
       time_string: "9PM",
       description: "A moment of prayer and prophetic encouragement",
       image: "🌅",
@@ -34,6 +36,7 @@ const Services = () => {
     },
     {
       title: "Wednesday Midweek Service",
+      day: "Wednesday",
       time_string: "7PM",
       description: "Midweek spiritual refreshing and Bible study",
       image: "📖",
@@ -44,6 +47,7 @@ const Services = () => {
     },
     {
       title: "Thursday TikTok Live",
+      day: "Thursday",
       time_string: "9PM",
       description: "A moment of prayer and prophetic encouragement",
       image: "🙏",
@@ -54,6 +58,7 @@ const Services = () => {
     },
     {
       title: "Friday Prayer Encounter",
+      day: "Friday",
       time_string: "7PM",
       description: "Intensive prayer and Prophetic session",
       image: "⛪",
@@ -76,9 +81,41 @@ const Services = () => {
           .order('order_index', { ascending: true });
 
         if (error) throw error;
-        if (data && data.length > 0) setServices(data);
+
+        const scheduleRows = Array.isArray(data) ? data : [];
+        const defaultLookup = new Map(weeklyServices.map((service) => [String(service.title).trim().toLowerCase(), service]));
+
+        const mergedServices = weeklyServices.map((service) => {
+          const match = scheduleRows.find((row) => String(row.title || '').trim().toLowerCase() === String(service.title).trim().toLowerCase());
+          if (!match) return service;
+
+          return {
+            ...service,
+            ...match,
+            day: match.day || service.day,
+            time_string: match.time_string || service.time_string,
+            description: match.description || service.description,
+            details: match.details || service.details,
+            image: match.image || service.image,
+            color: match.color || service.color,
+            live_link: match.live_link || service.live_link,
+            is_live: Boolean(match.is_live),
+          };
+        });
+
+        const extraServices = scheduleRows
+          .filter((row) => !defaultLookup.has(String(row.title || '').trim().toLowerCase()))
+          .map((row) => ({
+            ...row,
+            image: row.image || '⛪',
+            color: row.color || 'from-blue-500 to-blue-600',
+            details: row.details || row.description || 'Latest update from our ministry program.',
+          }));
+
+        setServices([...mergedServices, ...extraServices]);
       } catch (err) {
         console.error("Error fetching church schedule:", err);
+        setServices(weeklyServices);
       } finally {
         setIsLoading(false);
       }
@@ -130,7 +167,7 @@ const Services = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-full">
-              <span className="text-sm font-bold">Weekly Encounters</span>
+              <span className="text-sm font-bold">WEEKLY ENCOUNTERS</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
@@ -217,14 +254,21 @@ const Services = () => {
                   <p className="text-sm text-muted-foreground mb-6">{service.details}</p>
 
                   <div className="space-y-3">
-                    <Link to={`/live?source=${encodeURIComponent(service.live_link)}`}>
-                      <Button 
-                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold rounded-full transition-all hover:shadow-lg"
-                      >
+                    {service.live_link ? (
+                      <Link to={`/live?source=${encodeURIComponent(service.live_link)}`}>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold rounded-full transition-all hover:shadow-lg"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Watch Live
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button disabled className="w-full rounded-full font-bold opacity-70">
                         <Play className="w-4 h-4 mr-2" />
-                        Watch Live
+                        No Live Link
                       </Button>
-                    </Link>
+                    )}
 
                     <Button 
                       variant="outline" 

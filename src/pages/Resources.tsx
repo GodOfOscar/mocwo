@@ -2,7 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Book, Play, Download, Headphones, Mail, Phone, MapPin, Facebook, Instagram, Youtube, X, Flame, CheckCircle2, Target, Share2, Trophy } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { initFhcAnimations, cleanupFhcAnimations } from "@/animations/fhcAnimations";
 import { supabase } from "@/integrations/supabase/client";
 
 const Resources = () => {
@@ -13,7 +14,7 @@ const Resources = () => {
     { title: "Downloads", description: "Study guides, worksheets, and digital content", icon: Download, gradient: "from-blue-800 to-cyan-600", link: "/resources/downloads" }
   ];
 
- const featuredSermons = [
+  const featuredSermons = [
   { 
     title: "The Power of Faith", 
     speaker: "Rev. Prince Appau Bediako", 
@@ -100,6 +101,16 @@ const Resources = () => {
     return saved ? parseInt(saved) : 0;
   });
 
+  const pageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const cleanup = initFhcAnimations(pageRef.current);
+    return () => {
+      cleanup?.();
+      cleanupFhcAnimations();
+    };
+  }, []);
+
   const toggleComplete = (dayId: string) => {
     const isMarkingComplete = !completedDays.includes(dayId);
     const newCompleted = isMarkingComplete
@@ -132,22 +143,40 @@ const Resources = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div ref={pageRef} className="min-h-screen flex flex-col" data-fhc-animate>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-900 min-h-[110vh] py-24 flex items-center justify-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-900 min-h-[110vh] py-24 flex items-center justify-center" data-fhc-section data-fhc-parallax-bg>
+        <style>{`
+          @keyframes textReveal {
+            0% { opacity: 0; background-position: 200% center; }
+            100% { opacity: 1; background-position: 0% center; }
+          }
+          .text-gradient-animated {
+            background: linear-gradient(90deg, #ffffff, #a5f3fc, #ffffff);
+            background-size: 200% center;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: textReveal 1.8s ease-in-out forwards;
+          }
+        `}</style>
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center text-white">
-            <p className="text-cyan-300 font-semibold uppercase tracking-widest text-sm mb-4">Spiritual Growth</p>
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6 leading-tight">Spiritual Resources</h1>
-            <p className="text-xl md:text-2xl opacity-95 mb-10 leading-relaxed max-w-2xl mx-auto">
+            <div className="inline-block px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30 mb-4">
+              <p className="text-cyan-300 font-semibold uppercase tracking-widest text-sm m-0">Spiritual Growth</p>
+            </div>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6 leading-tight" data-fhc-heading>
+              <span className="text-gradient-animated">Spiritual Resources</span>
+            </h1>
+            <p className="text-xl md:text-2xl opacity-95 mb-10 leading-relaxed max-w-2xl mx-auto" data-fhc-copy>
               Equip yourself with powerful spiritual tools for growth and transformation
             </p>
-            <Button size="lg" className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-2xl hover:scale-105 transition-all duration-200 text-white px-8 py-6 text-lg font-semibold shadow-lg">
+            <Button size="lg" className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:shadow-2xl hover:scale-105 transition-all duration-200 text-white px-8 py-6 text-lg font-semibold shadow-lg" data-fhc-button>
               Browse All Resources
             </Button>
           </div>
@@ -164,11 +193,11 @@ const Resources = () => {
       </section>
 
       {/* Resource Categories */}
-      <section className="py-24 bg-gradient-to-b from-white to-slate-50">
+      <section className="py-24 bg-gradient-to-b from-white to-slate-50" data-fhc-section>
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <p className="text-cyan-600 font-semibold uppercase tracking-widest text-sm mb-3">Available Resources</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">Explore Our Collections</h2>
+          <div className="max-w-4xl mx-auto text-center mb-16" data-fhc-animate>
+            <p className="text-cyan-600 font-semibold uppercase tracking-widest text-sm mb-3" data-fhc-copy>Available Resources</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4" data-fhc-heading>Explore Our Collections</h2>
             <div className="w-16 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mx-auto mb-6"></div>
             <p className="text-lg text-slate-600">Choose from our curated collections to deepen your spiritual journey</p>
           </div>
@@ -176,8 +205,8 @@ const Resources = () => {
             {resourceCategories.map((category, index) => {
               const Icon = category.icon;
               return (
-                <Link key={index} to={category.link} className="group">
-                  <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 group-hover:scale-105 bg-white hover:bg-gradient-to-br hover:from-white hover:to-slate-50">
+                <Link key={index} to={category.link} className="group" data-fhc-card>
+                  <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 group-hover:scale-105 bg-white hover:bg-gradient-to-br hover:from-white hover:to-slate-50" data-fhc-card>
                     <CardContent className="p-8 text-center space-y-4">
                       <div className={`w-20 h-20 rounded-full bg-gradient-to-r ${category.gradient} flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow`}>
                         <Icon className="w-10 h-10 text-white" />
@@ -194,7 +223,7 @@ const Resources = () => {
       </section>
 
       {/* Featured Sermons */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white" data-fhc-section>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center mb-16">
             <p className="text-cyan-600 font-semibold uppercase tracking-widest text-sm mb-3">Latest Teachings</p>
@@ -204,7 +233,7 @@ const Resources = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredSermons.map((sermon, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 overflow-hidden group bg-white">
+              <Card key={index} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 overflow-hidden group bg-white" data-fhc-card>
                 <CardContent className="p-0">
                   <div className="aspect-video bg-gradient-to-br from-blue-700 to-cyan-500 flex items-center justify-center text-6xl group-hover:scale-110 transition-transform duration-500 overflow-hidden">{sermon.image}</div>
                   <div className="p-8 space-y-3">
@@ -217,6 +246,7 @@ const Resources = () => {
                     <Button 
                       className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-lg text-white font-semibold mt-4 py-5"
                       onClick={() => window.open(sermon.videoLink, '_blank')}
+                      data-fhc-button
                     >
                       Watch Now
                     </Button>
@@ -229,7 +259,7 @@ const Resources = () => {
       </section>
 
       {/* Featured Books */}
-      <section className="py-24 bg-gradient-to-b from-slate-50 to-white">
+      <section className="py-24 bg-gradient-to-b from-slate-50 to-white" data-fhc-section>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center mb-16">
             <p className="text-cyan-600 font-semibold uppercase tracking-widest text-sm mb-3">Spiritual Nourishment</p>
@@ -243,8 +273,9 @@ const Resources = () => {
                 key={index}
                 onClick={() => setSelectedMonth(devotional)}
                 className="group h-full"
+                data-fhc-card
               >
-                <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white cursor-pointer overflow-hidden relative">
+                <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white cursor-pointer overflow-hidden relative" data-fhc-card>
                   {devotional.cover_image_url ? (
                     <div className="relative h-32">
                       <img src={devotional.cover_image_url} alt={`${devotional.month} Cover`} className="w-full h-full object-cover" />
@@ -259,7 +290,7 @@ const Resources = () => {
                     </div>
                   )}
                   <CardContent className="p-6 text-center space-y-3 h-full flex flex-col">
-                    <h3 className="text-sm font-bold text-slate-900">{devotional.month}</h3>
+                    <h3 className="text-sm font-bold text-slate-900" data-fhc-heading>{devotional.month}</h3>
                     <p className="text-xs text-slate-600 line-clamp-2">{devotional.theme}</p>
                     <div className="mt-auto pt-2 border-t border-slate-100">
                       <p className="text-xs text-cyan-600 font-semibold">View Devotions</p>

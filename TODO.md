@@ -1,3 +1,8 @@
-- [ ] Fix syntax error in src/pages/RegisterEvent.tsx caused by mismatched conditional rendering parentheses/JSX.
-- [ ] Re-run Vite/TypeScript check to confirm no JSX syntax errors remain.
+# TODO - Improve News Page Aesthetics
+
+- [x] Update `src/pages/News.tsx` list view: premium hero header, gradient styling, refined card layout + hover states.
+- [x] Update `src/pages/News.tsx` detail view: cleaner metadata row + more professional layout for content and gallery/videos.
+- [x] Ensure loading/empty states look polished (no functional changes).
+
+- [ ] Quick manual test: `/news` and `/news/:id` on desktop + mobile.
 

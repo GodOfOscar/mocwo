@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/lib/api";
 import { Book, UploadCloud, ArrowLeft, Image as ImageIcon, Trash2, Calendar, Lock } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
@@ -43,6 +43,77 @@ const AdminDevotionals = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const fileToBase64 = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          const base64 = result.split(',')[1] || '';
+          resolve(base64);
+        } else {
+          reject(new Error('Unable to read file')); 
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const getDevotionalSettings = async (month: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin-devotionals/settings?month=${encodeURIComponent(month)}`);
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Unable to fetch devotional settings');
+    return json.data;
+  };
+
+  const getDevotionalsForMonth = async (month: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin-devotionals/list?month=${encodeURIComponent(month)}`);
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Unable to list devotional files');
+    return json.data;
+  };
+
+  const uploadDevotionalFile = async (folder: string, fileName: string, file: File) => {
+    const base64 = await fileToBase64(file);
+    const response = await fetch(`${API_BASE_URL}/api/admin-devotionals/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folder,
+        fileName,
+        base64,
+        mimeType: file.type || 'image/jpeg',
+      }),
+    });
+
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Unable to upload devotional file');
+    return json.data;
+  };
+
+  const deleteDevotionalFiles = async (paths: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin-devotionals/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths }),
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Unable to delete devotional files');
+    return json;
+  };
+
+  const saveDevotionalSettings = async (month: string, theme: string, bgColor: string, coverImageUrl: string | null) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin-devotionals/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, theme, bg_color: bgColor, cover_image_url: coverImageUrl }),
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || 'Unable to save devotional settings');
+    return json;
+  };
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
@@ -77,18 +148,13 @@ const AdminDevotionals = () => {
 
   const fetchMonthSettings = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('devotional_settings')
-        .select('theme, bg_color, cover_image_url')
-        .eq('month', selectedMonth.name.toLowerCase())
-        .maybeSingle();
-      
-      if (error) throw error;
+      const data = await getDevotionalSettings(selectedMonth.name.toLowerCase());
       setMonthTheme(data?.theme || "");
       setMonthCoverImageUrl(data?.cover_image_url || "");
       setMonthBgColor(data?.bg_color || "");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching month settings:", err);
+      toast({ title: "Devotional settings error", description: err.message || "Unable to load devotional settings.", variant: "destructive" });
     }
   };
 
@@ -96,27 +162,20 @@ const AdminDevotionals = () => {
     try {
       setIsLoading(true);
       const folder = selectedMonth.name.toLowerCase();
-      const { data, error } = await supabase.storage
-        .from("devotionals")
-        .list(folder, { limit: 100, sortBy: { column: "name", order: "asc" } });
-
-      if (error) throw error;
-
-      const items = await Promise.all(
-        (data || []).map(async (item: any) => {
-          const filePath = `${folder}/${item.name}`;
-          const { data: urlData } = await supabase.storage.from("devotionals").getPublicUrl(filePath);
-          return {
-            name: item.name,
-            path: filePath,
-            url: (urlData as any)?.publicUrl || (urlData as any)?.public_url || "",
-          };
-        })
-      );
-
-      setDevotionals(items);
+      const data = await getDevotionalsForMonth(folder);
+      setDevotionals(data || []);
     } catch (error: any) {
       console.error("Storage error:", error);
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Unable to access storage",
+          description: "Storage bucket 'devotionals' not found or misconfigured. Run `node scripts/create-devotionals-bucket.js` or create the bucket in the Supabase dashboard.",
+          variant: "destructive"
+        });
+      } else {
+        toast({ title: "Storage error", description: errMsg, variant: "destructive" });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -128,35 +187,18 @@ const AdminDevotionals = () => {
       let newCoverImageUrl = monthCoverImageUrl;
 
       if (monthCoverImageFile) {
-        const folder = "devotional_covers"; // Separate folder for cover images
+        const folder = "devotional_covers";
         const fileName = `${selectedMonth.name.toLowerCase()}.jpg`;
-        const filePath = `${folder}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("devotionals") // Using the same bucket as daily devotionals
-          .upload(filePath, monthCoverImageFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage.from("devotionals").getPublicUrl(filePath);
-        newCoverImageUrl = publicUrlData.publicUrl;
-        setMonthCoverImageUrl(newCoverImageUrl); // Update state with new URL
-        setMonthCoverImageFile(null); // Clear file input
+        const uploadData = await uploadDevotionalFile(folder, fileName, monthCoverImageFile);
+        newCoverImageUrl = uploadData.url;
+        setMonthCoverImageUrl(newCoverImageUrl);
+        setMonthCoverImageFile(null);
       }
 
-      const { error } = await (supabase as any)
-        .from('devotional_settings')
-        .upsert({ 
-          month: selectedMonth.name.toLowerCase(), 
-          theme: monthTheme,
-          cover_image_url: newCoverImageUrl,
-          bg_color: monthBgColor
-        }, { onConflict: 'month' });
-      
-      if (error) throw error;
+      await saveDevotionalSettings(selectedMonth.name.toLowerCase(), monthTheme, monthBgColor, newCoverImageUrl || null);
       toast({ title: "Month details updated", description: `Settings for ${selectedMonth.name} saved successfully.` });
     } catch (error: any) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      toast({ title: "Save failed", description: error.message || "Unable to save month settings.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -169,13 +211,11 @@ const AdminDevotionals = () => {
     try {
       setIsLoading(true);
       const paths = devotionals.map(d => d.path);
-      const { error } = await supabase.storage.from("devotionals").remove(paths);
-      if (error) throw error;
-      
+      await deleteDevotionalFiles(paths);
       toast({ title: "Success", description: `All devotionals deleted for ${selectedMonth.name}` });
       fetchDevotionals();
     } catch (error: any) {
-      toast({ title: "Delete all failed", description: error.message, variant: "destructive" });
+      toast({ title: "Delete all failed", description: error.message || "Unable to delete devotional files.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +231,6 @@ const AdminDevotionals = () => {
     try {
       setIsLoading(true);
       const folder = selectedMonth.name.toLowerCase();
-      
       const uploadPromises = Array.from(files).map(async (f) => {
         let day = selectedDay;
         if (files.length > 1) {
@@ -203,23 +242,28 @@ const AdminDevotionals = () => {
             throw new Error(`File ${f.name} is not named correctly (e.g., 1.jpg).`);
           }
         }
-        
+
         const fileName = `${day}.jpg`;
-        const filePath = `${folder}/${fileName}`;
-        
-        const { error } = await supabase.storage.from("devotionals").upload(filePath, f, { upsert: true });
-        if (error) throw error;
+        await uploadDevotionalFile(folder, fileName, f);
         return true;
       });
 
       await Promise.all(uploadPromises);
-
       toast({ title: files.length > 1 ? "Batch upload complete" : "Devotional uploaded" });
       setFiles(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       fetchDevotionals();
     } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Upload failed: storage issue",
+          description: "Bucket 'devotionals' not found or misconfigured. Run `node scripts/create-devotionals-bucket.js` or create the bucket in the Supabase dashboard.",
+          variant: "destructive"
+        });
+      } else {
+        toast({ title: "Upload failed", description: errMsg, variant: "destructive" });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -228,12 +272,11 @@ const AdminDevotionals = () => {
   const deleteDevotional = async (path: string) => {
     if (!confirm("Delete this devotional image?")) return;
     try {
-      const { error } = await supabase.storage.from("devotionals").remove([path]);
-      if (error) throw error;
+      await deleteDevotionalFiles([path]);
       fetchDevotionals();
       toast({ title: "Deleted" });
     } catch (error: any) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      toast({ title: "Delete failed", description: error.message || "Unable to delete devotional file.", variant: "destructive" });
     }
   };
 

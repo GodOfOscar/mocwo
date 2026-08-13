@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/lib/api";
 import { Heart, Trash2, Lock } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";

@@ -1469,6 +1469,31 @@ const Admin = () => {
                 <span>→</span>
               </button>
             </div>
+
+          {/* Testimonies Manager */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-600 to-rose-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -right-12 -top-12 w-40 h-40 bg-white rounded-full" />
+            </div>
+            <div className="p-12 relative z-10 flex flex-col justify-between h-full">
+              <div>
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Heart className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Testimonies</h3>
+                <p className="text-rose-100 text-base leading-relaxed">
+                  Review, approve, and manage member testimonies. Mark featured testimonies for display.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/admin-testimonies')}
+                className="mt-8 w-full bg-white text-pink-600 font-bold py-4 rounded-xl hover:bg-pink-50 transition-all duration-300 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Manage</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
           </div>
         </div>
 

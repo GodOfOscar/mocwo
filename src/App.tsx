@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "@/lib/api";
-import LockScreen from "./components/LockScreen";
+// LockScreen removed to disable site-wide password gate
 
 import Navigation from "./components/layout/Navigation";
 import AdminLayout from "./pages/AdminLayout";
@@ -45,6 +45,7 @@ import MembershipForm from "./pages/MembershipForm";
 import Leadership from "./pages/Leadership";
 import PastorOscarBot from "./pages/PastorOkrahBot";
 import { InstallBanner } from "./components/InstallBanner";
+import SmoothScroll from "./components/SmoothScroll";
 
 // Admin Pages
 import AdminPartnerships from "./pages/AdminPartnerships";
@@ -58,13 +59,20 @@ import AdminEvents from "./pages/AdminEvents";
 import AdminDevotionals from "./pages/AdminDevotionals";
 import CarouselManagement from "./pages/CarouselManagement";
 import AdminMaster from "./pages/AdminMaster";
+import AdminTestimonies from "./pages/AdminTestimonies";
 
 
 const AppRoutes = () => {
   const location = useLocation();
-  const hideEventsUi = location.pathname.startsWith('/register-event') || location.pathname.startsWith('/events');
+  const hideEventsUi = location.pathname.startsWith('/register-event') || location.pathname.startsWith('/events') || location.pathname.startsWith('/news');
   const hideBot = hideEventsUi;
   const hideInstallBanner = hideEventsUi;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  }, [location.pathname]);
 
   return (
     <>
@@ -97,6 +105,7 @@ const AppRoutes = () => {
           <Route path="/admin-devotionals" element={<AdminDevotionals />} />
           <Route path="/admin-carousel" element={<CarouselManagement />} />
           <Route path="/admin-master" element={<AdminMaster />} />
+          <Route path="/admin-testimonies" element={<AdminTestimonies />} />
         </Route>
 
         {/* FHC & Prayer */}
@@ -137,13 +146,6 @@ const queryClient = new QueryClient();
 export default function App() {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [loadingMaintenanceStatus, setLoadingMaintenanceStatus] = useState(true);
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem("mocwo_unlocked") === "true";
-    } catch {
-      return false;
-    }
-  });
 
   useEffect(() => {
     const checkMaintenanceStatus = async () => {
@@ -170,14 +172,7 @@ export default function App() {
     return <MaintenancePage />;
   }
 
-  if (!isUnlocked) {
-    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-    const allowPaths = currentPath.startsWith("/events") || currentPath.startsWith("/register-event");
-    if (!allowPaths) {
-      return <LockScreen onUnlock={() => setIsUnlocked(true)} />;
-    }
-  }
-
+  // Password gate disabled - continue to app
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -190,5 +185,6 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+
 
 

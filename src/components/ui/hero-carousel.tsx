@@ -228,9 +228,11 @@ const HeroCarousel = ({
               {/* Text Content */}
               {showContent && (
                 <div className="max-w-md text-left">
-                  <p className="hero-subtitle text-xs md:text-sm uppercase tracking-widest text-orange-400 font-mono mb-2">
-                    {slides[currentSlide].location || "Featured"}
-                  </p>
+                  <div className="inline-block mb-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30">
+                    <p className="hero-subtitle text-xs md:text-sm uppercase tracking-widest text-orange-400 font-mono m-0">
+                      {slides[currentSlide].location || "Featured"}
+                    </p>
+                  </div>
                   <div className="mb-4">
                     <h1 className="hero-title text-gradient-animated text-3xl md:text-5xl lg:text-6xl font-black leading-tight mb-2 break-words">
                       {slides[currentSlide].title}
@@ -336,9 +338,9 @@ const HeroCarousel = ({
               <div className="relative z-10 flex items-center justify-center h-full">
                 <div className="container mx-auto px-4">
                   <div className="max-w-4xl mx-auto text-center text-white">
-                    <h2 className="text-sm font-medium uppercase tracking-wider mb-4 opacity-80">
-                      {slide.subtitle}
-                    </h2>
+                    <div className="inline-block mb-4 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30">
+                      <p className="text-sm font-medium uppercase tracking-wider m-0 opacity-80">{slide.subtitle}</p>
+                    </div>
                     <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
                       {slide.title}
                     </h1>

@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/lib/api";
 import { Video, Image, UploadCloud, ArrowLeft, Layers, Trash2, Plus, MoveUp, MoveDown } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
@@ -67,36 +67,45 @@ const AdminMediaFiles = () => {
     }
   };
 
+  const fileToBase64 = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          resolve(result.split(',')[1] || '');
+        } else {
+          reject(new Error('Unable to read file'));
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const fetchMediaFiles = async () => {
     try {
       setIsLoading(true);
       const pagePath = selectedPage.toLowerCase();
-      const { data, error } = await supabase.storage
-        .from("media-files")
-        .list(pagePath, { limit: 100, offset: 0, sortBy: { column: "name", order: "asc" } });
-
-      if (error) throw error;
-
-      const items = await Promise.all(
-        (data || []).map(async (item: any) => {
-          const filePath = `${pagePath}/${item.name}`;
-          const { data: urlData } = await supabase.storage.from("media-files").getPublicUrl(filePath);
-          return {
-            name: item.name,
-            size: item.size,
-            path: filePath,
-            url: (urlData as any)?.publicUrl || (urlData as any)?.public_url || "",
-          };
-        })
-      );
-
-      setMediaFiles(items);
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/list?page=${encodeURIComponent(pagePath)}`);
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to fetch media files');
+      setMediaFiles(json.data || []);
     } catch (error: any) {
-      toast({
-        title: "Unable to load media files",
-        description: error.message || "Check bucket or storage access",
-        variant: "destructive",
-      });
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Unable to access storage",
+          description: "Storage bucket 'media-files' not found or misconfigured. Create the bucket in Supabase or verify project keys.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Unable to load media files",
+          description: errMsg || "Check bucket or storage access",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -104,14 +113,10 @@ const AdminMediaFiles = () => {
 
   const fetchCarouselImages = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from("carousel_images")
-        .select("*")
-        .eq("page", selectedPage.toLowerCase())
-        .order("order_index", { ascending: true });
-
-      if (error) throw error;
-      setCarouselImages(data || []);
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/carousel?page=${encodeURIComponent(selectedPage.toLowerCase())}`);
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to fetch carousel images');
+      setCarouselImages(json.data || []);
     } catch (error: any) {
       console.error("Error fetching carousel images:", error);
       setCarouselImages([]);
@@ -128,17 +133,18 @@ const AdminMediaFiles = () => {
   const addToCarousel = async (mediaFile: any) => {
     try {
       const maxOrder = carouselImages.length > 0 ? Math.max(...carouselImages.map(img => img.order_index || 0)) : 0;
-      
-      const { error } = await (supabase as any)
-        .from("carousel_images")
-        .insert([{
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/carousel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: selectedPage.toLowerCase(),
           image_url: mediaFile.url,
           image_name: mediaFile.name,
           order_index: maxOrder + 1,
-          page: selectedPage.toLowerCase(),
-        }]);
-
-      if (error) throw error;
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to add image to carousel');
       toast({ title: "Added to carousel", description: `Image added to ${selectedPage} carousel successfully.` });
       fetchCarouselImages();
     } catch (error: any) {
@@ -148,12 +154,13 @@ const AdminMediaFiles = () => {
 
   const removeFromCarousel = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("carousel_images")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/carousel/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to remove carousel image');
       toast({ title: "Removed from carousel", description: "Image removed from carousel." });
       fetchCarouselImages();
     } catch (error: any) {
@@ -166,19 +173,16 @@ const AdminMediaFiles = () => {
       const currentImage = carouselImages.find(img => img.id === id);
       if (!currentImage) return;
 
-      if (direction === "up" && currentImage.order_index > 0) {
-        const prevImage = carouselImages.find(img => img.order_index === currentImage.order_index - 1);
-        if (prevImage) {
-          await supabase.from("carousel_images").update({ order_index: currentImage.order_index - 1 }).eq("id", id);
-          await supabase.from("carousel_images").update({ order_index: currentImage.order_index }).eq("id", prevImage.id);
-        }
-      } else if (direction === "down" && currentImage.order_index < carouselImages.length - 1) {
-        const nextImage = carouselImages.find(img => img.order_index === currentImage.order_index + 1);
-        if (nextImage) {
-          await supabase.from("carousel_images").update({ order_index: currentImage.order_index + 1 }).eq("id", id);
-          await supabase.from("carousel_images").update({ order_index: currentImage.order_index }).eq("id", nextImage.id);
-        }
-      }
+      const newOrder = direction === "up" ? currentImage.order_index - 1 : currentImage.order_index + 1;
+      if (newOrder < 0 || newOrder >= carouselImages.length) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/carousel/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, order_index: newOrder }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to reorder carousel image');
 
       fetchCarouselImages();
     } catch (error: any) {
@@ -196,26 +200,39 @@ const AdminMediaFiles = () => {
     try {
       setIsLoading(true);
       const folder = selectedPage.toLowerCase();
-      const filePath = `${folder}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("media-files")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = await supabase.storage.from("media-files").getPublicUrl(filePath);
-      const publicUrl = (urlData as any)?.publicUrl || (urlData as any)?.public_url || "";
+      const fileName = `${Date.now()}-${file.name}`;
+      const base64 = await fileToBase64(file);
+      const response = await fetch(`${API_BASE_URL}/api/admin-media-files/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: folder,
+          fileName,
+          base64,
+          mimeType: file.type || 'application/octet-stream',
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Unable to upload media file');
 
       toast({ title: "Media file uploaded", description: "The file is now stored in Supabase storage." });
       setFile(null);
       fetchMediaFiles();
-      setMediaFiles(prev => [{ name: file.name, path: filePath, url: publicUrl, size: file.size }, ...prev]);
     } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message || "Could not upload media file",
-        variant: "destructive",
-      });
+      const errMsg = error?.message || String(error);
+      if (/bucket not found|Bucket not found|Could not find the table|404|Bad Request/i.test(errMsg)) {
+        toast({
+          title: "Upload failed: storage issue",
+          description: "Bucket 'media-files' not found or misconfigured. Create the bucket in Supabase dashboard or verify the project keys.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: errMsg || "Could not upload media file",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
