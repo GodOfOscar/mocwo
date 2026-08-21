@@ -26,3 +26,21 @@ dist-ssr
 .env.*
 backend/.env
 .vercel
+
+# Environment secrets
+.env
+.env.*
+backend/.env
+
+# Local certificates
+*.pem
+*.key
+
+# Supabase local files
+supabase/.temp/
+
+# Temporary/debug files
+tmp_*
+temp_*
+build-log.txt
+build-output.txt
