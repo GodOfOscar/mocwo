@@ -1,0 +1,391 @@
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+interface CarouselSlide {
+  id: string | number;
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+  ctaText: string;
+  ctaLink: string;
+  gradient?: string;
+  location?: string;
+}
+
+interface HeroCarouselProps {
+  slides: CarouselSlide[];
+  autoPlay?: boolean;
+  interval?: number;
+  showContent?: boolean;
+  cardMode?: boolean;
+}
+
+const HeroCarousel = ({ 
+  slides, 
+  autoPlay = true, 
+  interval = 5000, 
+  showContent = true,
+  cardMode = false 
+}: HeroCarouselProps) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const navigate = useNavigate();
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [autoPlay, interval, slides.length]);
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  const goToSlide = (index: number) => setCurrentSlide(index);
+
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setTouchEnd(e.changedTouches[0].clientX);
+    if (touchStart - touchEnd > 50) nextSlide();
+    if (touchEnd - touchStart > 50) prevSlide();
+  };
+
+  if (slides.length === 0) return null;
+
+  // Card Opening Mode - Hero image + stacked cards
+  if (cardMode) {
+    const visibleCards = 3; // Number of cards visible in the stack
+    const getCardRotation = (index: number): number => {
+      const relativeIndex = (index - currentSlide + slides.length) % slides.length;
+      if (relativeIndex === 0) return 0;
+      if (relativeIndex === 1) return 8;
+      if (relativeIndex === 2) return 16;
+      return 24;
+    };
+
+    const getCardOpacity = (index: number): number => {
+      const relativeIndex = (index - currentSlide + slides.length) % slides.length;
+      if (relativeIndex === 0) return 1;
+      if (relativeIndex === 1) return 0.85;
+      if (relativeIndex === 2) return 0.7;
+      return 0;
+    };
+
+    const getCardScale = (index: number): number => {
+      const relativeIndex = (index - currentSlide + slides.length) % slides.length;
+      if (relativeIndex === 0) return 1;
+      if (relativeIndex === 1) return 0.95;
+      if (relativeIndex === 2) return 0.9;
+      return 0.85;
+    };
+
+    const getCardTranslateY = (index: number): number => {
+      const relativeIndex = (index - currentSlide + slides.length) % slides.length;
+      return relativeIndex * 20;
+    };
+
+    return (
+      <div 
+        className="relative w-full h-screen overflow-hidden bg-gray-900"
+        ref={carouselRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <style>{`
+          @keyframes slideInFromLeft {
+            from {
+              opacity: 0;
+              transform: translateX(-100px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+
+          @keyframes cardOpen {
+            from {
+              opacity: 0;
+              transform: scale(0.9) rotateY(45deg);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) rotateY(0deg);
+            }
+          }
+
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          .hero-text-animate {
+            animation: slideInFromLeft 0.8s ease-out forwards;
+          }
+
+          .hero-subtitle {
+            animation: slideInFromLeft 0.8s ease-out 0.1s forwards;
+            opacity: 0;
+          }
+
+          .hero-title {
+            animation: slideInFromLeft 0.8s ease-out 0.2s forwards;
+            opacity: 0;
+          }
+
+          .hero-description {
+            animation: slideInFromLeft 0.8s ease-out 0.3s forwards;
+            opacity: 0;
+          }
+
+          .hero-cta {
+            animation: slideInFromLeft 0.8s ease-out 0.4s forwards;
+            opacity: 0;
+          }
+
+          .text-gradient-animated {
+            background: linear-gradient(90deg, #ffffff, #a5f3fc, #ffffff);
+            background-size: 200% center;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: textReveal 1.8s ease-in-out forwards;
+          }
+
+          @keyframes textReveal {
+            0% { opacity: 0; background-position: 200% center; }
+            100% { opacity: 1; background-position: 0% center; }
+          }
+
+          @keyframes miniCardShake {
+            0%, 100% { margin-left: 0; }
+            25% { margin-left: -4px; }
+            75% { margin-left: 4px; }
+          }
+
+          @keyframes badgePopIn {
+            0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+            70% { transform: scale(1.2) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          }
+
+          .featured-badge-animate {
+            animation: badgePopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+          }
+
+          .card-stack {
+            perspective: 1200px;
+          }
+
+          .stack-card {
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center;
+          }
+
+          .stack-card.active {
+            z-index: 30;
+            animation: miniCardShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+          }
+
+          .mini-card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+          }
+
+          .pagination-dot {
+            transition: all 0.3s ease;
+          }
+        `}</style>
+
+        <div className="relative w-full h-screen">
+          {/* Hero Background */}
+          <div className="absolute inset-0 w-full h-full">
+            <img
+              src={slides[currentSlide].image}
+              alt={slides[currentSlide].title}
+              className="w-full h-full object-cover transition-all duration-1000"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+          </div>
+
+          {/* UI Layer */}
+          <div className="relative h-full flex flex-col justify-end p-6 md:p-12 z-20">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-8">
+              {/* Text Content */}
+              {showContent && (
+                <div className="max-w-md text-left">
+                  <div className="inline-block mb-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30">
+                    <p className="hero-subtitle text-xs md:text-sm uppercase tracking-widest text-orange-400 font-mono m-0">
+                      {slides[currentSlide].location || "Featured"}
+                    </p>
+                  </div>
+                  <div className="mb-4">
+                    <h1 className="hero-title text-gradient-animated text-3xl md:text-5xl lg:text-6xl font-black leading-tight mb-2 break-words">
+                      {slides[currentSlide].title}
+                    </h1>
+                    <h2 className="hero-subtitle text-xl md:text-2xl text-orange-400 font-bold">
+                      {slides[currentSlide].subtitle}
+                    </h2>
+                  </div>
+                  <p className="hero-description text-sm md:text-base text-gray-200 leading-relaxed mb-6 line-clamp-3">
+                    {slides[currentSlide].description}
+                  </p>
+                  <button
+                    onClick={() => navigate(slides[currentSlide].ctaLink)}
+                    className="hero-cta inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    {slides[currentSlide].ctaText}
+                    <span className="text-lg">→</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Navigation Controls removed for cardMode (partnership layout) */}
+            </div>
+
+            {/* Mini Stacked Cards pinned to the bottom edge */}
+            <div className="absolute left-0 bottom-0 w-full card-stack h-44 md:h-52">
+              {slides.map((slide, index) => {
+                const rotation = getCardRotation(index);
+                const opacity = getCardOpacity(index);
+                const scale = getCardScale(index);
+                const translateY = getCardTranslateY(index);
+                if (opacity <= 0) return null;
+                const isActive = index === currentSlide;
+
+                return (
+                  <div
+                    key={`card-${slide.id}`}
+                    className={`stack-card mini-card-glass ${isActive ? "active" : ""} absolute w-48 md:w-64 h-40 md:h-48 rounded-xl overflow-hidden shadow-2xl cursor-pointer group`}
+                    style={{
+                      opacity,
+                      transform: `translateY(${translateY}px) scale(${scale}) rotateZ(${rotation}deg)`,
+                      left: `${rotation * 8}px`,
+                    }}
+                    onClick={() => goToSlide(index)}
+                  >
+                    <img src={slide.image} alt={slide.title} className="w-full h-full object-cover opacity-90" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-white/10" />
+                    <div className={`absolute inset-x-0 bottom-0 p-4 text-white transition-all duration-300 ${isActive ? "opacity-100" : "opacity-60"}`}>
+                      <h3 className="font-bold text-sm md:text-base line-clamp-1">{slide.title}</h3>
+                      <p className="text-[10px] md:text-xs text-orange-300 font-semibold">{slide.subtitle}</p>
+                    </div>
+                    {isActive && (
+                      <div className="absolute top-3 right-3 bg-orange-500 text-white text-[10px] font-black uppercase tracking-tighter px-2 py-1 rounded-full z-40 featured-badge-animate">
+                        Featured
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Original Full-screen Mode (fallback)
+  return (
+    <div className="relative w-full h-screen overflow-hidden">
+      <div className="relative w-full h-full">
+        {slides.map((slide, index) => (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentSlide ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {typeof slide.image === "string" && slide.image.endsWith(".mp4") ? (
+              <video
+                className="absolute inset-0 w-full h-full object-cover max-w-full"
+                src={slide.image}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url("${slide.image}")` }}
+              />
+            )}
+
+            <div className="absolute inset-0 bg-black/40" />
+
+            {slide.gradient && (
+              <div
+                className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} opacity-70`}
+              />
+            )}
+
+            {showContent && (
+              <div className="relative z-10 flex items-center justify-center h-full">
+                <div className="container mx-auto px-4">
+                  <div className="max-w-4xl mx-auto text-center text-white">
+                    <div className="inline-block mb-4 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/30">
+                      <p className="text-sm font-medium uppercase tracking-wider m-0 opacity-80">{slide.subtitle}</p>
+                    </div>
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                      {slide.title}
+                    </h1>
+                    <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto opacity-90">
+                      {slide.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-background/20 hover:bg-background/30 text-white transition-all duration-300 backdrop-blur-sm"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft size={24} />
+      </button>
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-background/20 hover:bg-background/30 text-white transition-all duration-300 backdrop-blur-sm"
+        aria-label="Next slide"
+      >
+        <ChevronRight size={24} />
+      </button>
+
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex space-x-3">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToSlide(index)}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              index === currentSlide
+                ? "bg-secondary scale-125"
+                : "bg-white/50 hover:bg-white/70"
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default HeroCarousel;
