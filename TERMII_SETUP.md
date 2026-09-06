@@ -86,7 +86,7 @@ Leader receives prayer request on WhatsApp
 curl -X POST http://localhost:5000/api/sendPrayer \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "John Doe",
+    "name": "Prince Emmanuel",
     "phone": "+233501234567",
     "location": "Accra",
     "prayer": "Please pray for my family",

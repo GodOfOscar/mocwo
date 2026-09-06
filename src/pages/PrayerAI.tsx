@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, MessageCircle, Phone, MapPin, Send, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { sendPrayerRequest } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
+import { publicSupabase } from "@/integrations/supabase/publicClient";
 
 type Message = { sender: "ai" | "user"; content: React.ReactNode };
 
@@ -174,7 +174,7 @@ export default function PrayerAI() {
 
     try {
       setIsSubmittingTestimony(true);
-      const { error } = await supabase.from("testimonials").insert([
+      const { error } = await publicSupabase.from("testimonials").insert([
         {
           name: testimonyName.trim(),
           email: testimonyEmail.trim() || null,

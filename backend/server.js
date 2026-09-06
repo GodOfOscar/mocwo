@@ -9,8 +9,16 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 import notificationRoutes from "./routes/notifications.js";
+import libertePayRoutes from "./routes/libertepay.js";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const backendEnvPath = path.resolve(__dirname, ".env");
+const rootEnvPath = path.resolve(__dirname, "../.env");
+
+dotenv.config({ path: backendEnvPath });
+dotenv.config({ path: rootEnvPath });
 
 // Initialize Supabase client for backend operations
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -97,8 +105,6 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const distPath = path.resolve(__dirname, "../dist");
 
 if (fs.existsSync(distPath)) {
@@ -109,6 +115,7 @@ if (fs.existsSync(distPath)) {
 
 // ✅ ROUTES
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/libertepay", libertePayRoutes);
 
 // ✅ HEALTH CHECK (ADD THIS)
 app.get("/health", (req, res) => {
@@ -126,6 +133,15 @@ const isAdminSettingsTableMissingError = (error) => {
     error?.code === "PGRST205" ||
     /Could not find the table\s+'(?:public\.)?admin_settings'/i.test(message) ||
     /relation .*admin_settings does not exist/i.test(message)
+  );
+};
+
+const isSupabaseUnavailableError = (error) => {
+  const message = error?.message || error?.msg || error?.error || "";
+  return (
+    /fetch failed|network error|failed to fetch|connection refused|timed out|ENOTFOUND|ECONNRESET|ECONNREFUSED/i.test(message) ||
+    error?.code === "ECONNREFUSED" ||
+    error?.code === "ENOTFOUND"
   );
 };
 
@@ -198,12 +214,12 @@ const checkAdminPageAccess = async (req, res, next) => {
       .maybeSingle();
 
     if (error) {
-      if (isAdminSettingsTableMissingError(error)) {
-        console.warn("⚠️ admin_settings table is missing. Admin page access check is bypassed until migration is applied.");
+      if (isAdminSettingsTableMissingError(error) || isSupabaseUnavailableError(error)) {
+        console.warn("⚠️ Admin page access check bypassed because admin_settings is missing or the database is unavailable.");
         return next();
       }
       console.error("Error fetching admin page access settings:", error.message);
-      return res.status(500).json({ success: false, error: "Server error checking page access" });
+      return next();
     }
 
     let accessSettings = {};
@@ -221,7 +237,7 @@ const checkAdminPageAccess = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Error in checkAdminPageAccess middleware:", err.message);
-    res.status(500).json({ success: false, error: "Server error checking page access" });
+    next();
   }
 };
 
@@ -1379,11 +1395,13 @@ app.put('/api/admin-services/:id', async (req, res) => {
       .from('church_schedule')
       .update(updatePayload)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return res.json({ success: true, data });
+    if (!data || data.length === 0) {
+      return res.status(404).json({ success: false, error: 'Service not found.' });
+    }
+    return res.json({ success: true, data: data[0] });
   } catch (error) {
     console.error('ADMIN SERVICES UPDATE ERROR:', error.message || error);
     return res.status(500).json({ success: false, error: error.message || 'Unable to update service' });

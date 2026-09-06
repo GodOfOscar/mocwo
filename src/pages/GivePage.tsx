@@ -40,8 +40,16 @@ const GivePage = () => {
   const [frequency, setFrequency] = useState("one-time");
   const [email, setEmail] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [mobileNetwork, setMobileNetwork] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+
+  // Mobile network to institution code mapping
+  const networkMap: Record<string, string> = {
+    mtn: "300591",
+    atmoney: "300592",
+    telecel: "300594",
+  };
 
   // Match type param to partnership level slug
   const level = partnershipLevels.find((lvl) => lvl.slug === type);
@@ -249,14 +257,62 @@ const GivePage = () => {
       return;
     }
 
+    if (paymentMethod === "mobile" && !mobileNetwork) {
+      toast({
+        title: "Network Required",
+        description: "Please select your mobile network",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
-    if (paymentMethod === "card") {
-      await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["card"] });
-    } else if (paymentMethod === "mobile") {
-      await initiatePayment("libertepay", { amount: Number(amount), currency, email, phone: mobileNumber, channels: ["mobile_money"] });
-    } else if (paymentMethod === "bank") {
-      await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["bank_transfer"] });
+    try {
+      if (paymentMethod === "card") {
+        await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["card"] });
+      } else if (paymentMethod === "mobile") {
+        const institutionCode = networkMap[mobileNetwork];
+        const { verifyLibertepayAccount, collectLibertepayPayment } = await import("@/lib/payments");
+        
+        // Step 1: Verify account
+        const accountData = await verifyLibertepayAccount(institutionCode, mobileNumber);
+        
+        // Step 2: Collect payment
+        await collectLibertepayPayment({
+          account_name: accountData.account_name || accountData.name || "Customer",
+          account_number: mobileNumber,
+          amount: Number(amount),
+          institution_code: institutionCode,
+          currency,
+          email,
+          reference: `MOC${Date.now()}`,
+        });
+      } else if (paymentMethod === "bank") {
+        await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["bank_transfer"] });
+      }
+
+      toast({
+        title: "Processing Payment",
+        description: "Your payment is being processed. Please complete the payment in the next step.",
+        variant: "default",
+      });
+
+      // Reset form state
+      setAmount("");
+      setMobileNumber("");
+      setMobileNetwork("");
+      setEmail("");
+      setPaymentMethod("");
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to process payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -451,6 +507,43 @@ const GivePage = () => {
                     </RadioGroup>
                   </div>
 
+                  {/* Mobile Network Selector (only for Mobile Money) */}
+                  {paymentMethod === "mobile" && (
+                    <div>
+                      <Label htmlFor="network" className="text-lg font-semibold mb-2 block">
+                        Mobile Network
+                      </Label>
+                      <Select value={mobileNetwork} onValueChange={setMobileNetwork}>
+                        <SelectTrigger id="network" className="text-lg h-12">
+                          <SelectValue placeholder="Select your mobile network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mtn">
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="w-4 h-4" />
+                              MTN
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="atmoney">
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="w-4 h-4" />
+                              ATMoney
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="telecel">
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="w-4 h-4" />
+                              Telecel CASH
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Select the network of your mobile money account
+                      </p>
+                    </div>
+                  )}
+
                   {/* Mobile Number (only for Mobile Money) */}
                   {paymentMethod === "mobile" && (
                     <div>
@@ -477,7 +570,7 @@ const GivePage = () => {
 
                   <Button
                     type="submit"
-                    disabled={!amount || !paymentMethod || !email || isProcessing || (paymentMethod === "mobile" && !mobileNumber)}
+                    disabled={!amount || !paymentMethod || !email || isProcessing || (paymentMethod === "mobile" && (!mobileNumber || !mobileNetwork))}
                     className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600/70"
                   >
                     {isProcessing ? "Processing..." : "Give Now"}

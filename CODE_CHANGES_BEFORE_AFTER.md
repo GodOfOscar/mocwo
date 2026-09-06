@@ -402,7 +402,7 @@ All changes are backward compatible:
 ```typescript
 // Test 1: Email method type
 const payload: PrayerRequestPayload = {
-  name: "John",
+  name: "Prince",
   phone: "0544733469",
   location: "Accra",
   prayer: "Please pray...",

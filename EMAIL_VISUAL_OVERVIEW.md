@@ -77,7 +77,7 @@ Step 5: Confirmation & Send
 ```
 USER INPUT
 │
-├─ name: "John Doe"
+├─ name: "Prince Beats"
 ├─ phone: "0544733469"
 ├─ location: "Accra"
 ├─ prayer: "Please pray for..."
@@ -97,7 +97,7 @@ SERVER PROCESSING
 EMAIL DELIVERY
 │
 ├─ Recipient: admin@yourdomain.com
-├─ Subject: "🙏 New Prayer Request from John Doe"
+├─ Subject: "🙏 New Prayer Request from Prince Emmanuel"
 ├─ Body: Formatted HTML with all details
 └─ Sent via: Resend Infrastructure
     │
@@ -244,10 +244,10 @@ If Email Send Fails:
 Recipient receives:
 ┌────────────────────────────────────┐
 │      🙏 New Prayer Request         │
-│      from John Doe                 │
+│      from Prince Emmanuel                 │
 └────────────────────────────────────┘
 
-Name: John Doe
+Name: Prince Emmanuel
 Phone: +233544733469
 Location: Accra, Ghana
 

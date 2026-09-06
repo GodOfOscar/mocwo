@@ -39,6 +39,7 @@ const AdminServices = () => {
     is_live: false
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<"edit" | "create">("edit");
   const [isLoading, setIsLoading] = useState(true);
   const [isPasswordProtected, setIsPasswordProtected] = useState(true);
   const [isAutoSyncing, setIsAutoSyncing] = useState(false);
@@ -145,20 +146,31 @@ const AdminServices = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formMode === "edit" && !editingId) {
+      toast({
+        title: "Select an existing service",
+        description: "Use the edit button in the service list to update its live link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      if (editingId) {
-        const response = await updateAdminService(editingId, { ...form });
-        if (!response.success) throw new Error(response.error || "Unable to update service");
-        toast({ title: "Success", description: "Service updated successfully" });
-      } else {
-        const maxOrder = services.length > 0 ? Math.max(...services.map(s => s.order_index || 0)) : 0;
-        const response = await createAdminService({ ...form, order_index: maxOrder + 1 });
-        if (!response.success) throw new Error(response.error || "Unable to create service");
-        toast({ title: "Success", description: "Service created successfully" });
-      }
+      const response = formMode === "create"
+        ? await createAdminService({
+            ...form,
+            order_index: services.length > 0 ? Math.max(...services.map(s => s.order_index || 0)) + 1 : 1,
+          })
+        : await updateAdminService(editingId!, { live_link: form.live_link, is_live: form.is_live });
+      if (!response.success) throw new Error(response.error || "Unable to save service");
+      toast({
+        title: "Success",
+        description: formMode === "create" ? "Special program created successfully" : "Live service link updated successfully",
+      });
 
       setForm({ title: "", day: "", time_string: "", description: "", details: "", image: "⛪", color: "from-blue-500 to-blue-600", live_link: "", is_live: false });
       setEditingId(null);
+      setFormMode("edit");
       fetchServices();
     } catch (error: any) {
       toast({ title: "Error saving service", description: error.message, variant: "destructive" });
@@ -293,25 +305,63 @@ const AdminServices = () => {
 
           <div className="w-full px-0 py-12 space-y-8">
             <Card className="shadow-lg border-0">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center gap-2">
-                  {editingId ? <Edit2 className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-blue-600" />}
-                  {editingId ? 'Edit Service / Program Details' : 'Add Live Link or Extra Program'}
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    {formMode === "create" ? <Plus className="w-5 h-5 text-amber-600" /> : <Edit2 className="w-5 h-5 text-blue-600" />}
+                    {formMode === "create" ? "Create Special Program" : "Update Weekly Service Link"}
+                  </CardTitle>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {formMode === "create" ? "Create a one-off program that is not already in the weekly schedule." : "Select a weekly service below to update its live stream link."}
+                  </p>
+                </div>
+                <Button type="button" variant="outline" className="shrink-0 font-bold" onClick={() => {
+                  setFormMode("create");
+                  setEditingId(null);
+                  setForm({ title: "", day: "", time_string: "", description: "", details: "", image: "⛪", color: "from-blue-500 to-blue-600", live_link: "", is_live: false });
+                }}>
+                  <Plus className="mr-2 h-4 w-4" /> Special Program
+                </Button>
               </CardHeader>
               <CardContent className="pt-6">
+                {formMode === "edit" && (
+                  <div className="mb-6 space-y-2">
+                    <Label className="font-bold">Weekly Service to Update</Label>
+                    <select
+                      value={editingId || ""}
+                      onChange={(event) => {
+                        const selectedService = services.find((service) => service.id === event.target.value);
+                        if (!selectedService) {
+                          setEditingId(null);
+                          setForm({ title: "", day: "", time_string: "", description: "", details: "", image: "⛪", color: "from-blue-500 to-blue-600", live_link: "", is_live: false });
+                          return;
+                        }
+                        setEditingId(selectedService.id);
+                        setForm(selectedService);
+                      }}
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="">Choose a weekly service...</option>
+                      {services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.title} - {service.day} {service.time_string}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <form onSubmit={handleSave} className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="font-bold">Service Title</Label>
-                    <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Sunday Service" required />
+                    <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} readOnly={formMode !== "create"} required={formMode === "create"} placeholder={formMode === "create" ? "e.g., Easter Worship Night" : "Select a service from the list below"} className={formMode !== "create" ? "bg-slate-100" : ""} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Day / Program Day</Label>
-                    <Input value={form.day} onChange={e => setForm({...form, day: e.target.value})} placeholder="e.g., Sunday or Special Program" required />
+                    <Input value={form.day} onChange={e => setForm({...form, day: e.target.value})} readOnly={formMode !== "create"} required={formMode === "create"} placeholder={formMode === "create" ? "e.g., Saturday" : "Select a service from the list below"} className={formMode !== "create" ? "bg-slate-100" : ""} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Display Time</Label>
-                    <Input value={form.time_string} onChange={e => setForm({...form, time_string: e.target.value})} placeholder="e.g., 8:00 AM or 9PM" required />
+                    <Input value={form.time_string} onChange={e => setForm({...form, time_string: e.target.value})} readOnly={formMode !== "create"} required={formMode === "create"} placeholder={formMode === "create" ? "e.g., 6PM" : "Select a service from the list below"} className={formMode !== "create" ? "bg-slate-100" : ""} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Current Live Link</Label>
@@ -319,19 +369,20 @@ const AdminServices = () => {
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="font-bold">Short Description</Label>
-                    <Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Brief summary for the card" />
+                    <Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} readOnly={formMode !== "create"} placeholder={formMode === "create" ? "Brief summary for the program" : "Select a service from the list below"} className={formMode !== "create" ? "bg-slate-100" : ""} />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="font-bold">Full Details</Label>
-                    <Textarea value={form.details} onChange={e => setForm({...form, details: e.target.value})} placeholder="Additional info for the user" rows={3} />
+                    <Textarea value={form.details} onChange={e => setForm({...form, details: e.target.value})} readOnly={formMode !== "create"} placeholder={formMode === "create" ? "Additional information for visitors" : "Select a service from the list below"} rows={3} className={formMode !== "create" ? "bg-slate-100" : ""} />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 font-bold">
-                      {editingId ? 'Update Service' : 'Save New Service'}
+                    <Button type="submit" disabled={!editingId && formMode !== "create"} className="bg-blue-600 hover:bg-blue-700 font-bold">
+                      {formMode === "create" ? "Create Special Program" : "Update Live Link"}
                     </Button>
-                    {editingId && (
+                    {(editingId || formMode === "create") && (
                       <Button variant="ghost" onClick={() => {
                         setEditingId(null);
+                        setFormMode("edit");
                         setForm({ title: "", day: "", time_string: "", description: "", details: "", image: "⛪", color: "from-blue-500 to-blue-600", live_link: "", is_live: false });
                       }}>Cancel</Button>
                     )}
@@ -340,7 +391,7 @@ const AdminServices = () => {
               </CardContent>
             </Card>
             <Card className="shadow-lg border-0">
-                <CardHeader className="border-b"><CardTitle>Current Service & Program Links</CardTitle></CardHeader>
+              <CardHeader className="border-b"><CardTitle>Weekly Services & Special Programs</CardTitle></CardHeader>
               <CardContent className="pt-6">
                 <Table>
                   <TableHeader>
@@ -373,7 +424,7 @@ const AdminServices = () => {
                         <TableCell className="text-right space-x-1">
                           <Button variant="ghost" size="sm" disabled={idx === 0} onClick={() => moveService(s.id, 'up')}><MoveUp size={14} /></Button>
                           <Button variant="ghost" size="sm" disabled={idx === services.length - 1} onClick={() => moveService(s.id, 'down')}><MoveDown size={14} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setEditingId(s.id); setForm(s); }}><Edit2 size={14} /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setFormMode("edit"); setEditingId(s.id); setForm(s); }}><Edit2 size={14} /></Button>
                           <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(s.id)}><Trash2 size={14} /></Button>
                         </TableCell>
                       </TableRow>

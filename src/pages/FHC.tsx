@@ -37,8 +37,8 @@ export default function Fhc() {
   ];
 
   return (
-    <div ref={pageRef} className="min-h-screen bg-white text-slate-900" data-fhc-animate>
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+    <div ref={pageRef} className="min-h-screen bg-white text-slate-900" data-fhc-animate data-fhc-clarity>
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src={logo} alt="FHC" className="w-12 h-12 rounded-full object-cover shadow-xl" />
@@ -86,8 +86,8 @@ export default function Fhc() {
 
       <section className="relative overflow-hidden bg-white" data-fhc-section data-fhc-parallax-bg>
         <div className="absolute inset-0 opacity-30" data-fhc-bg>
-          <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber-200 blur-3xl" />
-          <div className="absolute -bottom-28 left-0 h-80 w-80 rounded-full bg-cyan-200/60 blur-3xl" />
+          <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber-200 blur-2xl" />
+          <div className="absolute -bottom-28 left-0 h-80 w-80 rounded-full bg-cyan-200/60 blur-2xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-6 py-20 lg:py-28">
           <div className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr] items-center">

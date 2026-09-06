@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare, X, Send, Bot, User, Loader2, Heart, DollarSign, Calendar, Headset } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 type Message = { sender: "ai" | "user"; text: string };
 
@@ -21,6 +22,7 @@ export default function PastorOscarBot() {
   ]);
   
   const suggestions = [
+    "Take me to the partnership page",
     "When is the next fasting program?",
     "How do I join the choir?",
     "What time is Sunday service?",
@@ -28,6 +30,41 @@ export default function PastorOscarBot() {
   ];
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const navigationTargets = [
+    { path: "/partnership", label: "Partnership", terms: ["partnership", "partner", "partners"] },
+    { path: "/give/offering", label: "Giving", terms: ["give", "giving", "offering", "donate", "donation"] },
+    { path: "/prayer-ai", label: "Prayer Support", terms: ["prayer", "pray", "prayer support"] },
+    { path: "/events", label: "Events", terms: ["event", "events", "program", "programs"] },
+    { path: "/services", label: "Services", terms: ["service", "services", "church service", "service times"] },
+    { path: "/resources", label: "Resources", terms: ["resource", "resources", "devotional", "devotionals"] },
+    { path: "/community", label: "Community", terms: ["community", "communities", "fellowship"] },
+    { path: "/fhc", label: "FHCI", terms: ["fhci", "fhc", "fathers heart chapel", "church information"] },
+    { path: "/about", label: "About Us", terms: ["about", "who are you", "our church"] },
+    { path: "/contact", label: "Contact", terms: ["contact", "reach the church", "phone number"] },
+    { path: "/", label: "Home", terms: ["home", "homepage", "main page"] },
+  ];
+
+  const handleNavigationRequest = (message: string) => {
+    const normalizedMessage = message.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+    const asksToNavigate = /\b(go|take|bring|visit|open|show|navigate|direct|lead)\b/.test(normalizedMessage);
+
+    if (!asksToNavigate) return false;
+
+    const target = navigationTargets.find(({ terms }) =>
+      terms.some((term) => normalizedMessage.includes(term))
+    );
+
+    if (!target) return false;
+
+    setMessages((prev) => [
+      ...prev,
+      { sender: "ai", text: `Of course. Taking you to the ${target.label} page now.` },
+    ]);
+    setIsOpen(false);
+    navigate(target.path);
+    return true;
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -43,6 +80,11 @@ export default function PastorOscarBot() {
     setInput("");
     setIsLoading(true);
     setAiError(false);
+
+    if (handleNavigationRequest(userMsg)) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {

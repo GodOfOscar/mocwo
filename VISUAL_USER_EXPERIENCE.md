@@ -64,7 +64,7 @@ User selects 📧 Email
 │         [Continue →]               │
 └────────────────────────────────────┘
 
-User types: "John Doe"
+User types: "Prince Emmanuel"
 ```
 
 ### Step 2: Phone Number
@@ -138,13 +138,13 @@ User types prayer request...
 ┌────────────────────────────────────────────┐
 │ From: noreply@church.com                   │
 │ To: pastor@church.com                      │
-│ Subject: 🙏 New Prayer Request from John   │
+│ Subject: 🙏 New Prayer Request from Prince   │
 │ Date: Jan 31, 2026 10:30 AM                │
 ├────────────────────────────────────────────┤
 │                                            │
 │ 🙏 New Prayer Request                     │
 │                                            │
-│ Name: John Doe                             │
+│ Name: Prince                              │
 │ Phone: +233544733469                       │
 │ Location: Accra, Ghana                     │
 │                                            │
@@ -174,7 +174,7 @@ User types prayer request...
 ├──────────┬─────────────┬──────────┬────────┬────────────────┤
 │ Name     │ Phone       │ Location │ Method │ Status / Date   │
 ├──────────┼─────────────┼──────────┼────────┼────────────────┤
-│ John Doe │ +233544... │ Accra    │ EMAIL  │ received       │
+│ Prince B. │ +233544... │ Accra    │ EMAIL  │ received       │
 │          │             │          │ 📧     │ Jan 31, 10:30 │
 ├──────────┼─────────────┼──────────┼────────┼────────────────┤
 │ Mary A.  │ +233558... │ Tema     │ WHATSAPP│ received      │
@@ -197,7 +197,7 @@ User types prayer request...
 │                                         │
 │ 📧 Email Prayer Request                │
 │                                         │
-│ Name:     John Doe                      │
+│ Name:     Prince Emmanuel                     │
 │ Phone:    +233544733469                 │
 │ Location: Accra, Ghana                  │
 │ Method:   EMAIL (📧)                    │
@@ -226,7 +226,7 @@ User types prayer request...
 
 ```
 [PRAYER REQUEST] Received: {
-  name: "John Doe",
+  name: "Prince Emmanuel",
   phone: "+233544733469",
   location: "Accra",
   method: "email"
@@ -270,7 +270,7 @@ Response: {
 ├─────────────────────────────────────────────┤
 │ [Inbox (3)]                                 │
 │                                             │
-│ 🙏 New Prayer Request from John Doe        │
+│ 🙏 New Prayer Request from Prince Emmanuel        │
 │ noreply@church.com                          │
 │ 10:30 AM                                    │
 │ Please pray for my family's health. We...   │
@@ -294,7 +294,7 @@ Response: {
 ┌──────────────────────────────────────────┐
 │ Outlook Inbox                            │
 ├──────────────────────────────────────────┤
-│ ✉ 🙏 New Prayer Request from John Doe   │
+│ ✉ 🙏 New Prayer Request from Prince Emmanuel   │
 │  From: noreply@church.com                │
 │  Received: Today, 10:30 AM               │
 │  Preview: Please pray for my family's... │

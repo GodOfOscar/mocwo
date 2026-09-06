@@ -1469,6 +1469,7 @@ const Admin = () => {
                 <span>→</span>
               </button>
             </div>
+          </div>
 
           {/* Testimonies Manager */}
           <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-600 to-rose-600 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-96">
@@ -1493,7 +1494,6 @@ const Admin = () => {
                 <span>→</span>
               </button>
             </div>
-          </div>
           </div>
         </div>
 

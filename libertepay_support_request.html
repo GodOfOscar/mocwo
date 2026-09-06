@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LibertéPay Support Request</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #111827;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 24px;
+      }
+      h1, h2, h3 {
+        color: #111827;
+      }
+      pre {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      code {
+        font-family: Consolas, monospace;
+      }
+      .muted {
+        color: #4b5563;
+      }
+      .section {
+        margin-top: 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LibertéPay Support Request</h1>
+
+    <p>Hello LibertéPay team,</p>
+
+    <p>Thank you for your support. We are currently integrating your API through our backend and would appreciate your review of the exact payload and response flow we are sending.</p>
+
+    <p>We are using the base URL:<br><strong>https://360pay-merchant-api.libertepay.com</strong></p>
+
+    <p>Our backend code is sending the Authorization header as:<br><code>Authorization: Bearer &lt;LIVE_SECRET_KEY_REDACTED&gt;</code></p>
+
+    <p>We have also normalized Ghana mobile numbers from local format to E.164-style format before sending collection requests, e.g.:<br>0246089019 → 233246089019</p>
+
+    <p>Please review the exact payloads below and let us know if there is any required field, format, or API behavior we should adjust.</p>
+
+    <div class="section">
+      <h2>1) Name verification request</h2>
+      <p><strong>Request</strong></p>
+      <pre>POST https://360pay-merchant-api.libertepay.com/v1/payments/name-verify
+Authorization: Bearer &lt;LIVE_SECRET_KEY_REDACTED&gt;
+Content-Type: application/json</pre>
+
+      <p><strong>Body</strong></p>
+      <pre>{
+  "institution_code": "300591",
+  "account_number": "0246089019"
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>2) Collection request</h2>
+      <p><strong>Request</strong></p>
+      <pre>POST https://360pay-merchant-api.libertepay.com/v1/payments/collection
+Authorization: Bearer &lt;LIVE_SECRET_KEY_REDACTED&gt;
+Content-Type: application/json</pre>
+
+      <p><strong>Body</strong></p>
+      <pre>{
+  "account_name": "TEST CUSTOMER",
+  "account_number": "233246089019",
+  "amount": 10,
+  "institution_code": "300591",
+  "currency": "GHS",
+  "transaction_id": "TXN-1756789012345",
+  "reference": "Payment TXN-1756789012345",
+  "metadata": {
+    "customer_id": "12345"
+  }
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>3) Backend validation we currently use</h2>
+      <ul>
+        <li><code>amount</code> is sent as a numeric value, not as a string</li>
+        <li><code>account_number</code> is normalized before send</li>
+        <li>provider response is treated as successful when:</li>
+        <ul>
+          <li><code>code === "00"</code></li>
+          <li>or <code>status === "SUCCESS"</code></li>
+          <li>or <code>status === "PENDING"</code></li>
+        </ul>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>4) Questions</h2>
+      <p>We would be grateful if you could advise whether:</p>
+      <ul>
+        <li>the payload format is correct</li>
+        <li>the <code>account_number</code> format is expected in a different shape for this institution</li>
+        <li>the <code>institution_code</code> or endpoint path is correct</li>
+        <li>there are any required transaction fields we are missing</li>
+        <li>there is a known IP or whitelist requirement on your side for live requests</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <p>Thank you very much for your help.</p>
+      <p>Best regards,<br>[Your Name]<br>[Your Business/Church Name]</p>
+    </div>
+  </body>
+</html>

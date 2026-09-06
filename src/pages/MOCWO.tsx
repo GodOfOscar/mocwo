@@ -505,7 +505,7 @@ Through discipleship, we're raising a generation of kingdom disciples who will b
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <div>
             <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text">
-              Fathers Heart Chapel
+              Martyrs Of Christ World Outreach
             </h3>
             <p className="text-muted-foreground">
               Transforming lives through faith, worship, and service. Join our vibrant community and grow in your spiritual journey.

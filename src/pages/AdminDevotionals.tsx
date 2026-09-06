@@ -25,6 +25,62 @@ const months = [
   { name: "December", days: 31 }
 ];
 
+const devotionalColorAliases: Record<string, string> = {
+  blue: "from-blue-600 to-blue-400",
+  red: "from-red-600 to-red-400",
+  cyan: "from-cyan-600 to-cyan-400",
+  green: "from-emerald-600 to-emerald-400",
+  emerald: "from-emerald-600 to-emerald-400",
+  purple: "from-purple-600 to-purple-400",
+  pink: "from-pink-600 to-pink-400",
+  orange: "from-orange-600 to-orange-400",
+  amber: "from-amber-600 to-amber-400",
+  indigo: "from-indigo-600 to-indigo-400",
+  yellow: "from-yellow-600 to-yellow-400",
+  teal: "from-teal-600 to-teal-400",
+  rose: "from-rose-600 to-rose-400",
+};
+
+const normalizeDevotionalGradient = (value: string) => {
+  if (!value) return "from-blue-600 to-blue-400";
+
+  const sanitized = value.trim().toLowerCase().replace(/\s+/g, " ");
+  const directMatch = Object.keys(devotionalColorAliases).find((key) => key === sanitized);
+  if (directMatch) return devotionalColorAliases[directMatch];
+
+  const aliasMatch = Object.keys(devotionalColorAliases).find((key) => sanitized.includes(key));
+  if (aliasMatch) return devotionalColorAliases[aliasMatch];
+
+  const fallback = Object.keys(devotionalColorAliases).find((key) => sanitized.includes(key.replace(/-/g, " ")));
+  if (fallback) return devotionalColorAliases[fallback];
+
+  return value.startsWith("#") ? value : "from-blue-600 to-blue-400";
+};
+
+const getPreviewGradientStyle = (value: string) => {
+  const normalized = normalizeDevotionalGradient(value);
+  if (normalized.startsWith("#")) {
+    return { backgroundImage: `linear-gradient(135deg, ${normalized}, rgba(255,255,255,0.22))` };
+  }
+
+  const gradients: Record<string, { backgroundImage: string }> = {
+    "from-blue-600 to-blue-400": { backgroundImage: "linear-gradient(135deg, #2563eb, #60a5fa)" },
+    "from-red-600 to-red-400": { backgroundImage: "linear-gradient(135deg, #dc2626, #f87171)" },
+    "from-cyan-600 to-cyan-400": { backgroundImage: "linear-gradient(135deg, #0891b2, #22d3ee)" },
+    "from-emerald-600 to-emerald-400": { backgroundImage: "linear-gradient(135deg, #059669, #34d399)" },
+    "from-purple-600 to-purple-400": { backgroundImage: "linear-gradient(135deg, #9333ea, #c084fc)" },
+    "from-pink-600 to-pink-400": { backgroundImage: "linear-gradient(135deg, #db2777, #f472b6)" },
+    "from-orange-600 to-orange-400": { backgroundImage: "linear-gradient(135deg, #ea580c, #fb923c)" },
+    "from-amber-600 to-amber-400": { backgroundImage: "linear-gradient(135deg, #d97706, #fbbf24)" },
+    "from-indigo-600 to-indigo-400": { backgroundImage: "linear-gradient(135deg, #4f46e5, #818cf8)" },
+    "from-yellow-600 to-yellow-400": { backgroundImage: "linear-gradient(135deg, #ca8a04, #facc15)" },
+    "from-teal-600 to-teal-400": { backgroundImage: "linear-gradient(135deg, #0d9488, #2dd4bf)" },
+    "from-rose-600 to-rose-400": { backgroundImage: "linear-gradient(135deg, #e11d48, #fb7185)" },
+  };
+
+  return gradients[normalized] || gradients["from-blue-600 to-blue-400"];
+};
+
 const AdminDevotionals = () => {
   const [selectedMonth, setSelectedMonth] = useState(months[0]);
   const [selectedDay, setSelectedDay] = useState("1");
@@ -196,6 +252,16 @@ const AdminDevotionals = () => {
       }
 
       await saveDevotionalSettings(selectedMonth.name.toLowerCase(), monthTheme, monthBgColor, newCoverImageUrl || null);
+
+      const cachedSettings = JSON.parse(localStorage.getItem("moc_devotional_settings_cache") || "{}");
+      cachedSettings[selectedMonth.name.toLowerCase()] = {
+        theme: monthTheme,
+        bg_color: monthBgColor,
+        cover_image_url: newCoverImageUrl || null,
+      };
+      localStorage.setItem("moc_devotional_settings_cache", JSON.stringify(cachedSettings));
+      window.dispatchEvent(new Event("moc-devotional-settings-changed"));
+
       toast({ title: "Month details updated", description: `Settings for ${selectedMonth.name} saved successfully.` });
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message || "Unable to save month settings.", variant: "destructive" });
@@ -403,6 +469,27 @@ const AdminDevotionals = () => {
                     className="text-xs"
                   />
                 </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)]">
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-slate-500">Live Card Preview</p>
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                    <div style={getPreviewGradientStyle(monthBgColor || "from-blue-600 to-blue-400")} className="relative flex h-28 w-full items-center justify-center text-white">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.28),transparent_60%)]" />
+                      <div className="relative text-center">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.4em] opacity-80">Month of</div>
+                        <div className="text-3xl font-black leading-none">{selectedMonth.name.slice(0, 3).toUpperCase()}</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 bg-white p-4 text-left">
+                      <h3 className="text-base font-black text-slate-900">{selectedMonth.name}</h3>
+                      <p className="min-h-[32px] text-xs font-semibold leading-4 text-slate-700">{monthTheme || "Monthly Topic"}</p>
+                      <div className="border-t border-slate-200 pt-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-700">View Devotions</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end">
                   <Button 
                     type="button" 

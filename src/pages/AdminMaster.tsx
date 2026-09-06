@@ -364,7 +364,7 @@ const AdminMaster = () => {
                   <Input 
                     value={newAdmin.full_name} 
                     onChange={e => setNewAdmin({...newAdmin, full_name: e.target.value})} 
-                    placeholder="e.g., John Doe" 
+                    placeholder="e.g., Prince Emmanuel" 
                     required 
                   />
                 </div>

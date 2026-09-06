@@ -228,43 +228,63 @@ const Services = () => {
               services.map((service, index) => (
               <Card 
                 key={index} 
-                className="border-0 shadow-card hover:shadow-divine transition-all duration-300 hover:-translate-y-2 group overflow-hidden"
+                className="relative flex flex-col overflow-hidden rounded-[1.75rem] border border-blue-100/80 bg-white shadow-[0_18px_50px_-24px_rgba(9,42,105,0.45)] transition-all duration-500 hover:-translate-y-3 hover:border-cyan-200 hover:shadow-[0_28px_60px_-24px_rgba(8,74,140,0.52)] group"
               >
-                <div className={`h-2 bg-gradient-to-r ${service.color}`}></div>
-                
-                <CardHeader className="text-center pb-2">
-                  <div className="relative inline-block mx-auto mb-3">
-                    <div className="text-7xl group-hover:scale-110 transition-transform">{service.image}</div>
-                    {service.is_live && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 rounded-full border-4 border-white animate-pulse shadow-lg" />
-                    )}
+                <div className={`relative h-48 shrink-0 overflow-hidden bg-gradient-to-br ${service.color}`}>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.42),transparent_28%),linear-gradient(135deg,rgba(3,17,55,0.08),rgba(3,17,55,0.5))]" />
+                  <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full border-[18px] border-white/10" />
+                  <div className="absolute -bottom-16 -left-8 h-40 w-40 rounded-full border-[18px] border-white/10" />
+                  <div className="relative flex h-full flex-col justify-between p-6 text-white">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] backdrop-blur-md">
+                        {service.day}
+                      </span>
+                      {service.is_live ? (
+                        <span className="flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 text-[11px] font-black uppercase tracking-wider shadow-lg shadow-red-950/20">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-white" /> Live now
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-white/25 bg-black/10 px-3 py-1 text-[11px] font-bold tracking-wide backdrop-blur-sm">
+                          Weekly encounter
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-white/75">Join us</p>
+                        <div className="flex items-center gap-2 text-lg font-black">
+                          <Clock className="h-5 w-5" /> {service.time_string}
+                        </div>
+                      </div>
+                      <div className="text-6xl leading-none drop-shadow-xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+                        {service.image}
+                      </div>
+                    </div>
                   </div>
-                  <CardTitle className="text-2xl font-black group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-600 group-hover:bg-clip-text mb-2">
+                </div>
+
+                <CardHeader className="pb-3 pt-6">
+                  <CardTitle className="text-2xl font-black leading-tight text-blue-950 transition-colors duration-300 group-hover:text-blue-700">
                     {service.title}
                   </CardTitle>
-                  
-                  <div className="flex items-center justify-center gap-2 text-sm font-bold text-blue-600">
-                    <Clock className="w-4 h-4" />
-                    {service.time_string}
-                  </div>
                 </CardHeader>
 
-                <CardContent className="text-center">
-                  <p className="text-muted-foreground mb-3 font-medium">{service.description}</p>
-                  <p className="text-sm text-muted-foreground mb-6">{service.details}</p>
+                <CardContent className="flex flex-1 flex-col pt-0">
+                  <p className="mb-3 font-semibold leading-relaxed text-slate-600">{service.description}</p>
+                  <p className="mb-7 text-sm leading-relaxed text-slate-500">{service.details}</p>
 
-                  <div className="space-y-3">
+                  <div className="mt-auto space-y-3">
                     {service.live_link ? (
                       <Link to={`/live?source=${encodeURIComponent(service.live_link)}`}>
                         <Button 
-                          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold rounded-full transition-all hover:shadow-lg"
+                          className="w-full rounded-xl bg-blue-950 font-bold text-white shadow-lg shadow-blue-950/20 transition-all hover:bg-blue-800 hover:shadow-xl hover:shadow-blue-900/25"
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Watch Live
                         </Button>
                       </Link>
                     ) : (
-                      <Button disabled className="w-full rounded-full font-bold opacity-70">
+                      <Button disabled className="w-full rounded-xl font-bold opacity-70">
                         <Play className="w-4 h-4 mr-2" />
                         No Live Link
                       </Button>
@@ -272,7 +292,7 @@ const Services = () => {
 
                     <Button 
                       variant="outline" 
-                      className="w-full font-bold rounded-full"
+                      className="w-full rounded-xl border-blue-100 font-bold text-blue-900 transition-all hover:border-cyan-200 hover:bg-cyan-50"
                       onClick={() => {
                         const event = {
                           title: service.title,

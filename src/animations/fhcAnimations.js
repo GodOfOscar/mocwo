@@ -135,6 +135,7 @@ export function initFhcAnimations(root) {
   const cleanupLenis = initLenis();
 
   animationContext = gsap.context(() => {
+    const clarityMode = root.hasAttribute("data-fhc-clarity");
     const sections = root.querySelectorAll("[data-fhc-section]");
     const decorativeBlobs = root.querySelectorAll("[data-fhc-bg]");
     const cardItems = root.querySelectorAll("[data-fhc-card]");
@@ -268,11 +269,11 @@ export function initFhcAnimations(root) {
 
     sections.forEach((section, index) => {
       const configMap = [
-        { y: 80, x: 0, scale: 0.96, blur: 16 },
-        { y: 40, x: -50, scale: 0.98, blur: 12 },
-        { y: 40, x: 50, scale: 0.98, blur: 12 },
-        { y: 30, x: 0, scale: 0.97, blur: 14 },
-        { y: 50, x: 0, scale: 0.95, blur: 10 },
+        { y: clarityMode ? 32 : 80, x: 0, scale: clarityMode ? 0.99 : 0.96, blur: clarityMode ? 0 : 16 },
+        { y: clarityMode ? 24 : 40, x: clarityMode ? 0 : -50, scale: clarityMode ? 0.995 : 0.98, blur: clarityMode ? 0 : 12 },
+        { y: clarityMode ? 24 : 40, x: clarityMode ? 0 : 50, scale: clarityMode ? 0.995 : 0.98, blur: clarityMode ? 0 : 12 },
+        { y: clarityMode ? 20 : 30, x: 0, scale: clarityMode ? 0.995 : 0.97, blur: clarityMode ? 0 : 14 },
+        { y: clarityMode ? 28 : 50, x: 0, scale: clarityMode ? 0.99 : 0.95, blur: clarityMode ? 0 : 10 },
       ];
       const config = configMap[index] || configMap[0];
       const fromProps = {
@@ -304,9 +305,9 @@ export function initFhcAnimations(root) {
           duration: 1.2,
         })
         .to(section, {
-          opacity: 0.75,
-          y: -20,
-          scale: 0.995,
+          opacity: clarityMode ? 1 : 0.75,
+          y: clarityMode ? -8 : -20,
+          scale: clarityMode ? 1 : 0.995,
           ease: "power1.out",
           duration: 1.1,
         }, 0.5);
@@ -326,7 +327,7 @@ export function initFhcAnimations(root) {
 
     gsap.fromTo(
       headingItems,
-      { opacity: 0, y: 24, filter: "blur(6px)" },
+      { opacity: 0, y: clarityMode ? 14 : 24, filter: clarityMode ? "blur(0px)" : "blur(6px)" },
       {
         opacity: 1,
         y: 0,
@@ -344,7 +345,7 @@ export function initFhcAnimations(root) {
 
     gsap.fromTo(
       copyItems,
-      { opacity: 0, y: 20, filter: "blur(4px)" },
+      { opacity: 0, y: clarityMode ? 12 : 20, filter: clarityMode ? "blur(0px)" : "blur(4px)" },
       {
         opacity: 1,
         y: 0,
@@ -384,7 +385,7 @@ export function initFhcAnimations(root) {
       onEnter: (batch) => {
         gsap.fromTo(
           batch,
-          { opacity: 0, y: 48, scale: 0.96, rotate: 6, filter: "blur(6px)" },
+          { opacity: 0, y: clarityMode ? 24 : 48, scale: clarityMode ? 0.99 : 0.96, rotate: clarityMode ? 0 : 6, filter: clarityMode ? "blur(0px)" : "blur(6px)" },
           {
             opacity: 1,
             y: 0,

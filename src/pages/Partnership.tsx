@@ -7,12 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Footer from "@/components/Footer";
 import { Crown, Star, Sparkles, Heart, TrendingUp, Shield, Award, Handshake, CheckCircle, Users, Globe, BookOpen, Mail, Phone, MapPin, Facebook, Instagram, Youtube, Zap, Target, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { publicSupabase } from "@/integrations/supabase/publicClient";
 import { Link, useNavigate } from "react-router-dom";
 import HeroCarousel from "@/components/ui/hero-carousel";
 import { useToast } from "@/components/ui/use-toast";
-import { expresspayConfig } from "@/config/expresspay";
-import { initiatePayment } from "@/lib/payments";
+import { initiatePayment, verifyLibertepayAccount, collectLibertepayPayment } from "@/lib/payments";
 
 import hero1 from "../assets/hero1.jpeg";
 import tImage from "../assets/t.jpg";
@@ -30,8 +29,6 @@ const mImages = Array.from({ length: 30 }, (_, i) => {
 })
   .filter((img): img is string => !!img);
 
-// Payment provider integrations are handled via `/create-expresspay-transaction` endpoint
-
 console.log("Partnership mImages loaded:", mImages.length, mImages);
 
 const Partnership = () => {
@@ -47,6 +44,8 @@ const Partnership = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReturningForm, setShowReturningForm] = useState(false);
+  const [mobileNetwork, setMobileNetwork] = useState("");
+  const [returningMobileNetwork, setReturningMobileNetwork] = useState("");
   const [returningForm, setReturningForm] = useState({ name: "", level: "", paymentMethod: "" });
   const [existingPartner, setExistingPartner] = useState<any>(null);
   const { toast } = useToast();
@@ -54,12 +53,12 @@ const Partnership = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchCarouselImages();
+    void fetchCarouselImages();
   }, []);
 
   const fetchCarouselImages = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (publicSupabase as any)
         .from("carousel_images")
         .select("*")
         .eq("page", "partnership")
@@ -182,6 +181,12 @@ const Partnership = () => {
     custom: 250,
   };
 
+  const networkMap: Record<string, string> = {
+    mtn: "300591",
+    atmoney: "300592",
+    telecel: "300594",
+  };
+
   const getMinimumAmount = (level: string) => partnershipMinimums[level] ?? 0;
 
   const normalizePartnerName = (name: string) => name.trim().replace(/\s+/g, ' ');
@@ -190,7 +195,7 @@ const Partnership = () => {
     const normalizedName = normalizePartnerName(name);
     if (!normalizedName) return null;
 
-    const { data, error } = await supabase
+    const { data, error } = await publicSupabase
       .from('partnerships')
       .select('*')
       .ilike('name', normalizedName)
@@ -298,25 +303,66 @@ const Partnership = () => {
     // Lead user to the respective payment method
     if (formData.paymentMethod === 'card' || formData.paymentMethod === 'mobile-money') {
       try {
-        const reference = `EXP-PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-        await initiatePayment('expresspay', {
-          amount: parseFloat(formData.amount),
-          currency: 'GHS',
-          email: formData.email,
-          phone: formData.phone,
-          reference,
-          channels: [formData.paymentMethod === 'mobile-money' ? 'mobile_money' : 'card']
-        });
+        const reference = `PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
-        toast({
-          title: "Redirecting to payment",
-          description: "A new tab has been opened to complete your payment.",
-        });
+        if (formData.paymentMethod === 'mobile-money') {
+          if (!formData.phone) {
+            toast({ title: 'Phone Required', description: 'Please enter the mobile money number for debit approval.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
 
-        // Save as pending verification; final approval will be done after webhook/verification
+          if (!mobileNetwork) {
+            toast({ title: 'Network Required', description: 'Please select the mobile network before continuing.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          const institutionCode = networkMap[mobileNetwork];
+          const accountData = await verifyLibertepayAccount(institutionCode, formData.phone);
+          const paymentResult = await collectLibertepayPayment({
+            account_name: accountData.account_name || accountData.name || "Partner",
+            account_number: formData.phone,
+            amount: parseFloat(formData.amount),
+            institution_code: institutionCode,
+            currency: 'GHS',
+            email: formData.email,
+            reference,
+          });
+
+          if (!paymentResult || paymentResult.success !== true) {
+            toast({ title: 'Payment Not Confirmed', description: 'Your payment has not been verified yet. Please complete the payment before continuing.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+        } else {
+          if (!formData.phone) {
+            toast({ title: 'Phone Required', description: 'Please enter the mobile money number for the LibertéPay verification flow.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          const institutionCode = networkMap[mobileNetwork];
+          const paymentResult = await initiatePayment('libertepay', {
+            amount: parseFloat(formData.amount),
+            currency: 'GHS',
+            email: formData.email,
+            phone: formData.phone,
+            account_number: formData.phone,
+            institution_code: institutionCode,
+            reference,
+          });
+
+          if (!paymentResult || paymentResult.success !== true) {
+            toast({ title: 'Payment Not Confirmed', description: 'Please complete the payment before continuing.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+        }
+
         await savePartnershipData('AWAITING_VERIFICATION');
       } catch (err: any) {
-        toast({ title: 'Payment Error', description: err.message || 'Failed to initiate payment', variant: 'destructive' });
+        toast({ title: 'Payment Error', description: err.message || 'Failed to process payment', variant: 'destructive' });
         setIsProcessing(false);
       }
     } else {
@@ -334,7 +380,7 @@ const Partnership = () => {
 
   const savePartnershipData = async (reference: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await publicSupabase
         .from('partnerships')
         .insert([{
           name: formData.name,
@@ -425,35 +471,85 @@ const Partnership = () => {
       const paymentPhone = partner.phone || formData.phone || '';
 
       if (returningForm.paymentMethod === 'card' || returningForm.paymentMethod === 'mobile-money') {
-        await initiatePayment('expresspay', {
-          amount,
-          currency: 'GHS',
+        if (returningForm.paymentMethod === 'mobile-money') {
+          if (!paymentPhone) {
+            toast({ title: 'Phone Required', description: 'Please add the partner phone number before the mobile-money payment is submitted.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          if (!returningMobileNetwork) {
+            toast({ title: 'Network Required', description: 'Please select the mobile network for the partner payment.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          const institutionCode = networkMap[returningMobileNetwork];
+          const accountData = await verifyLibertepayAccount(institutionCode, paymentPhone);
+          const paymentResult = await collectLibertepayPayment({
+            account_name: accountData.account_name || accountData.name || partner.name,
+            account_number: paymentPhone,
+            amount,
+            institution_code: institutionCode,
+            currency: 'GHS',
+            email: paymentEmail,
+            reference,
+          });
+
+          if (!paymentResult || paymentResult.success !== true) {
+            toast({ title: 'Payment Not Confirmed', description: 'The mobile-money payment must be completed before the record is saved.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+        } else {
+          if (!paymentPhone) {
+            toast({ title: 'Phone Required', description: 'Please enter the phone number for the LibertyPay verification flow.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          const institutionCode = networkMap[returningMobileNetwork];
+          const paymentResult = await initiatePayment('libertepay', {
+            amount,
+            currency: 'GHS',
+            email: paymentEmail,
+            phone: paymentPhone,
+            account_number: paymentPhone,
+            institution_code: institutionCode,
+            reference,
+          });
+
+          if (!paymentResult || paymentResult.success !== true) {
+            toast({ title: 'Payment Not Confirmed', description: 'The payment must be completed before the record is saved.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+        }
+
+        const { error } = await publicSupabase.from('partnerships').insert([{
+          name: partner.name,
           email: paymentEmail,
           phone: paymentPhone,
-          reference,
-          channels: [returningForm.paymentMethod === 'mobile-money' ? 'mobile_money' : 'card']
-        });
+          level: returningForm.level,
+          amount,
+          payment_method: returningForm.paymentMethod,
+          message: `Returning partner payment for existing partner name ${partner.name} | Reference: ${reference}`,
+          status: 'pending'
+        }]);
 
-        toast({ title: 'Redirecting to payment', description: 'Complete payment in the new tab.' });
+        if (error) throw error;
+
+        toast({ title: 'Success!', description: 'Your partnership payment has been recorded.' });
+        navigate('/partnership-success', {
+          state: {
+            name: partner.name,
+            level: returningForm.level,
+            amount: String(amount),
+          },
+        });
       } else {
         toast({ title: 'Awaiting Transfer', description: 'Please follow the transfer instructions.' });
       }
-
-      const { error } = await supabase.from('partnerships').insert([{
-        name: partner.name,
-        email: paymentEmail,
-        phone: paymentPhone,
-        level: returningForm.level,
-        amount,
-        payment_method: returningForm.paymentMethod,
-        message: `Returning partner payment for existing partner name ${partner.name} | Reference: ${reference}`,
-        status: 'pending'
-      }]);
-
-      if (error) throw error;
-
-      toast({ title: 'Recorded', description: 'Your returning partner payment is recorded and pending verification.' });
-      setShowReturningForm(false);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message || 'Failed to process returning partner', variant: 'destructive' });
     } finally {
@@ -624,6 +720,20 @@ const Partnership = () => {
                       </div>
 
                       <div>
+                        <Label className="text-slate-700 font-bold mb-2 block">Mobile Network</Label>
+                        <Select value={returningMobileNetwork} onValueChange={setReturningMobileNetwork} disabled={returningForm.paymentMethod !== 'mobile-money'}>
+                          <SelectTrigger className="w-full border-2 focus:border-blue-500 transition-all">
+                            <SelectValue placeholder="Select network" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mtn">MTN</SelectItem>
+                            <SelectItem value="atmoney">ATMoney</SelectItem>
+                            <SelectItem value="telecel">Telecel CASH</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
                         <Label className="text-slate-700 font-bold mb-2 block">Partnership Level *</Label>
                         <Select value={returningForm.level} onValueChange={(v)=> handleReturningInputChange('level', v)}>
                           <SelectTrigger className="w-full border-2 focus:border-blue-500 transition-all">
@@ -722,6 +832,20 @@ const Partnership = () => {
                       placeholder="+233 XXX XXX XXXX"
                       className="border-2 focus:border-blue-500 transition-all"
                     />
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-700 font-bold mb-2 block">Mobile Network</Label>
+                    <Select value={mobileNetwork} onValueChange={setMobileNetwork} disabled={formData.paymentMethod !== 'mobile-money'}>
+                      <SelectTrigger className="border-2 focus:border-blue-500 transition-all">
+                        <SelectValue placeholder="Select mobile network" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mtn">MTN</SelectItem>
+                        <SelectItem value="atmoney">ATMoney</SelectItem>
+                        <SelectItem value="telecel">Telecel CASH</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>

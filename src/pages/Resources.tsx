@@ -2,9 +2,93 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Book, Play, Download, Headphones, Mail, Phone, MapPin, Facebook, Instagram, Youtube, X, Flame, CheckCircle2, Target, Share2, Trophy } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { initFhcAnimations, cleanupFhcAnimations } from "@/animations/fhcAnimations";
 import { supabase } from "@/integrations/supabase/client";
+
+const devotionalGradientStyles: Record<string, CSSProperties> = {
+  "from-blue-600 to-blue-400": { backgroundImage: "linear-gradient(135deg, #2563eb, #60a5fa)" },
+  "from-red-600 to-red-400": { backgroundImage: "linear-gradient(135deg, #dc2626, #f87171)" },
+  "from-cyan-600 to-cyan-400": { backgroundImage: "linear-gradient(135deg, #0891b2, #22d3ee)" },
+  "from-emerald-600 to-emerald-400": { backgroundImage: "linear-gradient(135deg, #059669, #34d399)" },
+  "from-purple-600 to-purple-400": { backgroundImage: "linear-gradient(135deg, #9333ea, #c084fc)" },
+  "from-pink-600 to-pink-400": { backgroundImage: "linear-gradient(135deg, #db2777, #f472b6)" },
+  "from-orange-600 to-orange-400": { backgroundImage: "linear-gradient(135deg, #ea580c, #fb923c)" },
+  "from-amber-600 to-amber-400": { backgroundImage: "linear-gradient(135deg, #d97706, #fbbf24)" },
+  "from-indigo-600 to-indigo-400": { backgroundImage: "linear-gradient(135deg, #4f46e5, #818cf8)" },
+  "from-yellow-600 to-yellow-400": { backgroundImage: "linear-gradient(135deg, #ca8a04, #facc15)" },
+  "from-teal-600 to-teal-400": { backgroundImage: "linear-gradient(135deg, #0d9488, #2dd4bf)" },
+  "from-rose-600 to-rose-400": { backgroundImage: "linear-gradient(135deg, #e11d48, #fb7185)" },
+};
+
+const devotionalColorAliases: Record<string, string> = {
+  blue: "from-blue-600 to-blue-400",
+  red: "from-red-600 to-red-400",
+  cyan: "from-cyan-600 to-cyan-400",
+  green: "from-emerald-600 to-emerald-400",
+  emerald: "from-emerald-600 to-emerald-400",
+  purple: "from-purple-600 to-purple-400",
+  pink: "from-pink-600 to-pink-400",
+  orange: "from-orange-600 to-orange-400",
+  amber: "from-amber-600 to-amber-400",
+  indigo: "from-indigo-600 to-indigo-400",
+  yellow: "from-yellow-600 to-yellow-400",
+  teal: "from-teal-600 to-teal-400",
+  rose: "from-rose-600 to-rose-400",
+};
+
+const normalizeDevotionalGradientKey = (value?: string | null) => {
+  if (!value) return "from-blue-600 to-blue-400";
+
+  const sanitized = String(value).trim().replace(/\s+/g, " ").toLowerCase();
+  const exactKey = Object.keys(devotionalGradientStyles).find((key) => key.toLowerCase() === sanitized);
+  if (exactKey) return exactKey;
+
+  const aliasKey = Object.keys(devotionalColorAliases).find((key) => sanitized.includes(key));
+  if (aliasKey) return devotionalColorAliases[aliasKey];
+
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(sanitized)) {
+    return sanitized;
+  }
+
+  return "from-blue-600 to-blue-400";
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace('#', '').trim();
+  const full = normalized.length === 3
+    ? normalized.split('').map((char) => char + char).join('')
+    : normalized;
+
+  const parsed = Number.parseInt(full, 16);
+  return {
+    r: (parsed >> 16) & 255,
+    g: (parsed >> 8) & 255,
+    b: parsed & 255,
+  };
+};
+
+const lightenHex = (hex: string, amount = 0.25) => {
+  const { r, g, b } = hexToRgb(hex);
+  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+};
+
+const getDevotionalGradientStyle = (value: string): CSSProperties => {
+  const normalized = normalizeDevotionalGradientKey(value);
+
+  if (Object.prototype.hasOwnProperty.call(devotionalGradientStyles, normalized)) {
+    return devotionalGradientStyles[normalized];
+  }
+
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) {
+    return {
+      backgroundImage: `linear-gradient(135deg, ${normalized}, ${lightenHex(normalized)})`,
+    };
+  }
+
+  return devotionalGradientStyles["from-blue-600 to-blue-400"];
+};
 
 const Resources = () => {
   const resourceCategories = [
@@ -56,7 +140,7 @@ const Resources = () => {
     { month: "June", shortMonth: "Jun", theme: "Grace & Mercy", bgColor: "from-pink-600 to-pink-400", days: 30 },
     { month: "July", shortMonth: "Jul", theme: "Freedom In Christ", bgColor: "from-orange-600 to-orange-400", days: 31 },
     { month: "August", shortMonth: "Aug", theme: "Strength & Courage", bgColor: "from-amber-600 to-amber-400", days: 31 },
-    { month: "September", shortMonth: "Sep", theme: "Faithfulness", bgColor: "from-yellow-600 to-yellow-400", days: 30 },
+    { month: "September", shortMonth: "Sep", theme: "Intimacy With God", bgColor: "from-yellow-600 to-yellow-400", days: 30 },
     { month: "October", shortMonth: "Oct", theme: "Transformation", bgColor: "from-indigo-600 to-indigo-400", days: 31 },
     { month: "November", shortMonth: "Nov", theme: "Gratitude & Thanksgiving", bgColor: "from-teal-600 to-teal-400", days: 30 },
     { month: "December", shortMonth: "Dec", theme: "Hope & Joy", bgColor: "from-rose-600 to-rose-400", days: 31 }
@@ -66,30 +150,81 @@ const Resources = () => {
   const [expandedDay, setExpandedDay] = useState(null);
   const [devotionalSettings, setDevotionalSettings] = useState<Record<string, {theme: string, bg_color: string, cover_image_url: string}>>({});
 
+  const hydrateDevotionalSettings = (mapping: Record<string, any>) => {
+    setDevotionalSettings((prev) => ({ ...prev, ...mapping }));
+  };
+
   useEffect(() => {
+    const loadCachedSettings = () => {
+      try {
+        const raw = localStorage.getItem("moc_devotional_settings_cache");
+        if (!raw) return;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return;
+
+        const mapping = Object.entries(parsed).reduce((acc: Record<string, any>, [month, value]) => {
+          const safeValue = value as any;
+          if (!safeValue || typeof safeValue !== "object") return acc;
+          acc[String(month).trim().toLowerCase()] = {
+            theme: safeValue.theme,
+            bg_color: safeValue.bg_color,
+            cover_image_url: safeValue.cover_image_url,
+          };
+          return acc;
+        }, {});
+
+        hydrateDevotionalSettings(mapping);
+      } catch (err) {
+        console.error("Error loading cached devotional themes:", err);
+      }
+    };
+
     const fetchThemes = async () => {
       try {
         const { data } = await (supabase as any).from('devotional_settings').select('month, theme, bg_color, cover_image_url');
         if (data) {
           const mapping = data.reduce((acc: any, curr: any) => ({
             ...acc,
-            [curr.month]: { theme: curr.theme, bg_color: curr.bg_color, cover_image_url: curr.cover_image_url }
+            [String(curr.month || "").trim().toLowerCase()]: {
+              theme: curr.theme,
+              bg_color: curr.bg_color,
+              cover_image_url: curr.cover_image_url,
+            }
           }), {});
-          setDevotionalSettings(mapping);
+          hydrateDevotionalSettings(mapping);
+          localStorage.setItem("moc_devotional_settings_cache", JSON.stringify(mapping));
         }
       } catch (err) {
         console.error("Error loading devotional themes:", err);
       }
     };
+
+    loadCachedSettings();
     fetchThemes();
+
+    const handleSettingsRefresh = () => {
+      loadCachedSettings();
+      fetchThemes();
+    };
+
+    window.addEventListener("moc-devotional-settings-changed", handleSettingsRefresh);
+    return () => {
+      window.removeEventListener("moc-devotional-settings-changed", handleSettingsRefresh);
+    };
   }, []);
 
   const displayDevotionals = dailyDevotionals.map(d => ({
     ...d,
-    theme: devotionalSettings[d.month.toLowerCase()]?.theme || d.theme, // Fallback to default theme
-    bgColor: devotionalSettings[d.month.toLowerCase()]?.bg_color || d.bgColor, // Fallback to default color
-    cover_image_url: devotionalSettings[d.month.toLowerCase()]?.cover_image_url || null // New cover image URL
+    theme: devotionalSettings[d.month.toLowerCase()]?.theme?.trim() || d.theme,
+    bgColor: devotionalSettings[d.month.toLowerCase()]?.bg_color?.trim() || d.bgColor,
+    cover_image_url: devotionalSettings[d.month.toLowerCase()]?.cover_image_url || null
   }));
+
+  const getCardGradientStyle = (bgColor: string): CSSProperties => ({
+    ...getDevotionalGradientStyle(bgColor),
+    backgroundBlendMode: "multiply",
+  });
 
   const [completedDays, setCompletedDays] = useState<string[]>(() => {
     const saved = localStorage.getItem("moc_completed_devotions");
@@ -143,7 +278,7 @@ const Resources = () => {
   };
 
   return (
-    <div ref={pageRef} className="min-h-screen flex flex-col" data-fhc-animate>
+    <div ref={pageRef} className="min-h-screen flex flex-col" data-fhc-animate data-fhc-clarity>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-900 min-h-[110vh] py-24 flex items-center justify-center" data-fhc-section data-fhc-parallax-bg>
@@ -275,25 +410,33 @@ const Resources = () => {
                 className="group h-full"
                 data-fhc-card
               >
-                <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white cursor-pointer overflow-hidden relative" data-fhc-card>
+                <Card className="h-full border border-slate-200/80 shadow-[0_18px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_22px_40px_rgba(14,116,144,0.18)] transition-all duration-300 hover:-translate-y-1 bg-white cursor-pointer overflow-hidden relative" data-fhc-card>
                   {devotional.cover_image_url ? (
-                    <div className="relative h-32">
-                      <img src={devotional.cover_image_url} alt={`${devotional.month} Cover`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="relative h-36 overflow-hidden" style={getCardGradientStyle(devotional.bgColor)}>
+                      <img src={devotional.cover_image_url} alt={`${devotional.month} Cover`} className="w-full h-full object-cover scale-[1.03]" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent" />
+                      <div className="absolute left-3 top-3 rounded-full border border-white/30 bg-white/10 px-2 py-1 text-[10px] font-bold tracking-[0.25em] text-white/90 backdrop-blur-sm">
+                        MONTH
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3 text-white">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.32em] opacity-80">{devotional.shortMonth}</div>
+                        <div className="text-lg font-black leading-none">{devotional.month}</div>
+                      </div>
                     </div>
                   ) : (
-                    <div className={`w-full h-32 rounded-t-lg bg-gradient-to-br ${devotional.bgColor} flex items-center justify-center text-white shadow-md group-hover:shadow-lg transition-shadow`}>
-                      <div className="text-center">
-                        <div className="text-xs font-semibold opacity-75 mb-1">MONTH OF</div>
-                        <div className="text-2xl font-bold">{devotional.shortMonth}</div>
+                    <div style={getDevotionalGradientStyle(devotional.bgColor)} className="relative flex h-36 w-full items-center justify-center text-white shadow-md transition-shadow group-hover:shadow-lg">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.25),transparent_55%)]" />
+                      <div className="relative text-center">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.35em] opacity-80 mb-2">Month of</div>
+                        <div className="text-3xl font-black leading-none">{devotional.shortMonth}</div>
                       </div>
                     </div>
                   )}
-                  <CardContent className="p-6 text-center space-y-3 h-full flex flex-col">
-                    <h3 className="text-sm font-bold text-slate-900" data-fhc-heading>{devotional.month}</h3>
-                    <p className="text-xs text-slate-600 line-clamp-2">{devotional.theme}</p>
-                    <div className="mt-auto pt-2 border-t border-slate-100">
-                      <p className="text-xs text-cyan-600 font-semibold">View Devotions</p>
+                  <CardContent className="p-5 text-center space-y-3 h-full flex flex-col bg-gradient-to-b from-white to-slate-50/80">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight" data-fhc-heading>{devotional.month}</h3>
+                    <p className="min-h-10 text-xs font-semibold leading-4 text-slate-700 line-clamp-2">{devotional.theme}</p>
+                    <div className="mt-auto border-t border-slate-200 pt-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-700">View Devotions</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -308,7 +451,7 @@ const Resources = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className={`bg-gradient-to-r ${selectedMonth.bgColor} text-white p-8 relative sticky top-0 z-40`}>
+            <div style={getDevotionalGradientStyle(selectedMonth.bgColor)} className="relative sticky top-0 z-40 bg-gradient-to-r p-8 text-white">
               <button
                 onClick={() => setSelectedMonth(null)}
                 className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"
@@ -337,10 +480,11 @@ const Resources = () => {
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                   <div 
-                    className={`h-full transition-all duration-1000 ease-out bg-gradient-to-r ${selectedMonth.bgColor}`}
-                    style={{ 
-                      width: `${(completedDays.filter(id => id.startsWith(`${selectedMonth.month}-`)).length / selectedMonth.days) * 100}%` 
+                    style={{
+                      ...getDevotionalGradientStyle(selectedMonth.bgColor),
+                      width: `${(completedDays.filter(id => id.startsWith(`${selectedMonth.month}-`)).length / selectedMonth.days) * 100}%`,
                     }}
+                    className="h-full bg-gradient-to-r transition-all duration-1000 ease-out"
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-3 font-medium">
@@ -364,7 +508,7 @@ const Resources = () => {
                         : "border-slate-100 hover:border-blue-200"
                       }`}>
                         <div>
-                          <div className={`text-lg font-bold bg-gradient-to-r ${selectedMonth.bgColor} bg-clip-text text-transparent mb-1`}>
+                          <div style={getDevotionalGradientStyle(selectedMonth.bgColor)} className="mb-1 bg-gradient-to-r bg-clip-text text-lg font-bold text-transparent">
                             Day {day}
                           </div>
                         </div>
@@ -377,38 +521,39 @@ const Resources = () => {
                     {/* Expanded Content */}
                     {expandedDay === day && (
                       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-                        <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200`}>
-                          <div className={`bg-gradient-to-r ${selectedMonth.bgColor} p-6 text-white flex justify-between items-center`}>
+                        <div className="relative flex max-h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+                          <div style={getDevotionalGradientStyle(selectedMonth.bgColor)} className="flex shrink-0 items-center justify-between bg-gradient-to-r px-5 py-4 text-white sm:px-7 sm:py-5">
                             <div className="flex items-center gap-3">
-                              <Book size={24} />
+                              <Book size={28} />
                               <div>
-                                <h3 className="text-xl font-bold">Day {day}</h3>
-                                <p className="text-sm opacity-80">{selectedMonth.month} Devotional</p>
+                                <h3 className="text-xl font-bold sm:text-2xl">Day {day}</h3>
+                                <p className="text-sm opacity-90 sm:text-base">{selectedMonth.month} Devotional</p>
                               </div>
                             </div>
-                            <button onClick={() => setExpandedDay(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                            <button onClick={() => setExpandedDay(null)} aria-label="Close devotional" className="rounded-full p-2 transition-colors hover:bg-white/20">
                               <X size={24} />
                             </button>
                           </div>
 
-                          <div className="p-4 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-slate-50">
+                          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-3 sm:p-6">
                             <img 
                               src={supabase.storage.from('devotionals').getPublicUrl(`${selectedMonth.month.toLowerCase()}/${day}.jpg`).data.publicUrl}
                               alt={`Devotional Day ${day}`}
-                              className="max-w-full rounded-lg shadow-xl object-contain"
+                              className="mx-auto block h-auto w-auto max-w-full rounded-lg bg-white object-contain shadow-xl"
                               onError={(e) => {
                                 e.currentTarget.src = `https://placehold.co/800x1200/slate/white?text=${selectedMonth.month}+Day+${day}`;
                               }}
                             />
                           </div>
 
-                          <div className="p-4 bg-white border-t flex gap-4">
+                          <div className="flex shrink-0 gap-3 border-t bg-white p-4 sm:gap-4 sm:p-5">
                             <Button 
                               onClick={() => toggleComplete(`${selectedMonth.month}-${day}`)}
-                              className={`flex-1 py-6 text-lg font-bold shadow-lg transition-all ${
+                              style={!completedDays.includes(`${selectedMonth.month}-${day}`) ? getDevotionalGradientStyle(selectedMonth.bgColor) : undefined}
+                              className={`flex-1 py-6 text-base font-bold shadow-lg transition-all sm:text-lg ${
                                 completedDays.includes(`${selectedMonth.month}-${day}`)
                                 ? "bg-green-500 hover:bg-green-600"
-                                : `bg-gradient-to-r ${selectedMonth.bgColor}`
+                                : "bg-gradient-to-r"
                               }`}
                             >
                               {completedDays.includes(`${selectedMonth.month}-${day}`) ? (
@@ -438,7 +583,8 @@ const Resources = () => {
                   onClick={() => {
                     alert(`Downloading ${selectedMonth.month} Devotional Manual...`);
                   }}
-                  className={`flex-1 bg-gradient-to-r ${selectedMonth.bgColor} hover:shadow-lg text-white font-semibold py-6 flex items-center justify-center gap-2`}
+                  style={getDevotionalGradientStyle(selectedMonth.bgColor)}
+                  className="flex flex-1 items-center justify-center gap-2 bg-gradient-to-r py-6 font-semibold text-white hover:shadow-lg"
                 >
                   <Download size={20} />
                   Download Full Manual
@@ -459,7 +605,7 @@ const Resources = () => {
       <footer className="bg-slate-950 text-white py-20 mt-20 border-t border-slate-800">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-white">Fathers Heart Chapel</h3>
+            <h3 className="text-2xl font-bold text-white">Martyrs Of Christ World Outreach</h3>
             <p className="text-slate-400 leading-relaxed text-base">
               Transforming lives through faith, worship, and service. Join our vibrant community and grow in your spiritual journey.
             </p>
