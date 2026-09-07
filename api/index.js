@@ -9,10 +9,12 @@ import cors from "cors";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import libertePayRoutes from "../backend/routes/libertepay.js";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use("/libertepay", libertePayRoutes);
 
 // Supabase initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://foojbihdxdoflfjnhfjf.supabase.co";
@@ -38,6 +40,28 @@ const PRAYER_WHATSAPP_NUMBERS = [
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const PRAYER_EMAIL_RECIPIENTS = (process.env.PRAYER_EMAIL_RECIPIENTS || "").split(",").filter(Boolean);
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+app.get("/status", async (req, res) => {
+  try {
+    const { data, error } = await adminSupabase
+      .from("admin_settings")
+      .select("value")
+      .eq("key", "maintenance_mode")
+      .maybeSingle();
+
+    if (error) {
+      return res.json({ success: true, maintenanceMode: false });
+    }
+
+    return res.json({
+      success: true,
+      maintenanceMode: data?.value === "true",
+    });
+  } catch (error) {
+    console.warn("API status check failed:", error?.message || error);
+    return res.json({ success: true, maintenanceMode: false });
+  }
+});
 
 // Send prayer request via WhatsApp using WhAPI.cloud or Email using Resend
 app.post("/sendPrayer", async (req, res) => {
