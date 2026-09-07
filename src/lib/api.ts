@@ -8,7 +8,15 @@ const DEFAULT_API_URL = typeof window !== 'undefined'
   ? window.location.origin
   : 'https://mocwo-1.onrender.com';
 
-export const API_BASE_URL = typeof window !== 'undefined' && import.meta.env.DEV
+const isSameOriginDeployment = typeof window !== 'undefined' && (
+  window.location.hostname === 'mocwo.org' ||
+  window.location.hostname === 'www.mocwo.org' ||
+  window.location.hostname.endsWith('.vercel.app')
+);
+
+export const API_BASE_URL = typeof window !== 'undefined' && (
+  import.meta.env.DEV || isSameOriginDeployment
+)
   ? ''
   : (VITE_API_URL && !/^https?:\/\/localhost(:|$)/i.test(VITE_API_URL)
       ? VITE_API_URL
