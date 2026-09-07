@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ import { initiatePayment } from "@/lib/payments";
 
 const GivePage = () => {
   const { type } = useParams<{ type?: string }>();
+  const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("GHS");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -91,6 +92,9 @@ const GivePage = () => {
 
           setIsProcessing(false);
           setEmail("");
+          navigate("/giving-success", {
+            state: { givingType: level.title, amount: `${numericAmount} USD` },
+          });
         } catch (err: any) {
           toast({ title: "Payment Error", description: err.message || "Failed to start payment", variant: "destructive" });
           setIsProcessing(false);
@@ -296,6 +300,10 @@ const GivePage = () => {
         title: "Processing Payment",
         description: "Your payment is being processed. Please complete the payment in the next step.",
         variant: "default",
+      });
+
+      navigate("/giving-success", {
+        state: { givingType: currentGive.title, amount: `${amount} ${currency}` },
       });
 
       // Reset form state

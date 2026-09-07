@@ -45,8 +45,8 @@ const PartnershipSuccess = () => {
             <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl ring-4 ring-white/10">
               <CheckCircle2 className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-black mb-2 tracking-tight">Covenant Sealed! 🙏</h1>
-            <p className="text-blue-100 text-lg font-medium opacity-90">Thank you for joining our global mission family.</p>
+            <h1 className="text-4xl font-black mb-2 tracking-tight">Thank You for Giving 🙏</h1>
+            <p className="text-blue-100 text-lg font-medium opacity-90">We appreciate your heart to give to the LORD and join our global mission family.</p>
           </div>
 
           <CardContent className="p-8 md:p-12 space-y-10">

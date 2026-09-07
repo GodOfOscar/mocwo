@@ -19,6 +19,7 @@ import MOCWO from "./pages/MOCWO";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import GivePage from "./pages/GivePage";
+import GivingSuccess from "./pages/GivingSuccess";
 import PartnershipSuccess from "./pages/PartnershipSuccess";
 import MaintenancePage from "./pages/MaintenancePage"; // Import the new maintenance page
 import { Loader2 } from "lucide-react";
@@ -86,6 +87,7 @@ const AppRoutes = () => {
         <Route path="/services" element={<Services />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/partnership-success" element={<PartnershipSuccess />} />
+        <Route path="/giving-success" element={<GivingSuccess />} />
         <Route path="/membership" element={<MembershipForm />} />
         <Route path="/give/:type" element={<GivePage />} />
         <Route path="/live" element={<LivePage />} />
