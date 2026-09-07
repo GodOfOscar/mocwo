@@ -975,7 +975,7 @@ app.post("/api/admin/settings", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.warn("Admin page access settings unavailable:", error.message);
-    res.json({ success: true, settings: {} });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -1008,7 +1008,8 @@ app.get("/api/admin/page-access", async (req, res) => {
 
     res.json({ success: true, settings: parsedSettings });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.warn("Admin page access settings unavailable:", error.message);
+    res.json({ success: true, settings: {} });
   }
 });
 
