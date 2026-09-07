@@ -16,8 +16,8 @@ app.use(bodyParser.json());
 
 // Supabase initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://foojbihdxdoflfjnhfjf.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || SUPABASE_KEY);
 
@@ -495,6 +495,35 @@ app.get('/admin-partnerships', async (req, res) => {
       success: false,
       error: error?.message || 'Unable to fetch partnerships.',
     });
+  }
+});
+
+app.get('/admin/page-access', async (req, res) => {
+  try {
+    const { data, error } = await adminSupabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'admin_page_access')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('ADMIN PAGE ACCESS SETTINGS UNAVAILABLE:', error.message);
+      return res.json({ success: true, settings: {} });
+    }
+
+    let settings = {};
+    if (data?.value) {
+      try {
+        settings = JSON.parse(data.value);
+      } catch {
+        settings = {};
+      }
+    }
+
+    return res.json({ success: true, settings });
+  } catch (error) {
+    console.warn('ADMIN PAGE ACCESS ERROR:', error?.message || error);
+    return res.json({ success: true, settings: {} });
   }
 });
 
