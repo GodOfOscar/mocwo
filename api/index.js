@@ -9,12 +9,10 @@ import cors from "cors";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import libertePayRoutes from "../backend/routes/libertepay.js";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-app.use("/libertepay", libertePayRoutes);
 
 // Supabase initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://foojbihdxdoflfjnhfjf.supabase.co";
