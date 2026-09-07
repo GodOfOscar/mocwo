@@ -320,8 +320,13 @@ const Partnership = () => {
 
           const institutionCode = networkMap[mobileNetwork];
           const accountData = await verifyLibertepayAccount(institutionCode, formData.phone);
+          const verifiedAccountName = accountData.account_name || accountData.name;
+          if (!verifiedAccountName) {
+            throw new Error('Name verification did not return a verified account name');
+          }
+
           const paymentResult = await collectLibertepayPayment({
-            account_name: accountData.account_name || accountData.name || "Partner",
+            account_name: verifiedAccountName,
             account_number: formData.phone,
             amount: parseFloat(formData.amount),
             institution_code: institutionCode,
@@ -486,8 +491,13 @@ const Partnership = () => {
 
           const institutionCode = networkMap[returningMobileNetwork];
           const accountData = await verifyLibertepayAccount(institutionCode, paymentPhone);
+          const verifiedAccountName = accountData.account_name || accountData.name;
+          if (!verifiedAccountName) {
+            throw new Error('Name verification did not return a verified account name');
+          }
+
           const paymentResult = await collectLibertepayPayment({
-            account_name: accountData.account_name || accountData.name || partner.name,
+            account_name: verifiedAccountName,
             account_number: paymentPhone,
             amount,
             institution_code: institutionCode,

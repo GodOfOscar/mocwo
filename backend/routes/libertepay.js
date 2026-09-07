@@ -32,7 +32,11 @@ const sanitizeReference = (value) => {
 
 const normalizeAccountNumber = (value) => {
   const accountNumber = String(value || "").trim().replace(/^\+/, "");
-  if (/^0\d{9}$/.test(accountNumber)) return `233${accountNumber.slice(1)}`;
+
+  if (/^0\d{9}$/.test(accountNumber)) {
+    return `233${accountNumber.slice(1)}`;
+  }
+
   return accountNumber;
 };
 
@@ -47,7 +51,7 @@ router.post("/name-verify", async (req, res) => {
     if (!LIBERTEPAY_API_KEY) {
       return res.status(500).json({
         success: false,
-        message: "LibertéPay secret key is not configured on the server",
+        message: "LibertéPay API key is not configured on the server",
       });
     }
 
@@ -58,11 +62,22 @@ router.post("/name-verify", async (req, res) => {
       });
     }
 
+    const normalizedAccountNumber =
+      normalizeAccountNumber(account_number);
+
+    if (!/^233\d{9}$/.test(normalizedAccountNumber)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "account_number must be a 12-digit number starting with '233'",
+      });
+    }
+
     const response = await axios.post(
       `${LIBERTEPAY_BASE_URL}/v1/payments/name-verify`,
       {
         institution_code,
-        account_number,
+        account_number: normalizedAccountNumber,
       },
       {
         headers,
@@ -71,9 +86,24 @@ router.post("/name-verify", async (req, res) => {
 
     console.log("LibertéPay Name Verify:", response.data);
 
-    return res.status(response.status).json({
+    const providerData = response.data;
+
+    const successful =
+      providerData?.code === "00" ||
+      String(providerData?.status || "").toUpperCase() === "SUCCESS";
+
+    if (!successful) {
+      return res.status(422).json({
+        success: false,
+        message:
+          providerData?.msg || "LibertéPay name verification failed",
+        error: providerData,
+      });
+    }
+
+    return res.status(200).json({
       success: true,
-      data: response.data,
+      data: providerData,
     });
   } catch (error) {
     console.error(

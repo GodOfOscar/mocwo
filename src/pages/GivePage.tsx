@@ -281,10 +281,15 @@ const GivePage = () => {
         
         // Step 1: Verify account
         const accountData = await verifyLibertepayAccount(institutionCode, mobileNumber);
+
+        const verifiedAccountName = accountData.account_name || accountData.name;
+        if (!verifiedAccountName) {
+          throw new Error("Name verification did not return a verified account name");
+        }
         
         // Step 2: Collect payment
         await collectLibertepayPayment({
-          account_name: accountData.account_name || accountData.name || "Customer",
+          account_name: verifiedAccountName,
           account_number: mobileNumber,
           amount: Number(amount),
           institution_code: institutionCode,

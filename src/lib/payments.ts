@@ -209,7 +209,9 @@ export async function collectLibertepayPayment(opts: {
     );
   }
 
-  if (data.status !== "SUCCESS") {
+  const status = String(data.status || "").toUpperCase();
+
+  if (status !== "SUCCESS" && status !== "PENDING") {
     throw new Error(
       data.msg ||
       data.message ||
@@ -221,6 +223,7 @@ export async function collectLibertepayPayment(opts: {
     success: true,
     transaction_id: data.data?.transaction_id || transactionId,
     reference: payload.reference,
+    status,
     data: data.data,
   };
 }
