@@ -60,19 +60,22 @@ const AdminPartnerships = () => {
   };
 
   useEffect(() => {
-    fetchPartnerships();
-  }, []);
+    if (!isPasswordProtected) {
+      fetchPartnerships();
+    }
+  }, [isPasswordProtected]);
 
   const fetchPartnerships = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('partnerships')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch(`${API_BASE_URL}/api/admin-partnerships`);
+      const result = await response.json();
 
-      if (error) throw error;
-      setPartnerships(data || []);
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Unable to fetch partnerships');
+      }
+
+      setPartnerships(result.data || []);
     } catch (error: any) {
       toast({
         title: "Error fetching partnerships",

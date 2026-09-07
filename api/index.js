@@ -19,6 +19,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL |
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || SUPABASE_KEY);
 
 // WhAPI.cloud configuration
 const WHAPI_TOKEN = process.env.WHAPI_TOKEN;
@@ -477,6 +478,24 @@ app.post('/create-expresspay-transaction', async (req, res) => {
   const checkoutUrl = `${CHECKOUT_BASE}?${params.toString()}`;
 
   return res.status(200).json({ checkoutUrl, reference: reference || null, provider });
+});
+
+app.get('/admin-partnerships', async (req, res) => {
+  try {
+    const { data, error } = await adminSupabase
+      .from('partnerships')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('ADMIN PARTNERSHIPS LIST ERROR:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Unable to fetch partnerships.',
+    });
+  }
 });
 
 export default app;

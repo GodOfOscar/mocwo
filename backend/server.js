@@ -294,6 +294,24 @@ app.use('/api/admin-devotionals', requireSupabaseServiceKey, checkAdminPageAcces
 app.use('/api/admin-carousel', requireSupabaseServiceKey, checkAdminPageAccess);
 app.use('/api/admin-testimonials', requireSupabaseServiceKey, checkAdminPageAccess);
 
+app.get('/api/admin-partnerships', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('partnerships')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('ADMIN PARTNERSHIPS LIST ERROR:', error?.message || error);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Unable to fetch partnerships.',
+    });
+  }
+});
+
 const normalizeMonth = (value) => String(value || "").trim().toLowerCase();
 const validateMonth = (month) => /^[a-z0-9-_]+$/.test(month);
 
