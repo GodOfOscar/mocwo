@@ -20,9 +20,60 @@ const headers = {
 };
 
 const isAcceptedProviderResponse = (data) => {
-  const status = String(data?.status || "").toUpperCase();
-  return data?.code === "00" || status === "SUCCESS" || status === "PENDING";
+  const status = String(data?.status || data?.message?.status || data?.msg || "")
+    .trim()
+    .toUpperCase();
+  const code = String(data?.code || data?.responseCode || "")
+    .trim()
+    .toUpperCase();
+
+  return status === "SUCCESS" && code === "00";
 };
+
+const isLocalDevRequest = (req) => {
+  const host = String(req?.hostname || "").toLowerCase();
+  const origin = String(req?.headers?.origin || "").toLowerCase();
+
+  return host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(origin);
+};
+
+const isMockFallbackEnabled = (req) =>
+  String(process.env.LIBERTEPAY_USE_MOCK || "false").toLowerCase() === "true";
+
+const providerLooksBlockedByIp = (error) => {
+  const payload = String(
+    error?.response?.data?.message ||
+    error?.response?.data?.msg ||
+    error?.response?.data?.error?.message ||
+    error?.response?.data?.error?.msg ||
+    error?.message ||
+    ""
+  );
+
+  return /ip.*not allowed|not allowed to make this request|whitelist|allowlist|blocked/i.test(payload);
+};
+
+const makeMockNameVerifyPayload = (account_number, institution_code) => ({
+  code: "00",
+  status: "SUCCESS",
+  account_name: "MOCWO Partner",
+  account_number,
+  institution_code,
+  msg: "Mock LibertéPay verification accepted in development mode",
+});
+
+const makeMockCollectionPayload = (transaction_id, reference, account_number, amount) => ({
+  code: "00",
+  status: "SUCCESS",
+  transaction_id,
+  reference,
+  account_number,
+  amount,
+  msg: "Mock LibertéPay collection accepted in development mode",
+});
 
 const sanitizeReference = (value) => {
   const base = String(value || "").trim();
@@ -111,6 +162,14 @@ router.post("/name-verify", async (req, res) => {
       error.response?.data || error.message
     );
 
+    if (isMockFallbackEnabled(req) && providerLooksBlockedByIp(error)) {
+      const normalizedAccountNumber = normalizeAccountNumber(req.body.account_number);
+      return res.status(200).json({
+        success: true,
+        data: makeMockNameVerifyPayload(normalizedAccountNumber, req.body.institution_code),
+      });
+    }
+
     return res.status(error.response?.status || 500).json({
       success: false,
       message: "Name verification failed",
@@ -125,6 +184,10 @@ router.post("/name-verify", async (req, res) => {
  * Collect money from mobile money wallet
  */
 router.post("/collection", async (req, res) => {
+  let normalizedAccountNumber = "";
+  let numericAmount = 0;
+  let reference = "";
+
   try {
     const {
       account_name,
@@ -132,9 +195,10 @@ router.post("/collection", async (req, res) => {
       amount,
       institution_code,
       currency,
-      reference,
       metadata,
     } = req.body;
+
+    reference = req.body.reference || "";
 
     if (
       !account_name ||
@@ -149,21 +213,21 @@ router.post("/collection", async (req, res) => {
       });
     }
 
-      const numericAmount = Number(amount);
-      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "amount must be a positive number",
-        });
-      }
+    numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "amount must be a positive number",
+      });
+    }
 
-      const normalizedAccountNumber = normalizeAccountNumber(account_number);
-      if (!/^233\d{9}$/.test(normalizedAccountNumber)) {
-        return res.status(400).json({
-          success: false,
-          message: "account_number must be a 12-digit number starting with '233'",
-        });
-      }
+    normalizedAccountNumber = normalizeAccountNumber(account_number);
+    if (!/^233\d{9}$/.test(normalizedAccountNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "account_number must be a 12-digit number starting with '233'",
+      });
+    }
 
     // Generate your own unique transaction ID
     const transaction_id = `TXN${Date.now()}`;
@@ -200,6 +264,25 @@ router.post("/collection", async (req, res) => {
       });
     }
 
+    const providerStatus = String(response.data?.status || "").toUpperCase();
+    const providerCode = String(response.data?.code || "").toUpperCase();
+
+    const callbackRequired =
+      providerStatus === "SUCCESS" &&
+      providerCode === "00" &&
+      String(response.data?.data?.transaction_message || "").toLowerCase() === "request processed";
+
+    if (callbackRequired) {
+      return res.status(202).json({
+        success: true,
+        transaction_id,
+        data: response.data,
+        status: "PENDING",
+        code: providerCode,
+        msg: "Payment request accepted by LibertyPay. Final status will arrive through the callback/webhook.",
+      });
+    }
+
     return res.status(response.status).json({
       success: true,
       transaction_id,
@@ -213,6 +296,20 @@ router.post("/collection", async (req, res) => {
       "LibertéPay Collection Error:",
       error.response?.data || error.message
     );
+
+    if (isMockFallbackEnabled(req) && providerLooksBlockedByIp(error)) {
+      const mockTransactionId = `MOCK-${Date.now()}`;
+      const mockReference = sanitizeReference(reference || mockTransactionId);
+
+      return res.status(200).json({
+        success: true,
+        transaction_id: mockTransactionId,
+        data: makeMockCollectionPayload(mockTransactionId, mockReference, normalizedAccountNumber, numericAmount),
+        status: "SUCCESS",
+        code: "00",
+        msg: "Mock LibertéPay collection accepted in development mode",
+      });
+    }
 
     return res.status(error.response?.status || 500).json({
       success: false,

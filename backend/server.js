@@ -20,17 +20,18 @@ const rootEnvPath = path.resolve(__dirname, "../.env");
 dotenv.config({ path: backendEnvPath });
 dotenv.config({ path: rootEnvPath });
 
-// Initialize Supabase client for backend operations
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+// Initialize Supabase client for backend operations. Prefer the service-role key
+// explicitly so inserts/updates on protected tables bypass row-level policy checks.
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 if (!process.env.SUPABASE_URL) {
   console.error("🚨 Missing SUPABASE_URL environment variable. Backend cannot connect to Supabase.");
 }
-if (!SUPABASE_KEY) {
-  console.error("🚨 Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY environment variable. Backend cannot bypass RLS.");
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("🚨 Missing SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY environment variable. Backend cannot bypass RLS.");
 }
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  SUPABASE_KEY,
+  SUPABASE_SERVICE_ROLE_KEY,
   {
     realtime: {
       transport: ws,
@@ -116,6 +117,193 @@ if (fs.existsSync(distPath)) {
 // ✅ ROUTES
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/libertepay", libertePayRoutes);
+
+app.get('/api/live-chat/messages', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const { data, error } = await supabase
+      .from('live_messages')
+      .select('id,user_name,message,is_highlighted,created_at')
+      .order('created_at', { ascending: true })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return res.json({ success: true, data: data || [] });
+  } catch (error) {
+    console.error('LIVE CHAT FETCH ERROR:', error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || 'Unable to fetch live chat messages.' });
+  }
+});
+
+app.post('/api/live-chat/messages', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const userName = String(body.user_name || 'Guest').trim();
+    const message = String(body.message || '').trim();
+
+    if (!userName || !message) {
+      return res.status(400).json({ success: false, error: 'user_name and message are required.' });
+    }
+
+    const payload = {
+      user_name: userName,
+      message,
+      is_highlighted: Boolean(body.is_highlighted),
+    };
+
+    const { data, error } = await supabase
+      .from('live_messages')
+      .insert([payload])
+      .select('id,user_name,message,is_highlighted,created_at')
+      .single();
+
+    if (error) throw error;
+
+    return res.status(201).json({ success: true, data });
+  } catch (error) {
+    console.error('LIVE CHAT CREATE ERROR:', error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || 'Unable to post live chat message.' });
+  }
+});
+
+app.put('/api/live-chat/messages/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const update = req.body || {};
+
+    const { data, error } = await supabase
+      .from('live_messages')
+      .update({
+        is_highlighted: typeof update.is_highlighted === 'boolean' ? update.is_highlighted : false,
+      })
+      .eq('id', id)
+      .select('id,user_name,message,is_highlighted,created_at')
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('LIVE CHAT UPDATE ERROR:', error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || 'Unable to update live chat message.' });
+  }
+});
+
+app.post("/api/payments/callback", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const status = String(body.status || body.transaction_status || "").toUpperCase();
+    const transactionId = String(body.transaction_id || body.transactionId || body.reference || body.txn_id || body.id || "");
+    const phone = String(body.phone || body.customer_phone || body.account_number || body.metadata?.phone || body.metadata?.mobile || "");
+    const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || body.metadata?.amount || 0);
+    const reference = String(body.reference || body.external_reference || body.payment_reference || body.metadata?.reference || "");
+    const email = String(body.email || body.customer_email || body.donor_email || body.metadata?.email || "anonymous@libertepay.local");
+    const name = String(body.name || body.customer_name || body.donor_name || body.account_name || body.metadata?.name || "Anonymous Donor");
+    const level = String(body.level || body.partner_level || body.metadata?.level || "custom");
+    const paymentMethod = String(body.payment_method || body.paymentMethod || body.metadata?.payment_method || "mobile-money");
+    const donationType = String(body.donation_type || body.type || body.gift_type || body.metadata?.donation_type || "offering");
+
+    console.log("📨 LibertyPay callback received:", { transactionId, status, reference, amount, phone });
+
+    const mappedStatus = status === "SUCCESS" ? "successful" : status === "FAILED" ? "failed" : "pending";
+
+    try {
+      const { error } = await supabase
+        .from("donations")
+        .insert([
+          {
+            name: name || "Anonymous Donor",
+            email: email || "anonymous@libertepay.local",
+            phone: phone || null,
+            amount,
+            donation_type: donationType || "offering",
+            payment_method: "libertepay",
+            payment_reference: reference || transactionId || `CALLBACK-${Date.now()}`,
+            status: mappedStatus,
+            message: `LibertyPay callback processed with provider status ${status || "PENDING"}`,
+          },
+        ]);
+
+      if (error) {
+        console.warn("⚠️ Callback donation persistence failed:", error?.message || error);
+      } else {
+        console.log("✓ Callback donation record persisted:", { transactionId, status: mappedStatus, reference: reference || transactionId });
+      }
+    } catch (persistError) {
+      console.warn("⚠️ Callback donation persistence error:", persistError?.message || persistError);
+    }
+
+    if (status === "SUCCESS") {
+      const safeReference = String(reference || transactionId || `CALLBACK-${Date.now()}`);
+      const safeEmail = String(email || "anonymous@libertepay.local");
+      const safeName = String(name || "Anonymous Donor");
+      const safePhone = String(phone || "");
+
+      try {
+        const { error } = await supabase
+          .from("partnerships")
+          .insert([
+            {
+              name: safeName,
+              email: safeEmail,
+              phone: safePhone,
+              level: level || "custom",
+              amount: Number(amount || 0),
+              payment_method: paymentMethod || "mobile-money",
+              message: `Partner registration approved after LibertyPay callback | Reference: ${safeReference}`,
+              status: "approved",
+            },
+          ]);
+
+        if (error) {
+          console.warn("⚠️ Callback partnership persistence failed:", error?.message || error);
+        } else {
+          console.log("✓ Callback partnership record persisted:", { reference: safeReference, transactionId, amount, phone });
+        }
+      } catch (partnerPersistError) {
+        console.warn("⚠️ Callback partnership persistence error:", partnerPersistError?.message || partnerPersistError);
+      }
+
+      if (phone) {
+        const smsMessage = `Hello, your LibertyPay payment of GHS ${Number(amount || 0).toFixed(2)} has been confirmed. Reference: ${reference || transactionId}. Thank you.`;
+        const smsResult = await sendSMSViaMMNotify(phone, smsMessage);
+        if (!smsResult.success) {
+          console.warn("⚠️ Callback SMS was not sent:", smsResult.error);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        status: "SUCCESS",
+        transaction_id: transactionId,
+        message: "Payment callback processed and downstream SMS notification attempted.",
+      });
+    }
+
+    if (status === "FAILED") {
+      return res.status(200).json({
+        success: true,
+        status: "FAILED",
+        transaction_id: transactionId,
+        message: "Payment callback processed as failed.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: "PENDING",
+      transaction_id: transactionId,
+      message: "Payment callback processed as pending.",
+    });
+  } catch (error) {
+    console.error("Payment callback error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Payment callback failed",
+      error: error?.message || String(error),
+    });
+  }
+});
 
 // ✅ HEALTH CHECK (ADD THIS)
 app.get("/health", (req, res) => {
@@ -275,9 +463,10 @@ app.use(async (req, res, next) => {
 
 // Apply the new middleware to all admin routes except the main admin dashboard and master admin
 const requireSupabaseServiceKey = (req, res, next) => {
-  if (!process.env.SUPABASE_URL || !SUPABASE_KEY) {
+  const effectiveServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!process.env.SUPABASE_URL || !effectiveServiceKey) {
     console.error('Supabase not configured for admin operation:', { path: req.originalUrl });
-    return res.status(500).json({ success: false, error: 'Supabase not configured on server. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.' });
+    return res.status(500).json({ success: false, error: 'Supabase not configured on server. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY are set.' });
   }
   next();
 };

@@ -77,7 +77,7 @@ const GivePage = () => {
       (async () => {
         try {
           const reference = `EXP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          await initiatePayment("libertepay", {
+          const started = await initiatePayment("libertepay", {
             amount: numericAmount,
             currency: "USD",
             email,
@@ -85,18 +85,19 @@ const GivePage = () => {
             channels: ["card"],
           });
 
+          if (!started || !started.started) {
+            throw new Error("LibertéPay checkout did not start");
+          }
+
           toast({
             title: "Redirecting to payment",
             description: "A new tab has been opened to complete your payment.",
           });
 
-          setIsProcessing(false);
           setEmail("");
-          navigate("/giving-success", {
-            state: { givingType: level.title, amount: `${numericAmount} USD` },
-          });
         } catch (err: any) {
           toast({ title: "Payment Error", description: err.message || "Failed to start payment", variant: "destructive" });
+        } finally {
           setIsProcessing(false);
         }
       })();
@@ -273,22 +274,17 @@ const GivePage = () => {
     setIsProcessing(true);
 
     try {
-      if (paymentMethod === "card") {
-        await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["card"] });
-      } else if (paymentMethod === "mobile") {
+      if (paymentMethod === "mobile") {
         const institutionCode = networkMap[mobileNetwork];
         const { verifyLibertepayAccount, collectLibertepayPayment } = await import("@/lib/payments");
-        
-        // Step 1: Verify account
-        const accountData = await verifyLibertepayAccount(institutionCode, mobileNumber);
 
+        const accountData = await verifyLibertepayAccount(institutionCode, mobileNumber);
         const verifiedAccountName = accountData.account_name || accountData.name;
         if (!verifiedAccountName) {
           throw new Error("Name verification did not return a verified account name");
         }
-        
-        // Step 2: Collect payment
-        await collectLibertepayPayment({
+
+        const paymentResult = await collectLibertepayPayment({
           account_name: verifiedAccountName,
           account_number: mobileNumber,
           amount: Number(amount),
@@ -297,26 +293,64 @@ const GivePage = () => {
           email,
           reference: `MOC${Date.now()}`,
         });
-      } else if (paymentMethod === "bank") {
-        await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["bank_transfer"] });
+
+        if (!paymentResult || paymentResult.status === "PENDING") {
+          toast({
+            title: "Payment Submitted",
+            description: "LibertéPay received the request. Final confirmation will arrive through the callback/webhook.",
+            variant: "default",
+          });
+          setAmount("");
+          setMobileNumber("");
+          setMobileNetwork("");
+          setEmail("");
+          setPaymentMethod("");
+          return;
+        }
+
+        if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
+          throw new Error("Payment collection was not confirmed by LibertéPay");
+        }
+
+        if (paymentResult.status !== "SUCCESS") {
+          throw new Error("Payment collection was not confirmed by LibertéPay");
+        }
+
+        toast({
+          title: "Payment Confirmed",
+          description: "Your payment has been accepted by LibertéPay.",
+          variant: "default",
+        });
+
+        navigate("/giving-success", {
+          state: { givingType: currentGive.title, amount: `${amount} ${currency}` },
+        });
+
+        setAmount("");
+        setMobileNumber("");
+        setMobileNetwork("");
+        setEmail("");
+        setPaymentMethod("");
+        return;
       }
 
-      toast({
-        title: "Processing Payment",
-        description: "Your payment is being processed. Please complete the payment in the next step.",
-        variant: "default",
-      });
+      if (paymentMethod === "card") {
+        const paymentResult = await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["card"] });
+        if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
+          throw new Error("Payment collection was not confirmed by LibertéPay");
+        }
+        return;
+      }
 
-      navigate("/giving-success", {
-        state: { givingType: currentGive.title, amount: `${amount} ${currency}` },
-      });
+      if (paymentMethod === "bank") {
+        const paymentResult = await initiatePayment("libertepay", { amount: Number(amount), currency, email, channels: ["bank_transfer"] });
+        if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
+          throw new Error("Payment collection was not confirmed by LibertéPay");
+        }
+        return;
+      }
 
-      // Reset form state
-      setAmount("");
-      setMobileNumber("");
-      setMobileNetwork("");
-      setEmail("");
-      setPaymentMethod("");
+      throw new Error("Choose a supported payment method before continuing");
     } catch (error) {
       console.error("Payment error:", error);
       toast({

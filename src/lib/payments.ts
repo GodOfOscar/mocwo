@@ -1,6 +1,14 @@
+const normalizeGhanaPhone = (value: string) => {
+  const cleaned = String(value || "").replace(/\D/g, "");
+  if (cleaned.startsWith("0") && cleaned.length === 10) {
+    return `233${cleaned.slice(1)}`;
+  }
+  return cleaned;
+};
+
 export async function initiatePayment(provider: string, opts: any) {
   // opts: { amount, currency, email, phone, reference, institution_code, account_number }
-  const normalizedProvider = provider?.toLowerCase();
+  const normalizedProvider = String(provider || "").trim().toLowerCase();
 
   if (normalizedProvider === "libertepay") {
     const {
@@ -38,12 +46,17 @@ export async function initiatePayment(provider: string, opts: any) {
     const verifiedAccountName =
       verification?.account_name ||
       verification?.accountName ||
-      verification?.name;
+      verification?.name ||
+      verification?.data?.account_name ||
+      verification?.data?.name;
 
     const verifiedAccountNumber =
-      verification?.account_number ||
-      verification?.accountNumber ||
-      account_number;
+      normalizeGhanaPhone(
+        verification?.account_number ||
+        verification?.accountNumber ||
+        verification?.phone ||
+        account_number
+      );
 
     if (!verifiedAccountName) {
       console.error(
@@ -75,7 +88,7 @@ export async function initiatePayment(provider: string, opts: any) {
     });
   }
 
-  if (provider === "paystack") {
+  if (normalizedProvider === "paystack") {
     // Fallback to existing Paystack inline flow if still available
     const config: any = {
       key: opts.publicKey,
@@ -119,16 +132,26 @@ export async function verifyLibertepayAccount(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(
-      err.error?.message || err.message || "Account verification failed"
+      err.error?.message ||
+      err.error?.msg ||
+      err.message ||
+      err.msg ||
+      "Account verification failed"
     );
   }
 
   const data = await res.json();
   if (!data.success) {
-    throw new Error(data.message || "Account verification failed");
+    throw new Error(data.message || data.msg || "Account verification failed");
   }
 
-  return data.data?.data || data.data; // Unwrap provider response to { account_name, account_number, ... }
+  const providerPayload = data.data?.data || data.data || data;
+
+  if (!providerPayload || typeof providerPayload !== "object") {
+    throw new Error("Account verification succeeded but returned an invalid payload");
+  }
+
+  return providerPayload;
 }
 
 /**
@@ -144,14 +167,7 @@ export async function collectLibertepayPayment(opts: {
   reference?: string;
   metadata?: Record<string, any>;
 }) {
-  const cleanedPhone = opts.account_number.replace(/\D/g, "");
-
-  let accountNumber = cleanedPhone;
-
-  // Convert Ghana local format: 0544733469 -> 233544733469
-  if (cleanedPhone.startsWith("0") && cleanedPhone.length === 10) {
-    accountNumber = "233" + cleanedPhone.substring(1);
-  }
+  const accountNumber = normalizeGhanaPhone(opts.account_number);
 
   if (!/^233\d{9}$/.test(accountNumber)) {
     throw new Error(
@@ -203,27 +219,63 @@ export async function collectLibertepayPayment(opts: {
   if (!res.ok) {
     throw new Error(
       data?.error?.message ||
+      data?.error?.msg ||
       data?.message ||
       data?.msg ||
       `LibertéPay request failed (${res.status})`
     );
   }
 
-  const status = String(data.status || "").toUpperCase();
+  const providerStatus = String(
+    data?.status ||
+    data?.data?.status ||
+    data?.data?.data?.status ||
+    ""
+  ).toUpperCase();
 
-  if (status !== "SUCCESS" && status !== "PENDING") {
-    throw new Error(
-      data.msg ||
-      data.message ||
-      "Payment collection failed"
-    );
+  const providerCode = String(
+    data?.code ||
+    data?.data?.code ||
+    data?.data?.data?.code ||
+    ""
+  ).toUpperCase();
+
+  const providerMessage = String(
+    data?.msg ||
+    data?.message ||
+    data?.data?.msg ||
+    data?.data?.message ||
+    "Payment collection failed"
+  );
+
+  if (providerStatus === "PENDING" && providerCode === "00") {
+    return {
+      success: false,
+      transaction_id:
+        data?.transaction_id ||
+        data?.data?.transaction_id ||
+        data?.data?.data?.transaction_id ||
+        transactionId,
+      reference: payload.reference,
+      status: "PENDING",
+      message: providerMessage || "Payment request accepted by LibertyPay. Final status will arrive through the callback/webhook.",
+      data: data?.data || data,
+    };
+  }
+
+  if (providerStatus !== "SUCCESS" || providerCode !== "00") {
+    throw new Error(providerMessage || "Payment collection failed");
   }
 
   return {
     success: true,
-    transaction_id: data.data?.transaction_id || transactionId,
+    transaction_id:
+      data?.transaction_id ||
+      data?.data?.transaction_id ||
+      data?.data?.data?.transaction_id ||
+      transactionId,
     reference: payload.reference,
-    status,
-    data: data.data,
+    status: providerStatus,
+    data: data?.data || data,
   };
 }

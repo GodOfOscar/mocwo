@@ -8,7 +8,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationSignup } from "@/components/NotificationSignup";
 import { useToast } from "@/hooks/use-toast";
-import { verifyAdmin } from "@/lib/api";
+import { verifyAdmin, API_BASE_URL } from "@/lib/api";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // YouTube Configuration
@@ -286,7 +286,7 @@ useEffect(() => {
   }
 }, [searchParams]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     const text = chatMessage.trim();
     if (!text) return;
 
@@ -298,25 +298,52 @@ useEffect(() => {
       is_highlighted: isHighlighted,
     };
 
-    (async () => {
-      const { error } = await supabase.from("live_messages" as any).insert([payload]);
-      if (error) console.error("Failed to send message:", error);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/live-chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Unable to send message');
+      }
+
       setChatMessage("");
       if (isPinningMode) setIsPinningMode(false);
-    })();
+      if (data.data) {
+        setChatMessages((prev) => [...prev, data.data]);
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      toast({
+        title: "Chat unavailable",
+        description: err instanceof Error ? err.message : "Unable to send message",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUnpin = async () => {
     if (!pinnedMessage) return;
     try {
-      const { error } = await supabase
-        .from("live_messages" as any)
-        .update({ is_highlighted: false })
-        .eq("id", pinnedMessage.id);
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/live-chat/messages/${pinnedMessage.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_highlighted: false }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Unable to unpin message');
+      }
       setPinnedMessage(null);
     } catch (err) {
       console.error("Failed to unpin message:", err);
+      toast({
+        title: "Unable to unpin",
+        description: err instanceof Error ? err.message : 'Unable to remove the pinned message.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -372,21 +399,24 @@ useEffect(() => {
     let mounted = true;
 
     const loadRecent = async () => {
-      const { data, error } = await supabase
-        .from("live_messages" as any)
-        .select("id,user_name,message,created_at,is_highlighted")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) return console.error("Error loading messages:", error);
-      if (!mounted) return;
-      
-      const messages = (data as unknown || []) as Array<{id:string;user_name:string;message:string;created_at:string;is_highlighted:boolean}>;
-      
-      // Find the most recent highlighted message to pin
-      const latestPinned = messages.find(m => m.is_highlighted);
-      if (latestPinned) setPinnedMessage(latestPinned);
-      
-      setChatMessages(messages.reverse());
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/live-chat/messages?limit=50`);
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || 'Unable to fetch live chat messages');
+        }
+
+        if (!mounted) return;
+
+        const messages = (payload.data || []) as Array<{id:string;user_name:string;message:string;created_at:string;is_highlighted:boolean}>;
+
+        const latestPinned = messages.find(m => m.is_highlighted);
+        if (latestPinned) setPinnedMessage(latestPinned);
+
+        setChatMessages(messages);
+      } catch (err) {
+        console.error('Error loading messages:', err);
+      }
     };
 
     loadRecent();

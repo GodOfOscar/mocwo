@@ -2,11 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import S1 from "@/assets/sunday/1.jpeg";
-import S2 from "@/assets/sunday/2.jpeg";
-import S3 from "@/assets/sunday/3.jpeg";
-import S4 from "@/assets/sunday/4.jpeg";
-import S5 from "@/assets/sunday/5.jpeg";
+import MOCWO_KNUST from "@/assets/MOCWO_KNUST.mp4";
+import REACH_OUT from "@/assets/REACH_OUT.mp4";
 import schoolsIcon from "@/assets/icons/schools.png";
 import soulsIcon from "@/assets/icons/souls won.png";
 import clansIcon from "@/assets/icons/active clans.png";
@@ -121,7 +118,9 @@ function CountUp({ target, duration = 1400 }: { target: string; duration?: numbe
 }
 
 const MOCWO = () => {
-  const slides = [S1, S2, S3, S4, S5];
+  const slides = [
+    { type: "video" as const, src: REACH_OUT, alt: "MOCWO Reach Out video" },
+  ];
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
 
@@ -144,12 +143,11 @@ const MOCWO = () => {
         <video
           autoPlay
           loop
-          muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover max-w-full"
           poster="/moc1.jpg"
         >
-          <source src="/moc.mp4" type="video/mp4" />
+          <source src={MOCWO_KNUST} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -284,12 +282,23 @@ Through discipleship, we're raising a generation of kingdom disciples who will b
                   </button>
 
                   <div className="relative aspect-square rounded-xl overflow-hidden">
-                    {slides.map((src, i) => (
+                    {slides.map((slide, i) => (
                       <div
                         key={i}
                         className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0"}`}
                       >
-                        <img src={src} alt={`MOCWO ${i + 1}`} className="w-full h-full object-cover" />
+                        {slide.type === "video" ? (
+                          <video
+                            src={slide.src}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <img src={slide.src} alt={slide.alt} className="w-full h-full object-cover" />
+                        )}
                       </div>
                     ))}
 

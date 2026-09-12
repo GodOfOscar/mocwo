@@ -14,12 +14,15 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Supabase initialization
+// Supabase initialization. Use the service-role key as the only write-capable
+// credential; do not silently fall back to an anon or secret key that can trip RLS.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://foojbihdxdoflfjnhfjf.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || SUPABASE_KEY);
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_ROLE_KEY) {
+  console.warn("⚠️ Missing SUPABASE_SERVICE_ROLE_KEY; serverless API writes will not bypass RLS.");
+}
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY);
 
 // WhAPI.cloud configuration
 const WHAPI_TOKEN = process.env.WHAPI_TOKEN;

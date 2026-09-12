@@ -141,6 +141,7 @@ const Partnership = () => {
         "Access to partner events",
         "Digital resources",
         "Ministry updates",
+        "Ministry impact reports",
       ]
     },
     {
@@ -155,6 +156,7 @@ const Partnership = () => {
         "Physical resource gifts",
         "Priority prayer requests",
         "Special recognition",
+        "Ministry impact reports",
       ]
     },
     {
@@ -335,37 +337,35 @@ const Partnership = () => {
             reference,
           });
 
-          if (!paymentResult || paymentResult.success !== true) {
-            toast({ title: 'Payment Not Confirmed', description: 'Your payment has not been verified yet. Please complete the payment before continuing.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
-        } else {
-          if (!formData.phone) {
-            toast({ title: 'Phone Required', description: 'Please enter the mobile money number for the LibertéPay verification flow.', variant: 'destructive' });
+          if (!paymentResult || paymentResult.status === 'PENDING') {
+            toast({
+              title: 'Payment Submitted',
+              description: 'LibertéPay received the request. Final confirmation will arrive through the callback/webhook.',
+              variant: 'default',
+            });
             setIsProcessing(false);
             return;
           }
 
-          const institutionCode = networkMap[mobileNetwork];
-          const paymentResult = await initiatePayment('libertepay', {
-            amount: parseFloat(formData.amount),
-            currency: 'GHS',
-            email: formData.email,
-            phone: formData.phone,
-            account_number: formData.phone,
-            institution_code: institutionCode,
-            reference,
+          if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
+            throw new Error('Payment collection was not confirmed by LibertéPay');
+          }
+
+          if (paymentResult.status !== 'SUCCESS') {
+            throw new Error('Payment collection was not confirmed by LibertéPay');
+          }
+
+          toast({
+            title: 'Payment Accepted',
+            description: 'LibertéPay confirmed the provider response. Final callback data will be recorded after the provider callback arrives.',
+            variant: 'default',
           });
 
-          if (!paymentResult || paymentResult.success !== true) {
-            toast({ title: 'Payment Not Confirmed', description: 'Please complete the payment before continuing.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
+        } else {
+          toast({ title: 'Payment Method Not Available', description: 'Card or bank checkout must complete through a provider confirmation callback before the record can be saved.', variant: 'destructive' });
+          setIsProcessing(false);
+          return;
         }
-
-        await savePartnershipData('AWAITING_VERIFICATION');
       } catch (err: any) {
         toast({ title: 'Payment Error', description: err.message || 'Failed to process payment', variant: 'destructive' });
         setIsProcessing(false);
@@ -506,50 +506,34 @@ const Partnership = () => {
             reference,
           });
 
-          if (!paymentResult || paymentResult.success !== true) {
+          if (!paymentResult || paymentResult.status === 'PENDING') {
+            toast({
+              title: 'Payment Submitted',
+              description: 'LibertéPay received the request. Final confirmation will arrive through the callback/webhook.',
+              variant: 'default',
+            });
+            setIsProcessing(false);
+            return;
+          }
+
+          if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
+            toast({ title: 'Payment Not Confirmed', description: 'The mobile-money payment must be completed before the record is saved.', variant: 'destructive' });
+            setIsProcessing(false);
+            return;
+          }
+
+          if (paymentResult.status !== 'SUCCESS') {
             toast({ title: 'Payment Not Confirmed', description: 'The mobile-money payment must be completed before the record is saved.', variant: 'destructive' });
             setIsProcessing(false);
             return;
           }
         } else {
-          if (!paymentPhone) {
-            toast({ title: 'Phone Required', description: 'Please enter the phone number for the LibertyPay verification flow.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
-
-          const institutionCode = networkMap[returningMobileNetwork];
-          const paymentResult = await initiatePayment('libertepay', {
-            amount,
-            currency: 'GHS',
-            email: paymentEmail,
-            phone: paymentPhone,
-            account_number: paymentPhone,
-            institution_code: institutionCode,
-            reference,
-          });
-
-          if (!paymentResult || paymentResult.success !== true) {
-            toast({ title: 'Payment Not Confirmed', description: 'The payment must be completed before the record is saved.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
+          toast({ title: 'Payment Method Not Available', description: 'Card or bank checkout must complete through a provider confirmation callback before the record can be saved.', variant: 'destructive' });
+          setIsProcessing(false);
+          return;
         }
 
-        const { error } = await publicSupabase.from('partnerships').insert([{
-          name: partner.name,
-          email: paymentEmail,
-          phone: paymentPhone,
-          level: returningForm.level,
-          amount,
-          payment_method: returningForm.paymentMethod,
-          message: `Returning partner payment for existing partner name ${partner.name} | Reference: ${reference}`,
-          status: 'pending'
-        }]);
-
-        if (error) throw error;
-
-        toast({ title: 'Success!', description: 'Your partnership payment has been recorded.' });
+        toast({ title: 'Payment Accepted', description: 'The LibertyPay callback will create the partnership record only after the final provider status arrives.', variant: 'default' });
         navigate('/partnership-success', {
           state: {
             name: partner.name,
@@ -574,9 +558,9 @@ const Partnership = () => {
       <HeroCarousel slides={carouselSlides} showContent={false} cardMode={true} />
 
       {/* Dancing text animation */}
-      <div className="relative overflow-hidden h-14 bg-gradient-to-r from-sky-700/30 via-blue-700/30 to-sky-700/30 border border-blue-400/80 mt-4 mb-8">
+      <div className="relative overflow-hidden h-14 bg-gradient-to-r from-blue-950/95 via-blue-900/95 to-blue-950/95 border border-blue-700/80 mt-4 mb-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="inline-flex whitespace-nowrap text-lg sm:text-3xl font-extrabold text-white tracking-widest animate-marquee">
+          <div className="inline-flex whitespace-nowrap text-lg sm:text-3xl font-bold text-white tracking-widest animate-marquee">
             <span className="mx-8">Partner with us to empower communities</span>
             <span className="mx-8">Partner with us and multiply your impact</span>
             <span className="mx-8">Partner with us to feed, shelter & educate</span>
