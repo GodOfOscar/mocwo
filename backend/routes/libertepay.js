@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 import { rememberPendingPayment } from "../services/payment-state.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
@@ -19,6 +20,11 @@ const headers = {
   Authorization: `Bearer ${LIBERTEPAY_API_KEY}`,
   "Content-Type": "application/json",
 };
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+);
 
 const LIBERTEPAY_CALLBACK_URL =
   process.env.LIBERTEPAY_CALLBACK_URL ||
@@ -330,6 +336,47 @@ router.post("/collection", async (req, res) => {
         transactionMessage.includes("request processed") ||
         transactionMessage.includes("transaction initiated")
       );
+
+    const paymentMetadata = metadata || {};
+    const pendingRecord = {
+      name: paymentMetadata.name || account_name || "Friend",
+      email: paymentMetadata.email || null,
+      phone: paymentMetadata.phone || normalizedAccountNumber,
+      amount: numericAmount,
+      payment_method: paymentMetadata.payment_method || "mobile-money",
+      payment_reference: safeReference,
+      status: "pending",
+      message: [
+        `LibertéPay collection pending`,
+        `Transaction: ${transaction_id}`,
+        `Reference: ${safeReference}`,
+        paymentMetadata.payment_type === "partnership" || paymentMetadata.level
+          ? `Partnership level: ${paymentMetadata.level || "custom"}`
+          : `Donation type: ${paymentMetadata.donation_type || "offering"}`,
+      ].join(" | "),
+    };
+
+    const pendingTable = paymentMetadata.payment_type === "partnership" || paymentMetadata.level
+      ? "partnerships"
+      : "donations";
+    const pendingPayload = pendingTable === "partnerships"
+      ? {
+          ...pendingRecord,
+          level: paymentMetadata.level || "custom",
+          message: `${pendingRecord.message} | ${paymentMetadata.message || ""}`.trim(),
+        }
+      : {
+          ...pendingRecord,
+          donation_type: paymentMetadata.donation_type || "offering",
+        };
+
+    const { error: pendingError } = await supabase
+      .from(pendingTable)
+      .insert([pendingPayload]);
+
+    if (pendingError) {
+      console.error("[Payment] Failed to persist pending collection:", pendingError);
+    }
 
     return res.status(200).json({
       success: true,

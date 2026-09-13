@@ -252,7 +252,7 @@ const handlePaymentCallback = async (req, res) => {
     const donationType = String(body.donation_type || body.type || body.gift_type || providerData.donation_type || providerData.type || providerData.gift_type || body.metadata?.donation_type || providerData.metadata?.donation_type || "offering");
     const partnershipMessage = String(body.message || providerData.message || body.metadata?.message || providerData.metadata?.message || "");
     const paymentType = String(body.payment_type || providerData.payment_type || body.metadata?.payment_type || providerData.metadata?.payment_type || "").toLowerCase();
-    const pendingPayment = findPendingPayment(transactionId, reference) || {};
+    const pendingPayment = findPendingPayment(transactionId, reference) || await findPersistedPendingPayment(reference);
     const resolvedTransactionId = transactionId || String(pendingPayment.transactionId || "");
     const resolvedReference = reference || String(pendingPayment.reference || "");
     const resolvedPhone = phone || String(pendingPayment.phone || "");
@@ -1313,6 +1313,51 @@ const sendSMSViaMMNotify = async (phoneNumber, message) => {
   }
 };
 
+async function findPersistedPendingPayment(reference) {
+  if (!reference) return {};
+
+  const { data: donation } = await supabase
+    .from("donations")
+    .select("name,email,phone,amount,payment_method,donation_type,payment_reference,status")
+    .eq("payment_reference", reference)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (donation) {
+    return {
+      name: donation.name,
+      email: donation.email,
+      phone: donation.phone,
+      amount: donation.amount,
+      paymentMethod: donation.payment_method,
+      donationType: donation.donation_type,
+      paymentType: "donation",
+      reference,
+    };
+  }
+
+  const { data: partnerships } = await supabase
+    .from("partnerships")
+    .select("name,email,phone,amount,payment_method,level,message,status")
+    .like("message", `%Reference: ${reference}%`)
+    .eq("status", "pending")
+    .limit(1);
+
+  const partnership = partnerships?.[0];
+  return partnership
+    ? {
+        name: partnership.name,
+        email: partnership.email,
+        phone: partnership.phone,
+        amount: partnership.amount,
+        paymentMethod: partnership.payment_method,
+        level: partnership.level,
+        paymentType: "partnership",
+        reference,
+      }
+    : {};
+}
+
 async function completePartnershipPayment({
   name,
   email,
@@ -1325,22 +1370,45 @@ async function completePartnershipPayment({
   message = "",
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const { data, error } = await supabase
+  const completedMessage = `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim();
+  const updatePayload = {
+    name,
+    email,
+    phone: normalizedPhone,
+    level,
+    amount,
+    payment_method: paymentMethod,
+    message: completedMessage,
+    status: "approved",
+  };
+
+  const { data: pendingRows, error: pendingLookupError } = await supabase
     .from("partnerships")
-    .insert([
-      {
-        name,
-        email,
-        phone: normalizedPhone,
-        level,
-        amount,
-        payment_method: paymentMethod,
-        message: `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim(),
-        status: "approved",
-      },
-    ])
-    .select()
-    .single();
+    .select("id")
+    .like("message", `%Reference: ${reference}%`)
+    .limit(1);
+
+  let data;
+  let error = pendingLookupError;
+
+  if (!error && pendingRows?.[0]?.id) {
+    const result = await supabase
+      .from("partnerships")
+      .update(updatePayload)
+      .eq("id", pendingRows[0].id)
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  } else if (!error) {
+    const result = await supabase
+      .from("partnerships")
+      .insert([updatePayload])
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  }
 
   if (error) {
     console.error("[mNotify] Partnership persistence failed after payment success:", error);
@@ -1378,23 +1446,37 @@ async function completeDonationPayment({
   donationType,
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const { data, error } = await supabase
+  const completedPayload = {
+    name,
+    email,
+    phone: normalizedPhone,
+    amount,
+    donation_type: donationType || "offering",
+    payment_method: paymentMethod || "libertepay",
+    payment_reference: reference,
+    status: "successful",
+    message: `Payment confirmed by LibertyPay | Reference: ${reference} | Transaction: ${transactionId}`,
+  };
+
+  const result = await supabase
     .from("donations")
-    .insert([
-      {
-        name,
-        email,
-        phone: normalizedPhone,
-        amount,
-        donation_type: donationType || "offering",
-        payment_method: paymentMethod || "libertepay",
-        payment_reference: reference,
-        status: "successful",
-        message: `Payment confirmed by LibertyPay | Reference: ${reference} | Transaction: ${transactionId}`,
-      },
-    ])
+    .update(completedPayload)
+    .eq("payment_reference", reference)
     .select()
-    .single();
+    .maybeSingle();
+
+  let data = result.data;
+  let error = result.error;
+
+  if (!error && !data) {
+    const insertResult = await supabase
+      .from("donations")
+      .insert([completedPayload])
+      .select()
+      .single();
+    data = insertResult.data;
+    error = insertResult.error;
+  }
 
   if (error) {
     console.error("[mNotify] Donation persistence failed after payment success:", error);
