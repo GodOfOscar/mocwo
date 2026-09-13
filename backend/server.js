@@ -195,11 +195,11 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
   }
 });
 
-app.post("/api/payments/callback", async (req, res) => {
+app.all("/api/payments/callback", async (req, res) => {
   try {
-    const body = req.body || {};
+    const body = { ...(req.query || {}), ...(req.body || {}) };
     const providerData = body.data?.data || body.data || body;
-    const status = String(
+    const rawStatus = String(
       body.status ||
       body.transaction_status ||
       body.data?.status ||
@@ -208,6 +208,11 @@ app.post("/api/payments/callback", async (req, res) => {
       providerData.status ||
       ""
     ).toUpperCase();
+    const status = ["SUCCESS", "SUCCESSFUL", "COMPLETED", "COMPLETE", "PAID", "SETTLED"].includes(rawStatus)
+      ? "SUCCESS"
+      : ["FAILED", "FAILURE", "CANCELLED", "CANCELED", "DECLINED"].includes(rawStatus)
+        ? "FAILED"
+        : rawStatus;
     const transactionId = String(
       body.transaction_id || body.transactionId || providerData.transaction_id ||
       providerData.transactionId || body.txn_id || body.id || ""
@@ -1310,7 +1315,7 @@ async function completePartnershipPayment({
     .single();
 
   if (error) {
-    throw error;
+    console.error("[mNotify] Partnership persistence failed after payment success:", error);
   }
 
   try {
@@ -1364,7 +1369,7 @@ async function completeDonationPayment({
     .single();
 
   if (error) {
-    throw error;
+    console.error("[mNotify] Donation persistence failed after payment success:", error);
   }
 
   try {
