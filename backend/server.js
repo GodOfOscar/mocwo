@@ -198,25 +198,51 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
 app.post("/api/payments/callback", async (req, res) => {
   try {
     const body = req.body || {};
+    const providerData = body.data?.data || body.data || body;
     const status = String(
       body.status ||
       body.transaction_status ||
       body.data?.status ||
       body.data?.transaction_status ||
       body.data?.data?.status ||
+      providerData.status ||
       ""
     ).toUpperCase();
-    const transactionId = String(body.transaction_id || body.transactionId || body.reference || body.txn_id || body.id || "");
-    const phone = String(body.phone || body.customer_phone || body.account_number || body.metadata?.phone || body.metadata?.mobile || "");
-    const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || body.metadata?.amount || 0);
-    const reference = String(body.reference || body.external_reference || body.payment_reference || body.metadata?.reference || "");
-    const email = String(body.email || body.customer_email || body.donor_email || body.metadata?.email || "anonymous@libertepay.local");
-    const name = String(body.name || body.customer_name || body.donor_name || body.account_name || body.metadata?.name || "Anonymous Donor");
-    const level = String(body.level || body.partner_level || body.metadata?.level || "custom");
-    const paymentMethod = String(body.payment_method || body.paymentMethod || body.metadata?.payment_method || "mobile-money");
-    const donationType = String(body.donation_type || body.type || body.gift_type || body.metadata?.donation_type || "offering");
-    const partnershipMessage = String(body.message || body.metadata?.message || "");
-    const paymentType = String(body.payment_type || body.metadata?.payment_type || "").toLowerCase();
+    const transactionId = String(
+      body.transaction_id || body.transactionId || providerData.transaction_id ||
+      providerData.transactionId || body.txn_id || body.id || ""
+    );
+    const phone = String(
+      body.phone || body.customer_phone || body.account_number ||
+      providerData.phone || providerData.customer_phone || providerData.account_number ||
+      body.metadata?.phone || body.metadata?.mobile || providerData.metadata?.phone || ""
+    );
+    const amount = Number(
+      body.amount || body.total_amount || body.amount_paid || body.amount_to_pay ||
+      providerData.amount || providerData.total_amount || providerData.amount_paid ||
+      body.metadata?.amount || providerData.metadata?.amount || 0
+    );
+    const reference = String(
+      body.reference || body.external_reference || body.payment_reference ||
+      providerData.reference || providerData.external_reference || providerData.payment_reference ||
+      body.metadata?.reference || providerData.metadata?.reference || ""
+    );
+    const email = String(
+      body.email || body.customer_email || body.donor_email || providerData.email ||
+      providerData.customer_email || body.metadata?.email || providerData.metadata?.email ||
+      "anonymous@libertepay.local"
+    );
+    const name = String(
+      body.name || body.customer_name || body.donor_name || body.account_name ||
+      providerData.name || providerData.customer_name || providerData.donor_name ||
+      providerData.account_name || body.metadata?.name || providerData.metadata?.name ||
+      "Anonymous Donor"
+    );
+    const level = String(body.level || body.partner_level || providerData.level || providerData.partner_level || body.metadata?.level || providerData.metadata?.level || "custom");
+    const paymentMethod = String(body.payment_method || body.paymentMethod || providerData.payment_method || providerData.paymentMethod || body.metadata?.payment_method || providerData.metadata?.payment_method || "mobile-money");
+    const donationType = String(body.donation_type || body.type || body.gift_type || providerData.donation_type || providerData.type || providerData.gift_type || body.metadata?.donation_type || providerData.metadata?.donation_type || "offering");
+    const partnershipMessage = String(body.message || providerData.message || body.metadata?.message || providerData.metadata?.message || "");
+    const paymentType = String(body.payment_type || providerData.payment_type || body.metadata?.payment_type || providerData.metadata?.payment_type || "").toLowerCase();
     const isPartnershipPayment =
       paymentType === "partnership" ||
       Boolean(body.level || body.partner_level || body.metadata?.level) ||
