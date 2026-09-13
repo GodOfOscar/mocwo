@@ -1,10 +1,6 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import {
-  sendDonationPaymentSms,
-  sendPartnershipPaymentSms,
-} from "../services/mnotify.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -211,8 +207,6 @@ router.post("/collection", async (req, res) => {
   let numericAmount = 0;
   let reference = "";
   let transaction_id = `TXN${Date.now()}`;
-  let smsSent = false;
-  let smsError = null;
 
   try {
     const {
@@ -319,61 +313,12 @@ router.post("/collection", async (req, res) => {
         transactionMessage.includes("transaction initiated")
       );
 
-    if (requestAcceptedDirectly) {
-      const paymentMetadata = metadata || {};
-      const isPartnership =
-        paymentMetadata.payment_type === "partnership" ||
-        Boolean(paymentMetadata.level) ||
-        /^(RETURN-)?PARTNER/i.test(safeReference);
-
-      try {
-        const smsArgs = {
-          name: paymentMetadata.name || account_name || "Friend",
-          phone: paymentMetadata.phone || normalizedAccountNumber,
-          amount: numericAmount,
-          reference: safeReference,
-        };
-
-        const smsResponse = isPartnership
-          ? await sendPartnershipPaymentSms(smsArgs)
-          : await sendDonationPaymentSms(smsArgs);
-
-        console.log("[mNotify] Collection confirmation SMS response:", {
-          reference: safeReference,
-          recipient: normalizedAccountNumber,
-          response: smsResponse,
-        });
-
-        if (smsResponse?.summary?.total_rejected > 0) {
-          smsError = "mNotify rejected the recipient";
-          console.error("[mNotify] Provider rejected collection SMS:", {
-            reference: safeReference,
-            response: smsResponse,
-          });
-        } else {
-          smsSent = true;
-          console.log("[mNotify] Collection confirmation SMS accepted:", {
-            reference: safeReference,
-            phone: normalizedAccountNumber,
-          });
-        }
-      } catch (error) {
-        smsError = error.message || "Unable to send confirmation SMS";
-        console.error(
-          "[mNotify] Collection confirmation SMS failed:",
-          error.response?.data || error.message
-        );
-      }
-    }
-
     return res.status(200).json({
       success: true,
       transaction_id,
       data: response.data,
       status: requestAcceptedDirectly ? "SUCCESS" : (providerStatus || response.data?.status || "SUCCESS"),
       code: providerCode || response.data?.code || "00",
-      sms_sent: smsSent,
-      sms_error: smsError,
       msg: requestAcceptedDirectly
         ? "Payment request accepted by LibertyPay. Debit authorization has been initiated directly."
         : providerMessage,
