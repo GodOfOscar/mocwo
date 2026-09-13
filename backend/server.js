@@ -16,6 +16,10 @@ import {
   sendMnotifySms,
   sendPartnershipPaymentSms,
 } from "./services/mnotify.js";
+import {
+  findPendingPayment,
+  forgetPendingPayment,
+} from "./services/payment-state.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -248,12 +252,31 @@ const handlePaymentCallback = async (req, res) => {
     const donationType = String(body.donation_type || body.type || body.gift_type || providerData.donation_type || providerData.type || providerData.gift_type || body.metadata?.donation_type || providerData.metadata?.donation_type || "offering");
     const partnershipMessage = String(body.message || providerData.message || body.metadata?.message || providerData.metadata?.message || "");
     const paymentType = String(body.payment_type || providerData.payment_type || body.metadata?.payment_type || providerData.metadata?.payment_type || "").toLowerCase();
+    const pendingPayment = findPendingPayment(transactionId, reference) || {};
+    const resolvedTransactionId = transactionId || String(pendingPayment.transactionId || "");
+    const resolvedReference = reference || String(pendingPayment.reference || "");
+    const resolvedPhone = phone || String(pendingPayment.phone || "");
+    const resolvedAmount = amount || Number(pendingPayment.amount || 0);
+    const resolvedName = name === "Anonymous Donor" ? (pendingPayment.name || name) : name;
+    const resolvedEmail = email === "anonymous@libertepay.local" ? (pendingPayment.email || email) : email;
+    const resolvedPaymentType = paymentType || String(pendingPayment.paymentType || "").toLowerCase();
+    const resolvedLevel = level === "custom" ? (pendingPayment.level || level) : level;
+    const resolvedDonationType = donationType === "offering" ? (pendingPayment.donationType || donationType) : donationType;
+    const resolvedPaymentMethod = paymentMethod === "mobile-money" ? (pendingPayment.paymentMethod || paymentMethod) : paymentMethod;
     const isPartnershipPayment =
-      paymentType === "partnership" ||
+      resolvedPaymentType === "partnership" ||
       Boolean(body.level || body.partner_level || body.metadata?.level) ||
-      /^(RETURN-)?PARTNER/i.test(reference);
+      Boolean(pendingPayment.level) ||
+      /^(RETURN-)?PARTNER/i.test(resolvedReference);
 
-    console.log("📨 LibertyPay callback received:", { transactionId, status, reference, amount, phone });
+    console.log("📨 LibertyPay callback received:", {
+      transactionId: resolvedTransactionId,
+      status,
+      reference: resolvedReference,
+      amount: resolvedAmount,
+      phone: resolvedPhone,
+      matchedPendingPayment: Boolean(pendingPayment.transactionId),
+    });
 
     const mappedStatus = status === "SUCCESS" ? "successful" : status === "FAILED" ? "failed" : "pending";
 
@@ -265,11 +288,11 @@ const handlePaymentCallback = async (req, res) => {
             {
               name: name || "Anonymous Donor",
               email: email || "anonymous@libertepay.local",
-              phone: phone || null,
-              amount,
-              donation_type: donationType || "offering",
-              payment_method: paymentMethod || "libertepay",
-              payment_reference: reference || transactionId || `CALLBACK-${Date.now()}`,
+              phone: resolvedPhone || null,
+              amount: resolvedAmount,
+              donation_type: resolvedDonationType || "offering",
+              payment_method: resolvedPaymentMethod || "libertepay",
+              payment_reference: resolvedReference || resolvedTransactionId || `CALLBACK-${Date.now()}`,
               status: mappedStatus,
               message: `LibertyPay callback processed with provider status ${status || "PENDING"}`,
             },
@@ -284,42 +307,44 @@ const handlePaymentCallback = async (req, res) => {
     }
 
     if (status === "SUCCESS") {
-      if (!transactionId || !reference || !Number.isFinite(amount) || amount <= 0) {
+      if (!resolvedTransactionId || !resolvedReference || !Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
         return res.status(400).json({
           success: false,
           error: "Successful payment callback is missing a transaction ID, reference, or valid amount.",
         });
       }
 
-      const safeEmail = String(email || "anonymous@libertepay.local");
-      const safeName = String(name || "Anonymous Donor");
+      const safeEmail = String(resolvedEmail || "anonymous@libertepay.local");
+      const safeName = String(resolvedName || "Anonymous Donor");
       const completedPayment = isPartnershipPayment
         ? await completePartnershipPayment({
             name: safeName,
             email: safeEmail,
-            phone,
-            level,
-            amount,
-            paymentMethod,
-            reference,
-            transactionId,
+        phone: resolvedPhone,
+        level: resolvedLevel,
+        amount: resolvedAmount,
+        paymentMethod: resolvedPaymentMethod,
+        reference: resolvedReference,
+        transactionId: resolvedTransactionId,
             message: partnershipMessage,
           })
         : await completeDonationPayment({
             name: safeName,
             email: safeEmail,
-            phone,
-            amount,
-            paymentMethod,
-            reference,
-            transactionId,
-            donationType,
+            phone: resolvedPhone,
+            amount: resolvedAmount,
+            paymentMethod: resolvedPaymentMethod,
+            reference: resolvedReference,
+            transactionId: resolvedTransactionId,
+            donationType: resolvedDonationType,
           });
+
+          forgetPendingPayment(resolvedTransactionId, resolvedReference);
 
       return res.status(200).json({
         success: true,
         status: "SUCCESS",
-        transaction_id: transactionId,
+        transaction_id: resolvedTransactionId,
         ...(isPartnershipPayment
           ? { partnership_id: completedPayment.id }
           : { donation_id: completedPayment.id }),
