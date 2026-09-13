@@ -292,6 +292,13 @@ const GivePage = () => {
           currency,
           email,
           reference: `MOC${Date.now()}`,
+          metadata: {
+            payment_type: "donation",
+            donation_type: currentGive.title,
+            name: "Friend",
+            phone: mobileNumber,
+            payment_method: "mobile-money",
+          },
         });
 
         if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {

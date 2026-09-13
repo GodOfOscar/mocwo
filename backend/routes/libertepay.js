@@ -1,6 +1,10 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import {
+  sendDonationPaymentSms,
+  sendPartnershipPaymentSms,
+} from "../services/mnotify.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -18,6 +22,10 @@ const headers = {
   Authorization: `Bearer ${LIBERTEPAY_API_KEY}`,
   "Content-Type": "application/json",
 };
+
+const LIBERTEPAY_CALLBACK_URL =
+  process.env.LIBERTEPAY_CALLBACK_URL ||
+  "https://mocwo.onrender.com/api/payments/callback";
 
 const isAcceptedProviderResponse = (data) => {
   const status = String(data?.status || data?.message?.status || data?.msg || "")
@@ -258,6 +266,7 @@ router.post("/collection", async (req, res) => {
       currency: currency || "GHS",
       reference: safeReference,
       metadata: metadata || {},
+      callback_url: LIBERTEPAY_CALLBACK_URL,
     };
 
     console.log("Sending collection request:", paymentData);
@@ -307,6 +316,38 @@ router.post("/collection", async (req, res) => {
         transactionMessage.includes("request processed") ||
         transactionMessage.includes("transaction initiated")
       );
+
+    if (requestAcceptedDirectly && metadata?.phone) {
+      const isPartnership =
+        metadata.payment_type === "partnership" ||
+        Boolean(metadata.level) ||
+        /^(RETURN-)?PARTNER/i.test(safeReference);
+
+      try {
+        const smsArgs = {
+          name: metadata.name || account_name || "Friend",
+          phone: metadata.phone,
+          amount: numericAmount,
+          reference: safeReference,
+        };
+
+        if (isPartnership) {
+          await sendPartnershipPaymentSms(smsArgs);
+        } else {
+          await sendDonationPaymentSms(smsArgs);
+        }
+
+        console.log("[mNotify] Collection confirmation SMS sent:", {
+          reference: safeReference,
+          phone: normalizedAccountNumber,
+        });
+      } catch (smsError) {
+        console.error(
+          "[mNotify] Collection confirmation SMS failed:",
+          smsError.response?.data || smsError.message
+        );
+      }
+    }
 
     return res.status(200).json({
       success: true,

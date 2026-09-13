@@ -418,6 +418,13 @@ const Partnership = () => {
             currency: 'GHS',
             email: formData.email,
             reference,
+            metadata: {
+              name: formData.name,
+              level: formData.level,
+              phone: formData.phone,
+              payment_method: formData.paymentMethod,
+              message: formData.message,
+            },
           });
 
           if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
@@ -468,7 +475,7 @@ const Partnership = () => {
           amount: parseFloat(formData.amount) || 0,
           payment_method: formData.paymentMethod,
           message: `${formData.message} | Reference: ${reference}`,
-          status: reference === "MANUAL_VERIFICATION_REQUIRED" ? 'pending' : 'approved'
+          status: 'pending'
         }]);
 
       if (error) throw error;
@@ -577,6 +584,12 @@ const Partnership = () => {
             currency: 'GHS',
             email: paymentEmail,
             reference,
+            metadata: {
+              name: partner.name,
+              level: returningForm.level,
+              phone: paymentPhone,
+              payment_method: returningForm.paymentMethod,
+            },
           });
 
           if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {

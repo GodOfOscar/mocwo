@@ -10,6 +10,12 @@ import { Resend } from "resend";
 
 import notificationRoutes from "./routes/notifications.js";
 import libertePayRoutes from "./routes/libertepay.js";
+import {
+  normalizeGhanaPhone,
+  sendDonationPaymentSms,
+  sendMnotifySms,
+  sendPartnershipPaymentSms,
+} from "./services/mnotify.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -192,7 +198,14 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
 app.post("/api/payments/callback", async (req, res) => {
   try {
     const body = req.body || {};
-    const status = String(body.status || body.transaction_status || "").toUpperCase();
+    const status = String(
+      body.status ||
+      body.transaction_status ||
+      body.data?.status ||
+      body.data?.transaction_status ||
+      body.data?.data?.status ||
+      ""
+    ).toUpperCase();
     const transactionId = String(body.transaction_id || body.transactionId || body.reference || body.txn_id || body.id || "");
     const phone = String(body.phone || body.customer_phone || body.account_number || body.metadata?.phone || body.metadata?.mobile || "");
     const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || body.metadata?.amount || 0);
@@ -202,80 +215,83 @@ app.post("/api/payments/callback", async (req, res) => {
     const level = String(body.level || body.partner_level || body.metadata?.level || "custom");
     const paymentMethod = String(body.payment_method || body.paymentMethod || body.metadata?.payment_method || "mobile-money");
     const donationType = String(body.donation_type || body.type || body.gift_type || body.metadata?.donation_type || "offering");
+    const partnershipMessage = String(body.message || body.metadata?.message || "");
+    const paymentType = String(body.payment_type || body.metadata?.payment_type || "").toLowerCase();
+    const isPartnershipPayment =
+      paymentType === "partnership" ||
+      Boolean(body.level || body.partner_level || body.metadata?.level) ||
+      /^(RETURN-)?PARTNER/i.test(reference);
 
     console.log("📨 LibertyPay callback received:", { transactionId, status, reference, amount, phone });
 
     const mappedStatus = status === "SUCCESS" ? "successful" : status === "FAILED" ? "failed" : "pending";
 
-    try {
-      const { error } = await supabase
-        .from("donations")
-        .insert([
-          {
-            name: name || "Anonymous Donor",
-            email: email || "anonymous@libertepay.local",
-            phone: phone || null,
-            amount,
-            donation_type: donationType || "offering",
-            payment_method: "libertepay",
-            payment_reference: reference || transactionId || `CALLBACK-${Date.now()}`,
-            status: mappedStatus,
-            message: `LibertyPay callback processed with provider status ${status || "PENDING"}`,
-          },
-        ]);
-
-      if (error) {
-        console.warn("⚠️ Callback donation persistence failed:", error?.message || error);
-      } else {
-        console.log("✓ Callback donation record persisted:", { transactionId, status: mappedStatus, reference: reference || transactionId });
-      }
-    } catch (persistError) {
-      console.warn("⚠️ Callback donation persistence error:", persistError?.message || persistError);
-    }
-
-    if (status === "SUCCESS") {
-      const safeReference = String(reference || transactionId || `CALLBACK-${Date.now()}`);
-      const safeEmail = String(email || "anonymous@libertepay.local");
-      const safeName = String(name || "Anonymous Donor");
-      const safePhone = String(phone || "");
-
+    if (status !== "SUCCESS") {
       try {
         const { error } = await supabase
-          .from("partnerships")
+          .from("donations")
           .insert([
             {
-              name: safeName,
-              email: safeEmail,
-              phone: safePhone,
-              level: level || "custom",
-              amount: Number(amount || 0),
-              payment_method: paymentMethod || "mobile-money",
-              message: `Partner registration approved after LibertyPay callback | Reference: ${safeReference}`,
-              status: "approved",
+              name: name || "Anonymous Donor",
+              email: email || "anonymous@libertepay.local",
+              phone: phone || null,
+              amount,
+              donation_type: donationType || "offering",
+              payment_method: paymentMethod || "libertepay",
+              payment_reference: reference || transactionId || `CALLBACK-${Date.now()}`,
+              status: mappedStatus,
+              message: `LibertyPay callback processed with provider status ${status || "PENDING"}`,
             },
           ]);
 
         if (error) {
-          console.warn("⚠️ Callback partnership persistence failed:", error?.message || error);
-        } else {
-          console.log("✓ Callback partnership record persisted:", { reference: safeReference, transactionId, amount, phone });
+          console.warn("⚠️ Callback donation persistence failed:", error?.message || error);
         }
-      } catch (partnerPersistError) {
-        console.warn("⚠️ Callback partnership persistence error:", partnerPersistError?.message || partnerPersistError);
+      } catch (persistError) {
+        console.warn("⚠️ Callback donation persistence error:", persistError?.message || persistError);
+      }
+    }
+
+    if (status === "SUCCESS") {
+      if (!transactionId || !reference || !Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Successful payment callback is missing a transaction ID, reference, or valid amount.",
+        });
       }
 
-      if (phone) {
-        const smsMessage = `Hello, your LibertyPay payment of GHS ${Number(amount || 0).toFixed(2)} has been confirmed. Reference: ${reference || transactionId}. Thank you.`;
-        const smsResult = await sendSMSViaMMNotify(phone, smsMessage);
-        if (!smsResult.success) {
-          console.warn("⚠️ Callback SMS was not sent:", smsResult.error);
-        }
-      }
+      const safeEmail = String(email || "anonymous@libertepay.local");
+      const safeName = String(name || "Anonymous Donor");
+      const completedPayment = isPartnershipPayment
+        ? await completePartnershipPayment({
+            name: safeName,
+            email: safeEmail,
+            phone,
+            level,
+            amount,
+            paymentMethod,
+            reference,
+            transactionId,
+            message: partnershipMessage,
+          })
+        : await completeDonationPayment({
+            name: safeName,
+            email: safeEmail,
+            phone,
+            amount,
+            paymentMethod,
+            reference,
+            transactionId,
+            donationType,
+          });
 
       return res.status(200).json({
         success: true,
         status: "SUCCESS",
         transaction_id: transactionId,
+        ...(isPartnershipPayment
+          ? { partnership_id: completedPayment.id }
+          : { donation_id: completedPayment.id }),
         message: "Payment callback processed and downstream SMS notification attempted.",
       });
     }
@@ -1223,71 +1239,124 @@ app.post("/api/admin/page-access", async (req, res) => {
   }
 });
 
-// SMS Sender Function using MNOTIFY
-const normalizePhoneNumber = (phoneNumber) => {
-  if (!phoneNumber || typeof phoneNumber !== "string") return "";
-  let digits = phoneNumber.replace(/\D+/g, "");
-
-  // Convert local Ghanaian phone numbers like 054xxx... to 23354xxx...
-  if (digits.startsWith("0") && digits.length === 10) {
-    digits = `233${digits.slice(1)}`;
-  }
-
-  return digits;
-};
-
 const sendSMSViaMMNotify = async (phoneNumber, message) => {
-  const MNOTIFY_API_KEY = process.env.MNOTIFY_API_KEY;
-  const MNOTIFY_SENDER_ID = process.env.MNOTIFY_SENDER_ID || "MOCWO";
-  const to = normalizePhoneNumber(phoneNumber);
-
-  if (!MNOTIFY_API_KEY) {
-    console.warn("⚠️ MNOTIFY_API_KEY is not configured. SMS will not be sent.");
-    return { success: false, error: "SMS service not configured" };
-  }
-
-  if (!to) {
-    console.warn("⚠️ Invalid phone number provided for SMS.");
-    return { success: false, error: "Invalid phone number" };
-  }
-
   try {
-    const payload = new URLSearchParams({
-      key: MNOTIFY_API_KEY,
-      to,
-      msg: message,
-      sender_id: MNOTIFY_SENDER_ID,
-    });
-
-    const response = await fetch("https://api.mnotify.com/api/sms/quick", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: payload.toString(),
-    });
-
-    const text = await response.text();
-    let result;
-
-    try {
-      result = JSON.parse(text);
-    } catch (parseError) {
-      result = { status: response.ok ? "success" : "error", message: text };
-    }
-
-    if (response.ok && (result.code === "ok" || result.status === "success" || result.status === "OK")) {
-      console.log(`✓ SMS sent to ${to}`);
-      return { success: true, message: result.message || "SMS sent" };
-    }
-
-    console.error(`✗ MNOTIFY SMS Error: ${result.message || text || "Unknown error"}`);
-    return { success: false, error: result.message || text || "Failed to send SMS" };
+    const result = await sendMnotifySms(phoneNumber, message);
+    console.log(`✓ SMS sent to ${phoneNumber}`);
+    return { success: true, message: result?.message || "SMS sent", data: result };
   } catch (error) {
-    console.error("MNOTIFY Request Error:", error?.message || error);
+    console.error("MNOTIFY Request Error:", error.response?.data || error.message || error);
     return { success: false, error: error?.message || String(error) };
   }
 };
+
+async function completePartnershipPayment({
+  name,
+  email,
+  phone,
+  level,
+  amount,
+  paymentMethod,
+  reference,
+  transactionId,
+  message = "",
+}) {
+  const normalizedPhone = normalizeGhanaPhone(phone);
+  const { data, error } = await supabase
+    .from("partnerships")
+    .insert([
+      {
+        name,
+        email,
+        phone: normalizedPhone,
+        level,
+        amount,
+        payment_method: paymentMethod,
+        message: `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim(),
+        status: "approved",
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  try {
+    await sendPartnershipPaymentSms({
+      name,
+      phone: normalizedPhone,
+      amount,
+      reference,
+    });
+  } catch (smsError) {
+    console.error("[mNotify] Failed to send payment SMS:", smsError);
+  }
+
+  console.log("✓ Callback partnership record persisted:", {
+    reference,
+    transactionId,
+    amount,
+    phone: normalizedPhone,
+  });
+
+  return data;
+}
+
+async function completeDonationPayment({
+  name,
+  email,
+  phone,
+  amount,
+  paymentMethod,
+  reference,
+  transactionId,
+  donationType,
+}) {
+  const normalizedPhone = normalizeGhanaPhone(phone);
+  const { data, error } = await supabase
+    .from("donations")
+    .insert([
+      {
+        name,
+        email,
+        phone: normalizedPhone,
+        amount,
+        donation_type: donationType || "offering",
+        payment_method: paymentMethod || "libertepay",
+        payment_reference: reference,
+        status: "successful",
+        message: `Payment confirmed by LibertyPay | Reference: ${reference} | Transaction: ${transactionId}`,
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  try {
+    await sendDonationPaymentSms({
+      name,
+      phone: normalizedPhone,
+      amount,
+      reference,
+    });
+  } catch (smsError) {
+    console.error("[mNotify] Failed to send donation payment SMS:", smsError);
+  }
+
+  console.log("✓ Callback donation record persisted:", {
+    reference,
+    transactionId,
+    amount,
+    phone: normalizedPhone,
+  });
+
+  return data;
+}
 
 // Event Registration Endpoint
 app.post("/api/events/register", async (req, res) => {
