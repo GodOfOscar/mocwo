@@ -21,7 +21,7 @@ const headers = {
 
 const LIBERTEPAY_CALLBACK_URL =
   process.env.LIBERTEPAY_CALLBACK_URL ||
-  "https://mocwo.onrender.com/api/payments/callback";
+  "https://mocwo.org/api/360pay/webhook";
 
 const isAcceptedProviderResponse = (data) => {
   const status = String(data?.status || data?.message?.status || data?.msg || "")

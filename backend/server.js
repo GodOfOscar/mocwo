@@ -195,7 +195,7 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
   }
 });
 
-app.all("/api/payments/callback", async (req, res) => {
+const handlePaymentCallback = async (req, res) => {
   try {
     const body = { ...(req.query || {}), ...(req.body || {}) };
     const providerData = body.data?.data || body.data || body;
@@ -350,7 +350,10 @@ app.all("/api/payments/callback", async (req, res) => {
       error: error?.message || String(error),
     });
   }
-});
+};
+
+app.all("/api/payments/callback", handlePaymentCallback);
+app.all("/api/360pay/webhook", handlePaymentCallback);
 
 // ✅ HEALTH CHECK (ADD THIS)
 app.get("/health", (req, res) => {
