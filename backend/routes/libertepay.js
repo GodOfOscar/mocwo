@@ -26,8 +26,23 @@ const isAcceptedProviderResponse = (data) => {
   const code = String(data?.code || data?.responseCode || "")
     .trim()
     .toUpperCase();
+  const transactionMessage = String(
+    data?.data?.transaction_message ||
+    data?.transaction_message ||
+    data?.message ||
+    data?.msg ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
 
-  return status === "SUCCESS" && code === "00";
+  return code === "00" && (
+    status === "SUCCESS" ||
+    status === "PENDING" ||
+    transactionMessage === "request processed" ||
+    transactionMessage.includes("request processed") ||
+    transactionMessage.includes("transaction initiated")
+  );
 };
 
 const isLocalDevRequest = (req) => {
