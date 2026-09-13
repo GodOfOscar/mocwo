@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { rememberPendingPayment } from "../services/payment-state.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -264,6 +265,20 @@ router.post("/collection", async (req, res) => {
       metadata: metadata || {},
       callback_url: LIBERTEPAY_CALLBACK_URL,
     };
+
+    rememberPendingPayment({
+      transactionId: transaction_id,
+      reference: safeReference,
+      name: metadata?.name || account_name,
+      email: metadata?.email,
+      phone: metadata?.phone || normalizedAccountNumber,
+      amount: numericAmount,
+      level: metadata?.level,
+      paymentMethod: metadata?.payment_method || "mobile-money",
+      paymentType: metadata?.payment_type || "donation",
+      donationType: metadata?.donation_type || "offering",
+      message: metadata?.message || "",
+    });
 
     console.log("Sending collection request:", paymentData);
 
