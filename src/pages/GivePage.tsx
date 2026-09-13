@@ -340,7 +340,9 @@ const GivePage = () => {
     } catch (error) {
       console.error("Payment error:", error);
       toast({
-        title: "Payment Error",
+        title: error instanceof Error && error.message.includes("could not verify")
+          ? "Account Verification Failed"
+          : "Payment Error",
         description: error instanceof Error ? error.message : "Failed to process payment",
         variant: "destructive",
       });
