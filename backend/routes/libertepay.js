@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -17,7 +18,12 @@ const LIBERTEPAY_API_KEY =
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY,
+  {
+    realtime: {
+      transport: ws,
+    },
+  }
 );
 
 const headers = {
