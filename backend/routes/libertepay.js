@@ -317,30 +317,42 @@ router.post("/collection", async (req, res) => {
         transactionMessage.includes("transaction initiated")
       );
 
-    if (requestAcceptedDirectly && metadata?.phone) {
+    if (requestAcceptedDirectly) {
+      const paymentMetadata = metadata || {};
       const isPartnership =
-        metadata.payment_type === "partnership" ||
-        Boolean(metadata.level) ||
+        paymentMetadata.payment_type === "partnership" ||
+        Boolean(paymentMetadata.level) ||
         /^(RETURN-)?PARTNER/i.test(safeReference);
 
       try {
         const smsArgs = {
-          name: metadata.name || account_name || "Friend",
-          phone: metadata.phone,
+          name: paymentMetadata.name || account_name || "Friend",
+          phone: paymentMetadata.phone || normalizedAccountNumber,
           amount: numericAmount,
           reference: safeReference,
         };
 
-        if (isPartnership) {
-          await sendPartnershipPaymentSms(smsArgs);
-        } else {
-          await sendDonationPaymentSms(smsArgs);
-        }
+        const smsResponse = isPartnership
+          ? await sendPartnershipPaymentSms(smsArgs)
+          : await sendDonationPaymentSms(smsArgs);
 
-        console.log("[mNotify] Collection confirmation SMS sent:", {
+        console.log("[mNotify] Collection confirmation SMS response:", {
           reference: safeReference,
-          phone: normalizedAccountNumber,
+          recipient: normalizedAccountNumber,
+          response: smsResponse,
         });
+
+        if (smsResponse?.summary?.total_rejected > 0) {
+          console.error("[mNotify] Provider rejected collection SMS:", {
+            reference: safeReference,
+            response: smsResponse,
+          });
+        } else {
+          console.log("[mNotify] Collection confirmation SMS accepted:", {
+            reference: safeReference,
+            phone: normalizedAccountNumber,
+          });
+        }
       } catch (smsError) {
         console.error(
           "[mNotify] Collection confirmation SMS failed:",
