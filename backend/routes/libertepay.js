@@ -1,7 +1,6 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import { rememberPendingPayment } from "../services/payment-state.js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -102,7 +101,7 @@ const sanitizeReference = (value) => {
 };
 
 const normalizeAccountNumber = (value) => {
-  const accountNumber = String(value || "").trim().replace(/^\+/, "");
+  const accountNumber = String(value || "").replace(/\D/g, "");
 
   if (/^0\d{9}$/.test(accountNumber)) {
     return `233${accountNumber.slice(1)}`;
@@ -192,7 +191,10 @@ router.post("/name-verify", async (req, res) => {
 
     return res.status(error.response?.status || 500).json({
       success: false,
-      message: "Name verification failed",
+      message:
+        error.response?.data?.msg ||
+        error.response?.data?.message ||
+        "Name verification failed",
       error: error.response?.data || error.message,
     });
   }
@@ -265,20 +267,6 @@ router.post("/collection", async (req, res) => {
       metadata: metadata || {},
       callback_url: LIBERTEPAY_CALLBACK_URL,
     };
-
-    rememberPendingPayment({
-      transactionId: transaction_id,
-      reference: safeReference,
-      name: metadata?.name || account_name,
-      email: metadata?.email,
-      phone: metadata?.phone || normalizedAccountNumber,
-      amount: numericAmount,
-      level: metadata?.level,
-      paymentMethod: metadata?.payment_method || "mobile-money",
-      paymentType: metadata?.payment_type || "donation",
-      donationType: metadata?.donation_type || "offering",
-      message: metadata?.message || "",
-    });
 
     console.log("Sending collection request:", paymentData);
 

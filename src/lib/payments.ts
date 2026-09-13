@@ -133,6 +133,7 @@ export async function verifyLibertepayAccount(
     const err = await res.json().catch(() => ({}));
     if (res.status === 422) {
       throw new Error(
+        err.message ||
         "LibertéPay could not verify this mobile-money account. Confirm that the number belongs to the selected network and try again."
       );
     }
@@ -141,6 +142,7 @@ export async function verifyLibertepayAccount(
       err.error?.msg ||
       err.message ||
       err.msg ||
+      err.error ||
       "Account verification failed"
     );
   }
