@@ -1,10 +1,8 @@
-import { useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Heart, Home, Share2, Users, ShieldCheck, Smartphone, LockKeyhole, Clock3 } from "lucide-react";
+import { CheckCircle2, Heart, Home, Share2, Users, ShieldCheck, Smartphone, LockKeyhole, Clock3, MessageSquareText } from "lucide-react";
 import Navigation from "@/components/layout/Navigation";
-import confetti from 'canvas-confetti';
 import Footer from "@/components/Footer";
 
 const PartnershipSuccess = () => {
@@ -14,24 +12,6 @@ const PartnershipSuccess = () => {
     level: "Kingdom Partner", 
     amount: "0" 
   };
-
-  // Trigger confetti on mount
-  useEffect(() => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#a8dadc', '#457b9d', '#1d3557', '#e63946', '#f1faee'],
-      disableForReducedMotion: true
-    });
-    confetti({
-      particleCount: 75,
-      spread: 90,
-      origin: { y: 0.4, x: 0.5 },
-      colors: ['#a8dadc', '#457b9d', '#1d3557', '#e63946', '#f1faee'],
-      disableForReducedMotion: true
-    });
-  }, []);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eef7ff,#e7edf4)]">
@@ -54,10 +34,10 @@ const PartnershipSuccess = () => {
           </div>
 
           <CardContent className="p-8 md:p-12 space-y-10">
-            <div className="mx-auto max-w-2xl rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-7 shadow-sm">
+            <div className="mx-auto max-w-2xl rounded-3xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-7 shadow-sm">
               <div className="mb-4 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-blue-800">
-                <ShieldCheck className="h-4 w-4" />
-                Authorization Notice
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-700 text-white">1</span>
+                Step One: Authorization
               </div>
               <p className="text-2xl font-black leading-relaxed text-slate-900">
                 Please check your phone for a secure authorization prompt.
@@ -65,6 +45,25 @@ const PartnershipSuccess = () => {
               <p className="mt-4 text-base leading-relaxed text-slate-600">
                 Enter your mobile money password or PIN to complete your partnership <span className="font-black text-blue-800">{level}</span> contribution.
               </p>
+            </div>
+
+            <div className="mx-auto max-w-2xl rounded-3xl border border-emerald-200 bg-emerald-50 p-7 text-center shadow-sm">
+              <div className="mb-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-emerald-800">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 text-white">2</span>
+                Congratulations
+              </div>
+              <p className="text-xl font-black text-slate-900">Your partnership will be confirmed after authorization.</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Complete the mobile-money prompt first. Your partnership record is finalized after the provider confirms the payment.</p>
+            </div>
+
+            <div className="mx-auto max-w-2xl rounded-3xl border border-amber-200 bg-amber-50 p-7 text-center shadow-sm">
+              <div className="mb-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-amber-800">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-600 text-white">3</span>
+                <MessageSquareText className="h-4 w-4" />
+                SMS Notification
+              </div>
+              <p className="text-xl font-black text-slate-900">Your partnership confirmation SMS follows successful authorization.</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Keep your phone available for the MOCWO confirmation message.</p>
             </div>
 
             <div className="space-y-6">

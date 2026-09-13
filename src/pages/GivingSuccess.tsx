@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import confetti from "canvas-confetti";
-import { CheckCircle2, Heart, Home, Share2, ShieldCheck, Smartphone, LockKeyhole, Clock3 } from "lucide-react";
+import { CheckCircle2, Heart, Home, Share2, ShieldCheck, Smartphone, LockKeyhole, Clock3, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
 
@@ -9,16 +7,6 @@ const GivingSuccess = () => {
   const location = useLocation();
   const { givingType = "giving", amount = "" } = location.state || {};
   const givingLabel = String(givingType).replace(/-/g, " ");
-
-  useEffect(() => {
-    confetti({
-      particleCount: 120,
-      spread: 75,
-      origin: { y: 0.6 },
-      colors: ["#f4a261", "#2a9d8f", "#264653", "#e9c46a"],
-      disableForReducedMotion: true,
-    });
-  }, []);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#eef7ff,#e7edf4)]">
@@ -40,10 +28,10 @@ const GivingSuccess = () => {
           </div>
 
           <div className="space-y-8 p-8 text-center md:p-12">
-            <div className="mx-auto max-w-2xl rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-7 shadow-sm">
+            <div className="mx-auto max-w-2xl rounded-3xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-7 shadow-sm">
               <div className="mb-4 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-blue-800">
-                <ShieldCheck className="h-4 w-4" />
-                Authorization Notice
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-700 text-white">1</span>
+                Step One: Authorization
               </div>
               <p className="text-2xl font-black leading-relaxed text-slate-900">
                 Please check your phone for a secure authorization prompt.
@@ -51,6 +39,25 @@ const GivingSuccess = () => {
               <p className="mt-4 text-base leading-relaxed text-slate-600">
                 Enter your mobile money password or PIN to complete your <span className="font-black text-blue-800">{givingLabel}</span> payment.
               </p>
+            </div>
+
+            <div className="mx-auto max-w-2xl rounded-3xl border border-emerald-200 bg-emerald-50 p-7 shadow-sm">
+              <div className="mb-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-emerald-800">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 text-white">2</span>
+                Congratulations
+              </div>
+              <p className="text-xl font-black text-slate-900">Your payment will be confirmed after authorization.</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Complete the prompt on your phone first. We will celebrate your successful giving once the provider confirms it.</p>
+            </div>
+
+            <div className="mx-auto max-w-2xl rounded-3xl border border-amber-200 bg-amber-50 p-7 shadow-sm">
+              <div className="mb-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-amber-800">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-600 text-white">3</span>
+                <MessageSquareText className="h-4 w-4" />
+                SMS Notification
+              </div>
+              <p className="text-xl font-black text-slate-900">Your confirmation SMS follows successful authorization.</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Keep your phone available for the MOCWO payment confirmation message.</p>
             </div>
 
             <div className="mx-auto max-w-md rounded-2xl border border-slate-100 bg-slate-50 p-5 shadow-inner">

@@ -48,7 +48,21 @@ export async function sendMnotifySms(recipient, message) {
       }
     );
 
-    return response.data;
+    const result = response.data;
+    const summary = result?.summary;
+
+    if (summary && (summary.total_rejected > 0 || summary.total_sent < 1)) {
+      throw new Error(
+        `mNotify rejected the SMS: ${result.message || "No messages were sent"}`
+      );
+    }
+
+    if (result?.status && String(result.status).toLowerCase() !== "success") {
+      throw new Error(result.message || "mNotify did not accept the SMS");
+    }
+
+    console.log("[mNotify] SMS response:", result);
+    return result;
   } catch (error) {
     console.error(
       "mNotify SMS error:",
@@ -57,6 +71,25 @@ export async function sendMnotifySms(recipient, message) {
 
     throw error;
   }
+}
+
+async function sendSmsWithRetry(recipient, message) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await sendMnotifySms(recipient, message);
+    } catch (error) {
+      lastError = error;
+      console.error(`[mNotify] SMS attempt ${attempt}/3 failed:`, error.message);
+
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 export async function sendPartnershipPaymentSms({
@@ -76,7 +109,7 @@ export async function sendPartnershipPaymentSms({
     "has been received successfully. Thank you for partnering with us. God bless you." +
     (reference ? ` Ref: ${reference}` : "");
 
-  return sendMnotifySms(recipient, message);
+  return sendSmsWithRetry(recipient, message);
 }
 
 export async function sendDonationPaymentSms({
@@ -96,5 +129,5 @@ export async function sendDonationPaymentSms({
     "has been received successfully. Thank you for giving. God bless you." +
     (reference ? ` Ref: ${reference}` : "");
 
-  return sendMnotifySms(recipient, message);
+  return sendSmsWithRetry(recipient, message);
 }
