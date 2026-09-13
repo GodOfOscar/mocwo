@@ -16,10 +16,6 @@ import {
   sendMnotifySms,
   sendPartnershipPaymentSms,
 } from "./services/mnotify.js";
-import {
-  findPendingPayment,
-  forgetPendingPayment,
-} from "./services/payment-state.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -199,84 +195,34 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
   }
 });
 
-const handlePaymentCallback = async (req, res) => {
+app.post("/api/payments/callback", async (req, res) => {
   try {
-    const body = { ...(req.query || {}), ...(req.body || {}) };
-    const providerData = body.data?.data || body.data || body;
-    const rawStatus = String(
+    const body = req.body || {};
+    const status = String(
       body.status ||
       body.transaction_status ||
       body.data?.status ||
       body.data?.transaction_status ||
       body.data?.data?.status ||
-      providerData.status ||
       ""
     ).toUpperCase();
-    const status = ["SUCCESS", "SUCCESSFUL", "COMPLETED", "COMPLETE", "PAID", "SETTLED"].includes(rawStatus)
-      ? "SUCCESS"
-      : ["FAILED", "FAILURE", "CANCELLED", "CANCELED", "DECLINED"].includes(rawStatus)
-        ? "FAILED"
-        : rawStatus;
-    const transactionId = String(
-      body.transaction_id || body.transactionId || providerData.transaction_id ||
-      providerData.transactionId || body.txn_id || body.id || ""
-    );
-    const phone = String(
-      body.phone || body.customer_phone || body.account_number ||
-      providerData.phone || providerData.customer_phone || providerData.account_number ||
-      body.metadata?.phone || body.metadata?.mobile || providerData.metadata?.phone || ""
-    );
-    const amount = Number(
-      body.amount || body.total_amount || body.amount_paid || body.amount_to_pay ||
-      providerData.amount || providerData.total_amount || providerData.amount_paid ||
-      body.metadata?.amount || providerData.metadata?.amount || 0
-    );
-    const reference = String(
-      body.reference || body.external_reference || body.payment_reference ||
-      providerData.reference || providerData.external_reference || providerData.payment_reference ||
-      body.metadata?.reference || providerData.metadata?.reference || ""
-    );
-    const email = String(
-      body.email || body.customer_email || body.donor_email || providerData.email ||
-      providerData.customer_email || body.metadata?.email || providerData.metadata?.email ||
-      "anonymous@libertepay.local"
-    );
-    const name = String(
-      body.name || body.customer_name || body.donor_name || body.account_name ||
-      providerData.name || providerData.customer_name || providerData.donor_name ||
-      providerData.account_name || body.metadata?.name || providerData.metadata?.name ||
-      "Anonymous Donor"
-    );
-    const level = String(body.level || body.partner_level || providerData.level || providerData.partner_level || body.metadata?.level || providerData.metadata?.level || "custom");
-    const paymentMethod = String(body.payment_method || body.paymentMethod || providerData.payment_method || providerData.paymentMethod || body.metadata?.payment_method || providerData.metadata?.payment_method || "mobile-money");
-    const donationType = String(body.donation_type || body.type || body.gift_type || providerData.donation_type || providerData.type || providerData.gift_type || body.metadata?.donation_type || providerData.metadata?.donation_type || "offering");
-    const partnershipMessage = String(body.message || providerData.message || body.metadata?.message || providerData.metadata?.message || "");
-    const paymentType = String(body.payment_type || providerData.payment_type || body.metadata?.payment_type || providerData.metadata?.payment_type || "").toLowerCase();
-    const pendingPayment = findPendingPayment(transactionId, reference) || await findPersistedPendingPayment(reference);
-    const resolvedTransactionId = transactionId || String(pendingPayment.transactionId || "");
-    const resolvedReference = reference || String(pendingPayment.reference || "");
-    const resolvedPhone = phone || String(pendingPayment.phone || "");
-    const resolvedAmount = amount || Number(pendingPayment.amount || 0);
-    const resolvedName = name === "Anonymous Donor" ? (pendingPayment.name || name) : name;
-    const resolvedEmail = email === "anonymous@libertepay.local" ? (pendingPayment.email || email) : email;
-    const resolvedPaymentType = paymentType || String(pendingPayment.paymentType || "").toLowerCase();
-    const resolvedLevel = level === "custom" ? (pendingPayment.level || level) : level;
-    const resolvedDonationType = donationType === "offering" ? (pendingPayment.donationType || donationType) : donationType;
-    const resolvedPaymentMethod = paymentMethod === "mobile-money" ? (pendingPayment.paymentMethod || paymentMethod) : paymentMethod;
+    const transactionId = String(body.transaction_id || body.transactionId || body.reference || body.txn_id || body.id || "");
+    const phone = String(body.phone || body.customer_phone || body.account_number || body.metadata?.phone || body.metadata?.mobile || "");
+    const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || body.metadata?.amount || 0);
+    const reference = String(body.reference || body.external_reference || body.payment_reference || body.metadata?.reference || "");
+    const email = String(body.email || body.customer_email || body.donor_email || body.metadata?.email || "anonymous@libertepay.local");
+    const name = String(body.name || body.customer_name || body.donor_name || body.account_name || body.metadata?.name || "Anonymous Donor");
+    const level = String(body.level || body.partner_level || body.metadata?.level || "custom");
+    const paymentMethod = String(body.payment_method || body.paymentMethod || body.metadata?.payment_method || "mobile-money");
+    const donationType = String(body.donation_type || body.type || body.gift_type || body.metadata?.donation_type || "offering");
+    const partnershipMessage = String(body.message || body.metadata?.message || "");
+    const paymentType = String(body.payment_type || body.metadata?.payment_type || "").toLowerCase();
     const isPartnershipPayment =
-      resolvedPaymentType === "partnership" ||
+      paymentType === "partnership" ||
       Boolean(body.level || body.partner_level || body.metadata?.level) ||
-      Boolean(pendingPayment.level) ||
-      /^(RETURN-)?PARTNER/i.test(resolvedReference);
+      /^(RETURN-)?PARTNER/i.test(reference);
 
-    console.log("📨 LibertyPay callback received:", {
-      transactionId: resolvedTransactionId,
-      status,
-      reference: resolvedReference,
-      amount: resolvedAmount,
-      phone: resolvedPhone,
-      matchedPendingPayment: Boolean(pendingPayment.transactionId),
-    });
+    console.log("📨 LibertyPay callback received:", { transactionId, status, reference, amount, phone });
 
     const mappedStatus = status === "SUCCESS" ? "successful" : status === "FAILED" ? "failed" : "pending";
 
@@ -288,11 +234,11 @@ const handlePaymentCallback = async (req, res) => {
             {
               name: name || "Anonymous Donor",
               email: email || "anonymous@libertepay.local",
-              phone: resolvedPhone || null,
-              amount: resolvedAmount,
-              donation_type: resolvedDonationType || "offering",
-              payment_method: resolvedPaymentMethod || "libertepay",
-              payment_reference: resolvedReference || resolvedTransactionId || `CALLBACK-${Date.now()}`,
+              phone: phone || null,
+              amount,
+              donation_type: donationType || "offering",
+              payment_method: paymentMethod || "libertepay",
+              payment_reference: reference || transactionId || `CALLBACK-${Date.now()}`,
               status: mappedStatus,
               message: `LibertyPay callback processed with provider status ${status || "PENDING"}`,
             },
@@ -307,44 +253,42 @@ const handlePaymentCallback = async (req, res) => {
     }
 
     if (status === "SUCCESS") {
-      if (!resolvedTransactionId || !resolvedReference || !Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
+      if (!transactionId || !reference || !Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({
           success: false,
           error: "Successful payment callback is missing a transaction ID, reference, or valid amount.",
         });
       }
 
-      const safeEmail = String(resolvedEmail || "anonymous@libertepay.local");
-      const safeName = String(resolvedName || "Anonymous Donor");
+      const safeEmail = String(email || "anonymous@libertepay.local");
+      const safeName = String(name || "Anonymous Donor");
       const completedPayment = isPartnershipPayment
         ? await completePartnershipPayment({
             name: safeName,
             email: safeEmail,
-        phone: resolvedPhone,
-        level: resolvedLevel,
-        amount: resolvedAmount,
-        paymentMethod: resolvedPaymentMethod,
-        reference: resolvedReference,
-        transactionId: resolvedTransactionId,
+            phone,
+            level,
+            amount,
+            paymentMethod,
+            reference,
+            transactionId,
             message: partnershipMessage,
           })
         : await completeDonationPayment({
             name: safeName,
             email: safeEmail,
-            phone: resolvedPhone,
-            amount: resolvedAmount,
-            paymentMethod: resolvedPaymentMethod,
-            reference: resolvedReference,
-            transactionId: resolvedTransactionId,
-            donationType: resolvedDonationType,
+            phone,
+            amount,
+            paymentMethod,
+            reference,
+            transactionId,
+            donationType,
           });
-
-          forgetPendingPayment(resolvedTransactionId, resolvedReference);
 
       return res.status(200).json({
         success: true,
         status: "SUCCESS",
-        transaction_id: resolvedTransactionId,
+        transaction_id: transactionId,
         ...(isPartnershipPayment
           ? { partnership_id: completedPayment.id }
           : { donation_id: completedPayment.id }),
@@ -375,10 +319,7 @@ const handlePaymentCallback = async (req, res) => {
       error: error?.message || String(error),
     });
   }
-};
-
-app.all("/api/payments/callback", handlePaymentCallback);
-app.all("/api/360pay/webhook", handlePaymentCallback);
+});
 
 // ✅ HEALTH CHECK (ADD THIS)
 app.get("/health", (req, res) => {
@@ -1313,51 +1254,6 @@ const sendSMSViaMMNotify = async (phoneNumber, message) => {
   }
 };
 
-async function findPersistedPendingPayment(reference) {
-  if (!reference) return {};
-
-  const { data: donation } = await supabase
-    .from("donations")
-    .select("name,email,phone,amount,payment_method,donation_type,payment_reference,status")
-    .eq("payment_reference", reference)
-    .eq("status", "pending")
-    .maybeSingle();
-
-  if (donation) {
-    return {
-      name: donation.name,
-      email: donation.email,
-      phone: donation.phone,
-      amount: donation.amount,
-      paymentMethod: donation.payment_method,
-      donationType: donation.donation_type,
-      paymentType: "donation",
-      reference,
-    };
-  }
-
-  const { data: partnerships } = await supabase
-    .from("partnerships")
-    .select("name,email,phone,amount,payment_method,level,message,status")
-    .like("message", `%Reference: ${reference}%`)
-    .eq("status", "pending")
-    .limit(1);
-
-  const partnership = partnerships?.[0];
-  return partnership
-    ? {
-        name: partnership.name,
-        email: partnership.email,
-        phone: partnership.phone,
-        amount: partnership.amount,
-        paymentMethod: partnership.payment_method,
-        level: partnership.level,
-        paymentType: "partnership",
-        reference,
-      }
-    : {};
-}
-
 async function completePartnershipPayment({
   name,
   email,
@@ -1370,48 +1266,25 @@ async function completePartnershipPayment({
   message = "",
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const completedMessage = `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim();
-  const updatePayload = {
-    name,
-    email,
-    phone: normalizedPhone,
-    level,
-    amount,
-    payment_method: paymentMethod,
-    message: completedMessage,
-    status: "approved",
-  };
-
-  const { data: pendingRows, error: pendingLookupError } = await supabase
+  const { data, error } = await supabase
     .from("partnerships")
-    .select("id")
-    .like("message", `%Reference: ${reference}%`)
-    .limit(1);
-
-  let data;
-  let error = pendingLookupError;
-
-  if (!error && pendingRows?.[0]?.id) {
-    const result = await supabase
-      .from("partnerships")
-      .update(updatePayload)
-      .eq("id", pendingRows[0].id)
-      .select()
-      .single();
-    data = result.data;
-    error = result.error;
-  } else if (!error) {
-    const result = await supabase
-      .from("partnerships")
-      .insert([updatePayload])
-      .select()
-      .single();
-    data = result.data;
-    error = result.error;
-  }
+    .insert([
+      {
+        name,
+        email,
+        phone: normalizedPhone,
+        level,
+        amount,
+        payment_method: paymentMethod,
+        message: `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim(),
+        status: "approved",
+      },
+    ])
+    .select()
+    .single();
 
   if (error) {
-    console.error("[mNotify] Partnership persistence failed after payment success:", error);
+    throw error;
   }
 
   try {
@@ -1446,40 +1319,26 @@ async function completeDonationPayment({
   donationType,
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const completedPayload = {
-    name,
-    email,
-    phone: normalizedPhone,
-    amount,
-    donation_type: donationType || "offering",
-    payment_method: paymentMethod || "libertepay",
-    payment_reference: reference,
-    status: "successful",
-    message: `Payment confirmed by LibertyPay | Reference: ${reference} | Transaction: ${transactionId}`,
-  };
-
-  const result = await supabase
+  const { data, error } = await supabase
     .from("donations")
-    .update(completedPayload)
-    .eq("payment_reference", reference)
+    .insert([
+      {
+        name,
+        email,
+        phone: normalizedPhone,
+        amount,
+        donation_type: donationType || "offering",
+        payment_method: paymentMethod || "libertepay",
+        payment_reference: reference,
+        status: "successful",
+        message: `Payment confirmed by LibertyPay | Reference: ${reference} | Transaction: ${transactionId}`,
+      },
+    ])
     .select()
-    .maybeSingle();
-
-  let data = result.data;
-  let error = result.error;
-
-  if (!error && !data) {
-    const insertResult = await supabase
-      .from("donations")
-      .insert([completedPayload])
-      .select()
-      .single();
-    data = insertResult.data;
-    error = insertResult.error;
-  }
+    .single();
 
   if (error) {
-    console.error("[mNotify] Donation persistence failed after payment success:", error);
+    throw error;
   }
 
   try {
