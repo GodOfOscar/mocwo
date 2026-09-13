@@ -211,6 +211,8 @@ router.post("/collection", async (req, res) => {
   let numericAmount = 0;
   let reference = "";
   let transaction_id = `TXN${Date.now()}`;
+  let smsSent = false;
+  let smsError = null;
 
   try {
     const {
@@ -343,20 +345,23 @@ router.post("/collection", async (req, res) => {
         });
 
         if (smsResponse?.summary?.total_rejected > 0) {
+          smsError = "mNotify rejected the recipient";
           console.error("[mNotify] Provider rejected collection SMS:", {
             reference: safeReference,
             response: smsResponse,
           });
         } else {
+          smsSent = true;
           console.log("[mNotify] Collection confirmation SMS accepted:", {
             reference: safeReference,
             phone: normalizedAccountNumber,
           });
         }
-      } catch (smsError) {
+      } catch (error) {
+        smsError = error.message || "Unable to send confirmation SMS";
         console.error(
           "[mNotify] Collection confirmation SMS failed:",
-          smsError.response?.data || smsError.message
+          error.response?.data || error.message
         );
       }
     }
@@ -367,6 +372,8 @@ router.post("/collection", async (req, res) => {
       data: response.data,
       status: requestAcceptedDirectly ? "SUCCESS" : (providerStatus || response.data?.status || "SUCCESS"),
       code: providerCode || response.data?.code || "00",
+      sms_sent: smsSent,
+      sms_error: smsError,
       msg: requestAcceptedDirectly
         ? "Payment request accepted by LibertyPay. Debit authorization has been initiated directly."
         : providerMessage,

@@ -323,7 +323,11 @@ app.post("/api/payments/callback", async (req, res) => {
 
 // ✅ HEALTH CHECK (ADD THIS)
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend is running 🚀" });
+  res.json({
+    status: "ok",
+    message: "Backend is running 🚀",
+    mnotify_configured: Boolean(process.env.MNOTIFY_API_KEY),
+  });
 });
 
 // ✅ ROOT ROUTE (fixes "Cannot GET /")
