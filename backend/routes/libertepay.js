@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 dotenv.config({ path: new URL("../../.env", import.meta.url) });
@@ -13,6 +14,11 @@ const LIBERTEPAY_BASE_URL =
 
 const LIBERTEPAY_API_KEY =
   process.env.LIBERTEPAY_API_KEY || process.env.LIBERTEPAY_SECRET_KEY || "";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+);
 
 const headers = {
   Authorization: `Bearer ${LIBERTEPAY_API_KEY}`,
@@ -267,6 +273,27 @@ router.post("/collection", async (req, res) => {
       metadata: metadata || {},
       callback_url: LIBERTEPAY_CALLBACK_URL,
     };
+
+    if (metadata?.payment_type === "partnership" || metadata?.level) {
+      const { error: pendingError } = await supabase
+        .from("partnerships")
+        .insert([
+          {
+            name: metadata.name || account_name,
+            email: metadata.email || null,
+            phone: metadata.phone || normalizedAccountNumber,
+            level: metadata.level || "custom",
+            amount: numericAmount,
+            payment_method: metadata.payment_method || "mobile-money",
+            message: `${metadata.message || ""} | Reference: ${safeReference}`.trim(),
+            status: "pending",
+          },
+        ]);
+
+      if (pendingError) {
+        console.warn("Pending partnership registration could not be saved:", pendingError.message);
+      }
+    }
 
     console.log("Sending collection request:", paymentData);
 

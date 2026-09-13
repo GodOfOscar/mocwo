@@ -1283,22 +1283,43 @@ async function completePartnershipPayment({
   message = "",
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const { data, error } = await supabase
+  const approvedMessage = `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim();
+  const { data: existing, error: lookupError } = await supabase
     .from("partnerships")
-    .insert([
-      {
-        name,
-        email,
-        phone: normalizedPhone,
-        level,
-        amount,
-        payment_method: paymentMethod,
-        message: `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim(),
-        status: "approved",
-      },
-    ])
-    .select()
-    .single();
+    .select("id")
+    .ilike("message", `%Reference: ${reference}%`)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+
+  const query = existing
+    ? supabase
+        .from("partnerships")
+        .update({
+          name,
+          email,
+          phone: normalizedPhone,
+          level,
+          amount,
+          payment_method: paymentMethod,
+          message: approvedMessage,
+          status: "approved",
+        })
+        .eq("id", existing.id)
+    : supabase.from("partnerships").insert([
+        {
+          name,
+          email,
+          phone: normalizedPhone,
+          level,
+          amount,
+          payment_method: paymentMethod,
+          message: approvedMessage,
+          status: "approved",
+        },
+      ]);
+
+  const { data, error } = await query.select().single();
 
   if (error) {
     throw error;
