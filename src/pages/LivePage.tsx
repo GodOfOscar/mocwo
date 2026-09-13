@@ -241,7 +241,6 @@ const handleQualityChange = (quality: string) => {
         const liveItem = scheduleData.find((item: any) => item.is_live === true);
         if (liveItem) {
           setLiveService(liveItem);
-          setViewerCount(Math.floor(Math.random() * 500) + 1240);
         }
       } else if (error) {
         console.error("Error fetching live schedule:", error);
@@ -249,6 +248,47 @@ const handleQualityChange = (quality: string) => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const channel = supabase.channel('live_page_viewers', {
+      config: { presence: { key: 'live-page' } }
+    });
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const activeViewers = Object.values(state)
+        .reduce((total: number, members: any) => total + (Array.isArray(members) ? members.length : 0), 0);
+      setViewerCount(activeViewers);
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const uniqueId = localStorage.getItem('moc_live_viewer_id') || `watcher-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        localStorage.setItem('moc_live_viewer_id', uniqueId);
+
+        await channel.track({
+          joined_at: new Date().toISOString(),
+          page: 'live-page',
+          viewer_id: uniqueId,
+          display_name: displayName,
+        });
+
+        const state = channel.presenceState();
+        const activeViewers = Object.values(state)
+          .reduce((total: number, members: any) => total + (Array.isArray(members) ? members.length : 0), 0);
+        setViewerCount(activeViewers);
+      }
+    });
+
+    return () => {
+      try {
+        channel.untrack();
+        supabase.removeChannel(channel);
+      } catch (e) {
+        console.warn('Unable to clean up live page presence channel', e);
+      }
+    };
+  }, [displayName]);
 
 // read optional `videoId` or `source` query params to pick a stream
 useEffect(() => {
@@ -481,25 +521,202 @@ useEffect(() => {
   return (
     <div className="min-h-screen pt-16 bg-slate-950">
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 min-h-[calc(100vh-8rem)]">
-          {/* Main Video Player */}
-          <div className="lg:col-span-3 order-1 space-y-4">
-            {liveService && (
-              <div className="bg-red-600/10 border border-red-500/20 rounded-lg p-4 flex items-center gap-3 text-red-100 animate-in fade-in duration-500">
-                <Radio className="w-5 h-5 animate-pulse text-red-500" />
-                <div>
-                  <span className="font-black text-sm uppercase tracking-tighter mr-2">LIVE:</span>
-                  <span className="font-bold text-sm md:text-base tracking-tight">{liveService.title}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(680px,1fr)] gap-4 lg:gap-6 min-h-[calc(100vh-8rem)]">
+          <div className="order-1 lg:order-1 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
+            <Card className="border-0 shadow-2xl h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] flex flex-col bg-white rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center">
+                    <MessageSquare className="w-5 h-5 mr-2" />
+                    Live Chat
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowChat(!showChat)}
+                  >
+                    {showChat ? <X className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                  </Button>
                 </div>
-              </div>
-            )}
+              </CardHeader>
+              {showChat && (
+                <CardContent className="flex flex-col flex-1 pb-0 overflow-hidden relative">
+                  {pinnedMessage && (
+                    <div className="mx-[-1.5rem] px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-start gap-3 animate-in slide-in-from-top duration-300 z-20">
+                      <div className="p-1.5 bg-blue-600 rounded-md text-white shrink-0">
+                        <Pin size={14} className="fill-current" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Pinned by Admin</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-blue-400 font-bold">{new Date(pinnedMessage.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            {isAdmin && (
+                              <button onClick={handleUnpin} className="text-blue-400 hover:text-blue-600 transition-colors">
+                                <X size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-800 font-medium leading-relaxed italic">
+                          "{renderMessage(pinnedMessage.message)}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {showNewMessageNotification && (
+                    <div className="absolute bottom-20 left-0 right-0 flex justify-center z-30 pointer-events-none">
+                      <Button 
+                        size="sm" 
+                        onClick={scrollToBottom}
+                        className="pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center gap-2 animate-bounce h-8"
+                      >
+                        <ArrowDown size={14} /> New Messages
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div 
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-auto space-y-3 mb-4 py-4 scrollbar-thin scrollbar-thumb-slate-200"
+                  >
+                    {chatMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`p-2.5 rounded-lg text-sm transition-all ${
+                          msg.is_highlighted
+                            ? "bg-primary/10 border border-primary/20"
+                            : "bg-muted/50 hover:bg-muted"
+                        }`}
+                      >
+                        <div className="font-bold text-blue-700 text-xs flex items-center justify-between">
+                          {msg.user_name}
+                          <span className="text-[10px] text-slate-400 font-normal">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <div className="text-foreground text-sm">{renderMessage(msg.message)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 pb-4 border-t border-border pt-3">
+                    <div className="flex space-x-2">
+                      {isAdmin && (
+                        <Button
+                          size="icon"
+                          variant={isPinningMode ? "default" : "outline"}
+                          onClick={() => setIsPinningMode(!isPinningMode)}
+                          className={`shrink-0 ${isPinningMode ? 'bg-blue-600' : 'text-slate-400'}`}
+                          title={isPinningMode ? "Unpin message" : "Pin message to top"}
+                        >
+                          <Pin size={16} />
+                        </Button>
+                      )}
+                      <Input
+                        placeholder={isPinningMode ? "Type pinned announcement..." : "Type message..."}
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                        className={`flex-1 text-sm ${isPinningMode ? 'border-blue-500 ring-1 ring-blue-500/20' : ''}`}
+                      />
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSendMessage}
+                      className="px-3"
+                    >
+                      Send
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            <div className="space-y-4 lg:space-y-6 mt-4">
+              <Card className="border-0 shadow-card bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-xl">
+                <CardContent className="p-5 text-center">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold text-sm mb-1">New to MOC?</h3>
+                  <p className="text-xs text-blue-100 mb-4 opacity-90">We'd love to connect and welcome you to our family!</p>
+                  <Link to="/membership">
+                    <Button size="sm" className="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold rounded-full">
+                      Join Our Family
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <Link to="/give/offering" className="block">
+                <Button className="w-full py-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all font-black text-base rounded-xl shadow-md">
+                  <Heart className="w-5 h-5 mr-2 fill-current" />
+                  GIVE OFFERING
+                </Button>
+              </Link>
+
+              <Card className="border-0 shadow-card">
+                <CardContent className="p-4 space-y-3">
+                  <Link to="/partnership" className="block">
+                    <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold">
+                      <Heart className="w-4 h-4 mr-2" /> Partnership
+                    </Button>
+                  </Link>
+                  <Link to="/resources" className="block">
+                    <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold">
+                      <Settings className="w-4 h-4 mr-2" /> Study Materials
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    Weekly Schedule
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {services.slice(0, 4).map((service, index) => (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg border transition-all ${
+                        service.is_live
+                          ? "border-red-500 bg-red-500/5 shadow-sm"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="font-semibold text-sm">{service.title}</div>
+                        {service.is_live && <Badge className="bg-red-600 text-[10px] h-4">LIVE</Badge>}
+                      </div>
+                      <div className="text-blue-600 text-xs font-bold">{service.day} • {service.time_string}</div>
+                    </div>
+                  ))}
+                  <Link to="/services">
+                    <Button variant="outline" className="w-full" size="sm">
+                      View Full Schedule
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <NotificationSignup
+                variant="card"
+                title="Never Miss a Stream"
+                description="Get notifications about upcoming livestreams and programs"
+                defaultNotificationType="livestream"
+              />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 order-2 lg:order-2 space-y-4 lg:sticky lg:top-4 lg:self-start">
             <Card className="border-0 shadow-2xl bg-black overflow-hidden rounded-xl">
               <div className="relative">
-                {/* Video Player Area - YouTube Embed */}
                 <div className="aspect-video bg-black flex items-center justify-center relative">
-                  {/* Use the selected stream's videoId in a proper embed URL */}
                   {(() => {
-                    // prefer an explicitly selected video id (via query param or clicking a link)
                     let src: string | null = null;
                     if (selectedVideoId) {
                       src = `https://www.youtube.com/embed/${selectedVideoId}?autoplay=1&rel=0`;
@@ -516,7 +733,6 @@ useEffect(() => {
                     const embedNoCookie = src ? src.replace("youtube.com/embed", "youtube-nocookie.com/embed") : null;
                     const watchUrl = selectedVideoId ? `https://www.youtube.com/watch?v=${selectedVideoId}` : externalSource;
 
-                    // Auto-open the watch URL if embedding fails and we haven't handled it yet
                     useEffect(() => {
                       if (iframeError && !iframeErrorHandled && watchUrl) {
                         try {
@@ -576,21 +792,17 @@ useEffect(() => {
                       </>
                     );
                   })()}
-                  {/* Live Indicator */}
+
                   {(liveService || selectedVideoId) && (
                     <div className="absolute top-4 left-4 flex items-center space-x-2 z-10">
-                      <Badge className="bg-red-600 text-white animate-pulse px-3 py-1">
-                        ● LIVE
-                      </Badge>
-                      <Badge variant="secondary" className="bg-background/80">
+                      <Badge variant="secondary" className="bg-background/85 text-slate-900 border border-white/50">
                         <Users className="w-4 h-4 mr-1" />
-                        {viewerCount.toLocaleString()} watching
+                        {viewerCount.toLocaleString()} viewers
                       </Badge>
                     </div>
                   )}
                 </div>
 
-                {/* Stream Info Area */}
                 <div className="p-6 bg-slate-900 border-t border-slate-800 text-white">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -601,7 +813,7 @@ useEffect(() => {
                         <Radio className="w-3 h-3 text-red-500" />
                         Rev. Prince Appau Bediako
                         <span className="text-slate-600">•</span>
-                        <span className="flex items-center gap-1"><Users size={12}/> {viewerCount.toLocaleString()} online</span>
+                        <span className="flex items-center gap-1"><Users size={12}/> {viewerCount.toLocaleString()} active viewers</span>
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -633,7 +845,6 @@ useEffect(() => {
               </div>
             </Card>
 
-            {/* Service Details Card */}
             {(liveService?.description || liveService?.details) && (
               <Card className="border-0 shadow-xl bg-slate-900 text-white overflow-hidden rounded-xl">
                 <CardHeader className="bg-slate-800/50 pb-3">
@@ -649,209 +860,9 @@ useEffect(() => {
               </Card>
             )}
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4 lg:space-y-6 order-2 lg:order-none">
-            {/* Live Chat */}
-            <Card className="border-0 shadow-2xl h-[450px] lg:h-[550px] flex flex-col bg-white rounded-xl overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center">
-                    <MessageSquare className="w-5 h-5 mr-2" />
-                    Live Chat
-                  </CardTitle>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowChat(!showChat)}
-                  >
-                    {showChat ? <X className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </CardHeader>
-              {showChat && (
-                <CardContent className="flex flex-col flex-1 pb-0 overflow-hidden relative">
-                  {/* Pinned Message Section */}
-                  {pinnedMessage && (
-                    <div className="mx-[-1.5rem] px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-start gap-3 animate-in slide-in-from-top duration-300 z-20">
-                      <div className="p-1.5 bg-blue-600 rounded-md text-white shrink-0">
-                        <Pin size={14} className="fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[10px] font-black text-blue-700 uppercase tracking-tighter">Pinned by Admin</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-blue-400 font-bold">{new Date(pinnedMessage.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            {isAdmin && (
-                              <button onClick={handleUnpin} className="text-blue-400 hover:text-blue-600 transition-colors">
-                                <X size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-800 font-medium leading-relaxed italic">
-                          "{renderMessage(pinnedMessage.message)}"
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* New Message Notification Bubble */}
-                  {showNewMessageNotification && (
-                    <div className="absolute bottom-20 left-0 right-0 flex justify-center z-30 pointer-events-none">
-                      <Button 
-                        size="sm" 
-                        onClick={scrollToBottom}
-                        className="pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center gap-2 animate-bounce h-8"
-                      >
-                        <ArrowDown size={14} /> New Messages
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Messages */}
-                  <div 
-                    ref={scrollRef}
-                    onScroll={handleScroll}
-                    className="flex-1 overflow-y-auto space-y-3 mb-4 py-4 scrollbar-thin scrollbar-thumb-slate-200"
-                  >
-                    {chatMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`p-2.5 rounded-lg text-sm transition-all ${
-                          msg.is_highlighted
-                            ? "bg-primary/10 border border-primary/20"
-                            : "bg-muted/50 hover:bg-muted"
-                        }`}
-                      >
-                        <div className="font-bold text-blue-700 text-xs flex items-center justify-between">
-                          {msg.user_name}
-                          <span className="text-[10px] text-slate-400 font-normal">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        </div>
-                        <div className="text-foreground text-sm">{renderMessage(msg.message)}</div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Message Input */}
-                  <div className="flex flex-col gap-2 pb-4 border-t border-border pt-3">
-                    <div className="flex space-x-2">
-                      {isAdmin && (
-                        <Button
-                          size="icon"
-                          variant={isPinningMode ? "default" : "outline"}
-                          onClick={() => setIsPinningMode(!isPinningMode)}
-                          className={`shrink-0 ${isPinningMode ? 'bg-blue-600' : 'text-slate-400'}`}
-                          title={isPinningMode ? "Unpin message" : "Pin message to top"}
-                        >
-                          <Pin size={16} />
-                        </Button>
-                      )}
-                      <Input
-                        placeholder={isPinningMode ? "Type pinned announcement..." : "Type message..."}
-                        value={chatMessage}
-                        onChange={(e) => setChatMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                        className={`flex-1 text-sm ${isPinningMode ? 'border-blue-500 ring-1 ring-blue-500/20' : ''}`}
-                      />
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={handleSendMessage}
-                      className="px-3"
-                    >
-                      Send
-                    </Button>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Community Connect */}
-            <Card className="border-0 shadow-card bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-xl">
-              <CardContent className="p-5 text-center">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-bold text-sm mb-1">New to MOC?</h3>
-                <p className="text-xs text-blue-100 mb-4 opacity-90">We'd love to connect and welcome you to our family!</p>
-                <Link to="/membership">
-                  <Button size="sm" className="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold rounded-full">
-                    Join Our Family
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Give Offering */}
-            <Link to="/give/offering" className="block">
-              <Button className="w-full py-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:shadow-lg hover:scale-[1.02] transition-all font-black text-base rounded-xl shadow-md">
-                <Heart className="w-5 h-5 mr-2 fill-current" />
-                GIVE OFFERING
-              </Button>
-            </Link>
-
-            {/* Quick Actions */}
-            <Card className="border-0 shadow-card">
-              <CardContent className="p-4 space-y-3">
-                <Link to="/partnership" className="block">
-                  <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold">
-                    <Heart className="w-4 h-4 mr-2" /> Partnership
-                  </Button>
-                </Link>
-                <Link to="/resources" className="block">
-                  <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold">
-                    <Settings className="w-4 h-4 mr-2" /> Study Materials
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Upcoming Services */}
-            <Card className="border-0 shadow-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  Weekly Schedule
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {services.slice(0, 4).map((service, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg border transition-all ${
-                      service.is_live
-                        ? "border-red-500 bg-red-500/5 shadow-sm"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <div className="font-semibold text-sm">{service.title}</div>
-                      {service.is_live && <Badge className="bg-red-600 text-[10px] h-4">LIVE</Badge>}
-                    </div>
-                    <div className="text-blue-600 text-xs font-bold">{service.day} • {service.time_string}</div>
-                  </div>
-                ))}
-                <Link to="/services">
-                  <Button variant="outline" className="w-full" size="sm">
-                    View Full Schedule
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Notification Signup */}
-            <NotificationSignup
-              variant="card"
-              title="Never Miss a Stream"
-              description="Get notifications about upcoming livestreams and programs"
-              defaultNotificationType="livestream"
-            />
-          </div>
         </div>
       </div>
 
-      {/* Prayer Request Modal */}
       {showPrayerModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md border-0 shadow-divine">

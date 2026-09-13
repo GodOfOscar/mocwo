@@ -14,9 +14,19 @@ if (!fs.existsSync(resolved)) {
 }
 
 const conn = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_CONN;
+const isPlaceholderDbUrl =
+  typeof conn === 'string' &&
+  /postgres:\/\/user:pass@host:5432\/postgres|postgres:\/\/postgres:password@db\.host:5432\/postgres/.test(conn);
+
 if (!conn) {
   console.error('Missing Postgres connection string. Set SUPABASE_DB_URL or DATABASE_URL in your environment (or add it to .env).');
   console.error('Example: SUPABASE_DB_URL=postgres://postgres:password@db.host:5432/postgres');
+  process.exit(1);
+}
+
+if (isPlaceholderDbUrl) {
+  console.error('Detected a placeholder Postgres connection string in the environment. Replace it with your real Supabase/Postgres database URL before running migrations.');
+  console.error('Workspace example: SUPABASE_DB_URL=postgres://postgres:YOUR_PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres');
   process.exit(1);
 }
 

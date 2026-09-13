@@ -230,6 +230,7 @@ export async function collectLibertepayPayment(opts: {
     data?.status ||
     data?.data?.status ||
     data?.data?.data?.status ||
+    data?.transaction_status ||
     ""
   ).toUpperCase();
 
@@ -237,6 +238,7 @@ export async function collectLibertepayPayment(opts: {
     data?.code ||
     data?.data?.code ||
     data?.data?.data?.code ||
+    data?.responseCode ||
     ""
   ).toUpperCase();
 
@@ -245,20 +247,41 @@ export async function collectLibertepayPayment(opts: {
     data?.message ||
     data?.data?.msg ||
     data?.data?.message ||
+    data?.data?.data?.msg ||
+    data?.data?.data?.message ||
     "Payment collection failed"
   );
 
-  if (providerStatus === "PENDING" && providerCode === "00") {
+  const providerTransactionMessage = String(
+    data?.data?.transaction_message ||
+    data?.transaction_message ||
+    data?.message ||
+    data?.msg ||
+    data?.data?.message ||
+    data?.data?.msg ||
+    ""
+  ).trim().toLowerCase();
+
+  if (
+    providerCode === "00" &&
+    (
+      providerStatus === "SUCCESS" ||
+      providerStatus === "PENDING" ||
+      providerTransactionMessage === "request processed" ||
+      providerTransactionMessage.includes("request processed") ||
+      providerTransactionMessage.includes("transaction initiated")
+    )
+  ) {
     return {
-      success: false,
+      success: true,
       transaction_id:
         data?.transaction_id ||
         data?.data?.transaction_id ||
         data?.data?.data?.transaction_id ||
         transactionId,
       reference: payload.reference,
-      status: "PENDING",
-      message: providerMessage || "Payment request accepted by LibertyPay. Final status will arrive through the callback/webhook.",
+      status: "SUCCESS",
+      message: providerMessage || "Payment request accepted by LibertyPay. Debit authorization has been initiated directly.",
       data: data?.data || data,
     };
   }

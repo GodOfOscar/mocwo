@@ -31,6 +31,79 @@ const mImages = Array.from({ length: 30 }, (_, i) => {
 
 console.log("Partnership mImages loaded:", mImages.length, mImages);
 
+const partnershipAgreementText = `MARTYRS OF CHRIST WORLD OUTREACH (MOCWO)
+
+PARTNERSHIP SCHEME
+TERMS & CONDITIONS
+
+Partnering for the Gospel. Advancing the Kingdom.
+
+The Martyrs of Christ World Outreach (MOCWO) Partnership Scheme is established to provide individuals and organizations with an opportunity to intentionally support the ministry’s evangelistic mandate, outreach activities, discipleship initiatives, and other approved Kingdom-focused projects.
+
+By registering as a MOCWO Partner, an individual agrees to the following Terms and Conditions:
+
+1. Partnership Levels
+• Bronze Partner — GHS 50 monthly / GHS 570 annual
+• Silver Partner — GHS 100 monthly / GHS 1,140 annual
+• Gold Partner — GHS 250 monthly / GHS 2,850 annual
+
+2. Contribution Frequency
+Partners may fulfil their partnership commitment either monthly or annually. An annual payment shall cover the partner’s contribution for the applicable twelve-month period.
+
+3. Monthly Contribution Commitment
+A partner who chooses the monthly payment option is expected to make the agreed contribution every month throughout their active partnership period.
+
+4. Monthly Reminders
+The MOCWO Partnership Team may send monthly reminders to registered partners regarding their partnership contributions.
+
+5. Grace Period for Late Contributions
+Where a monthly contribution is not received by the designated deadline, the partner shall be granted an additional fourteen days grace period within which the outstanding contribution may be settled.
+
+6. Irregular or Defaulted Contributions
+MOCWO reserves the right to review the partner’s status where there is persistent default or failure to communicate.
+
+7. Official Partner Recognition
+Upon successful registration and acceptance into the Partnership Scheme, the individual shall be officially recognized as a MOCWO Partner at their selected partnership level.
+
+8. Use and Allocation of Partnership Funds
+MOCWO is committed to responsible stewardship and transparent utilization of partnership contributions. Eighty percent of funds support evangelistic outreach, mission, discipleship, media evangelism and similar work. Twenty percent supports ministry investments and strategic initiatives.
+
+9. Accountability of Funds
+MOCWO shall endeavour to maintain proper records of partnership contributions and their utilization.
+
+10. Partnership Does Not Replace Other Giving
+MOCWO Partnership contributions are separate from other forms of giving and financial commitments within the ministry.
+
+11. Partnership Benefits
+Active partners may enjoy benefits such as official recognition, ministry updates, invitations, communications, reports, and selected outreach opportunities.
+
+12. Voluntary Participation
+Partners are expected to make their commitments willingly and in good faith.
+
+13. Change of Partnership Level
+An active partner may request to upgrade or downgrade their partnership level by communicating with the MOCWO Partnership Team.
+
+14. Partnership Status
+Partnership status shall remain active provided the partner continues to fulfil their selected contribution commitment and complies with the applicable Partnership Terms and Conditions.
+
+15. Confidentiality and Partner Information
+Information provided by partners during registration shall be handled responsibly and used primarily for partnership administration, communication, reporting, and other legitimate ministry-related purposes.
+
+16. Policy and Guideline Amendments
+MOCWO reserves the right to review, modify, update, or amend these Partnership Terms and Conditions, contribution structures, benefits, fund allocation policies, or other partnership guidelines where deemed necessary.
+
+17. Ministry Stewardship
+MOCWO shall endeavour to manage all partnership contributions with integrity, accountability, prudence, and in alignment with the ministry’s vision and Gospel mandate.
+
+18. Partnership Communication
+Partners are expected to provide accurate and up-to-date contact information.
+
+19. Acknowledgement and Acceptance
+By completing and submitting the MOCWO Partnership registration form, the applicant confirms that they have read, understood, and agreed to abide by these Terms and Conditions.
+
+PARTNERSHIP DECLARATION
+I willingly choose to partner with Martyrs of Christ World Outreach in advancing the Gospel of our Lord Jesus Christ. I understand my selected partnership level, contribution commitment, and the Terms and Conditions governing the Partnership Scheme. I commit to honouring my partnership contribution faithfully and to supporting the ministry’s vision of reaching souls and equipping believers for Christ.`;
+
 const Partnership = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -44,6 +117,7 @@ const Partnership = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReturningForm, setShowReturningForm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [mobileNetwork, setMobileNetwork] = useState("");
   const [returningMobileNetwork, setReturningMobileNetwork] = useState("");
   const [returningForm, setReturningForm] = useState({ name: "", level: "", paymentMethod: "" });
@@ -251,6 +325,15 @@ const Partnership = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Required",
+        description: "Please read and accept the partnership agreement before submitting your application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const normalizedName = normalizePartnerName(formData.name);
 
     if (!normalizedName || !formData.email || !formData.amount || !formData.paymentMethod) {
@@ -336,16 +419,6 @@ const Partnership = () => {
             email: formData.email,
             reference,
           });
-
-          if (!paymentResult || paymentResult.status === 'PENDING') {
-            toast({
-              title: 'Payment Submitted',
-              description: 'LibertéPay received the request. Final confirmation will arrive through the callback/webhook.',
-              variant: 'default',
-            });
-            setIsProcessing(false);
-            return;
-          }
 
           if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
             throw new Error('Payment collection was not confirmed by LibertéPay');
@@ -505,16 +578,6 @@ const Partnership = () => {
             email: paymentEmail,
             reference,
           });
-
-          if (!paymentResult || paymentResult.status === 'PENDING') {
-            toast({
-              title: 'Payment Submitted',
-              description: 'LibertéPay received the request. Final confirmation will arrive through the callback/webhook.',
-              variant: 'default',
-            });
-            setIsProcessing(false);
-            return;
-          }
 
           if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
             toast({ title: 'Payment Not Confirmed', description: 'The mobile-money payment must be completed before the record is saved.', variant: 'destructive' });
@@ -896,6 +959,55 @@ const Partnership = () => {
                       rows={5}
                       className="border-2 focus:border-blue-500 transition-all resize-none"
                     />
+                  </div>
+
+                  <div className="rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="terms-accept"
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                        className="h-5 w-5 rounded border-blue-600 text-blue-700 accent-blue-700 focus:ring-blue-600"
+                        aria-label="I accept the partnership agreement"
+                      />
+                      <Label htmlFor="terms-accept" className="text-sm font-black text-slate-800 uppercase tracking-wide">
+                        I have read and accept the partnership terms and declaration
+                      </Label>
+                    </div>
+
+                    <div className="mt-4 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700 shadow-inner">
+                      <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                        <Sparkles className="h-4 w-4 text-blue-700" />
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">
+                          Martyrs of Christ World Outreach Partnership Scheme
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 text-[12px] leading-6 text-slate-700">
+                        <div className="flex items-start gap-2">
+                          <Sparkles className="mt-1 h-3.5 w-3.5 shrink-0 text-cyan-600" />
+                          <span className="font-black text-slate-800">Partnering for the Gospel. Advancing the Kingdom.</span>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <Handshake className="mt-1 h-3.5 w-3.5 shrink-0 text-blue-700" />
+                          <span className="font-semibold">Choose a partnership level and commit faithfully to the ministry vision.</span>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <Shield className="mt-1 h-3.5 w-3.5 shrink-0 text-emerald-700" />
+                          <span className="font-semibold">Your giving is treated with stewardship, accountability, and Kingdom purpose.</span>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <div className="font-black uppercase tracking-wide text-slate-700">Terms summary</div>
+                          <div className="mt-2 whitespace-pre-wrap font-sans text-[11.5px] leading-6 text-slate-700">
+{partnershipAgreementText}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <Button 

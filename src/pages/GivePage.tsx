@@ -294,20 +294,6 @@ const GivePage = () => {
           reference: `MOC${Date.now()}`,
         });
 
-        if (!paymentResult || paymentResult.status === "PENDING") {
-          toast({
-            title: "Payment Submitted",
-            description: "LibertéPay received the request. Final confirmation will arrive through the callback/webhook.",
-            variant: "default",
-          });
-          setAmount("");
-          setMobileNumber("");
-          setMobileNetwork("");
-          setEmail("");
-          setPaymentMethod("");
-          return;
-        }
-
         if (!paymentResult || paymentResult.success !== true || !paymentResult.transaction_id) {
           throw new Error("Payment collection was not confirmed by LibertéPay");
         }

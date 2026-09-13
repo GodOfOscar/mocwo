@@ -187,6 +187,7 @@ router.post("/collection", async (req, res) => {
   let normalizedAccountNumber = "";
   let numericAmount = 0;
   let reference = "";
+  let transaction_id = `TXN${Date.now()}`;
 
   try {
     const {
@@ -230,7 +231,7 @@ router.post("/collection", async (req, res) => {
     }
 
     // Generate your own unique transaction ID
-    const transaction_id = `TXN${Date.now()}`;
+    transaction_id = `TXN${Date.now()}`;
     const safeReference = sanitizeReference(reference || `PAY${Date.now()}`);
 
     const paymentData = {
@@ -266,36 +267,80 @@ router.post("/collection", async (req, res) => {
 
     const providerStatus = String(response.data?.status || "").toUpperCase();
     const providerCode = String(response.data?.code || "").toUpperCase();
+    const providerMessage = String(
+      response.data?.msg ||
+      response.data?.message ||
+      response.data?.data?.msg ||
+      response.data?.data?.message ||
+      "Payment accepted by LibertyPay."
+    );
 
-    const callbackRequired =
-      providerStatus === "SUCCESS" &&
+    const transactionMessage = String(
+      response.data?.data?.transaction_message ||
+      response.data?.transaction_message ||
+      response.data?.message ||
+      response.data?.msg ||
+      ""
+    ).trim().toLowerCase();
+
+    const requestAcceptedDirectly =
       providerCode === "00" &&
-      String(response.data?.data?.transaction_message || "").toLowerCase() === "request processed";
+      (
+        providerStatus === "SUCCESS" ||
+        providerStatus === "PENDING" ||
+        transactionMessage === "request processed" ||
+        transactionMessage.includes("request processed") ||
+        transactionMessage.includes("transaction initiated")
+      );
 
-    if (callbackRequired) {
-      return res.status(202).json({
-        success: true,
-        transaction_id,
-        data: response.data,
-        status: "PENDING",
-        code: providerCode,
-        msg: "Payment request accepted by LibertyPay. Final status will arrive through the callback/webhook.",
-      });
-    }
-
-    return res.status(response.status).json({
+    return res.status(200).json({
       success: true,
       transaction_id,
       data: response.data,
-      status: response.data?.status,
-      code: response.data?.code,
-      msg: response.data?.msg,
+      status: requestAcceptedDirectly ? "SUCCESS" : (providerStatus || response.data?.status || "SUCCESS"),
+      code: providerCode || response.data?.code || "00",
+      msg: requestAcceptedDirectly
+        ? "Payment request accepted by LibertyPay. Debit authorization has been initiated directly."
+        : providerMessage,
     });
   } catch (error) {
     console.error(
       "LibertéPay Collection Error:",
       error.response?.data || error.message
     );
+
+    const errorPayload = error?.response?.data || {};
+    const providerStatus = String(errorPayload?.status || errorPayload?.data?.status || "").toUpperCase();
+    const providerCode = String(errorPayload?.code || errorPayload?.data?.code || "").toUpperCase();
+    const providerTransactionMessage = String(
+      errorPayload?.data?.transaction_message ||
+      errorPayload?.transaction_message ||
+      errorPayload?.message ||
+      errorPayload?.msg ||
+      ""
+    ).trim().toLowerCase();
+
+    const requestAcceptedDirectly =
+      error?.response?.status === 202 &&
+      providerCode === "00" &&
+      (
+        providerStatus === "PENDING" ||
+        providerStatus === "SUCCESS" ||
+        providerTransactionMessage === "request processed" ||
+        providerTransactionMessage.includes("request processed") ||
+        providerTransactionMessage.includes("transaction initiated")
+      );
+
+    if (requestAcceptedDirectly) {
+      return res.status(200).json({
+        success: true,
+        transaction_id,
+        data: errorPayload,
+        status: "SUCCESS",
+        code: providerCode || "00",
+        msg: "Payment request accepted by LibertyPay. Debit authorization has been initiated directly.",
+      });
+    }
 
     if (isMockFallbackEnabled(req) && providerLooksBlockedByIp(error)) {
       const mockTransactionId = `MOCK-${Date.now()}`;

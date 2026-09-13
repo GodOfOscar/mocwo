@@ -100,28 +100,28 @@ const Resources = () => {
 
   const featuredSermons = [
   { 
-    title: "The Power of Faith", 
+    title: "Featured Sermon One", 
     speaker: "Rev. Prince Appau Bediako", 
-    date: "March 15, 2024", 
-    duration: "45 min", 
-    image: "🎬",
-    videoLink: "https://www.youtube.com/watch?v=CuSjTgJV_lA"
+    date: "Featured Message", 
+    duration: "Watch", 
+    image: "https://img.youtube.com/vi/xw1zKK9i2z8/hqdefault.jpg",
+    videoLink: "https://www.youtube.com/watch?v=xw1zKK9i2z8&t=7s"
   },
   { 
-    title: "Walking in Purpose", 
+    title: "Featured Sermon Two", 
     speaker: "Rev. Prince Appau Bediako", 
-    date: "March 8, 2024", 
-    duration: "52 min", 
-    image: "🎬",
-    videoLink: "https://www.youtube.com/watch?v=JtdKbMrPwqQ"
+    date: "Featured Message", 
+    duration: "Watch", 
+    image: "https://img.youtube.com/vi/uioKVHow4pM/hqdefault.jpg",
+    videoLink: "https://youtu.be/uioKVHow4pM"
   },
   { 
-    title: "Kingdom Principles", 
+    title: "Featured Sermon Three", 
     speaker: "Rev. Prince Appau Bediako", 
-    date: "March 1, 2024", 
-    duration: "48 min", 
-    image: "🎬",
-    videoLink: "https://www.youtube.com/watch?v=cJU6wW5Veo8"
+    date: "Featured Message", 
+    duration: "Watch", 
+    image: "https://img.youtube.com/vi/mRR6GqcY1_8/hqdefault.jpg",
+    videoLink: "https://www.youtube.com/watch?v=mRR6GqcY1_8"
   }
 ];
 
@@ -370,7 +370,19 @@ const Resources = () => {
             {featuredSermons.map((sermon, index) => (
               <Card key={index} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 overflow-hidden group bg-white" data-fhc-card>
                 <CardContent className="p-0">
-                  <div className="aspect-video bg-gradient-to-br from-blue-700 to-cyan-500 flex items-center justify-center text-6xl group-hover:scale-110 transition-transform duration-500 overflow-hidden">{sermon.image}</div>
+                  <div className="aspect-video bg-gradient-to-br from-blue-700 to-cyan-500 overflow-hidden relative">
+                    <img
+                      src={sermon.image}
+                      alt={sermon.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 to-transparent" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="rounded-full bg-white/95 text-blue-700 w-12 h-12 flex items-center justify-center shadow-xl">
+                        <Play className="w-5 h-5 fill-current ml-1" />
+                      </span>
+                    </div>
+                  </div>
                   <div className="p-8 space-y-3">
                     <h3 className="text-2xl font-bold text-slate-900 leading-tight">{sermon.title}</h3>
                     <p className="text-slate-600 font-medium">{sermon.speaker}</p>
