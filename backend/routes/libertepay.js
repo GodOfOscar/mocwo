@@ -263,6 +263,9 @@ router.post("/collection", async (req, res) => {
       reference: safeReference,
       metadata: metadata || {},
       callback_url: LIBERTEPAY_CALLBACK_URL,
+      callbackUrl: LIBERTEPAY_CALLBACK_URL,
+      webhook_url: LIBERTEPAY_CALLBACK_URL,
+      notify_url: LIBERTEPAY_CALLBACK_URL,
     };
 
     console.log("Sending collection request:", paymentData);
