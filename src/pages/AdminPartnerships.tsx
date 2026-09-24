@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/lib/api";
-import { CreditCard, Trash2, Lock } from "lucide-react";
+import { CreditCard, Trash2, Lock, Plus } from "lucide-react";
 import { XCircle } from "lucide-react"; // Import XCircle for restricted access message
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +24,32 @@ interface Partnership {
   created_at: string;
 }
 
+interface ManualPartnershipForm {
+  name: string;
+  email: string;
+  phone: string;
+  level: string;
+  amount: string;
+  payment_method: string;
+  payment_status: "pending" | "paid";
+  payment_reference: string;
+  transaction_id: string;
+  message: string;
+}
+
+const emptyManualPartnership: ManualPartnershipForm = {
+  name: "",
+  email: "",
+  phone: "",
+  level: "Bronze",
+  amount: "",
+  payment_method: "manual",
+  payment_status: "pending",
+  payment_reference: "",
+  transaction_id: "",
+  message: "Added manually by an administrator",
+};
+
 const AdminPartnerships = () => {
   const [partnerships, setPartnerships] = useState<Partnership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +57,9 @@ const AdminPartnerships = () => {
   const [passwordInput, setPasswordInput] = useState("");
   const [isAccessRestricted, setIsAccessRestricted] = useState(false); // NEW state for access restriction
   const [passwordError, setPasswordError] = useState("");
+  const [isManualFormOpen, setIsManualFormOpen] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualPartnershipForm>(emptyManualPartnership);
+  const [isSavingManual, setIsSavingManual] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -85,6 +114,37 @@ const AdminPartnerships = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateManualField = (field: keyof ManualPartnershipForm, value: string) => {
+    setManualForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const createManualPartnership = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSavingManual(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin-partnerships`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...manualForm, amount: Number(manualForm.amount) }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Unable to add partnership");
+      }
+
+      toast({ title: "Partnership added", description: "The partnership is now visible in the admin portal." });
+      setManualForm(emptyManualPartnership);
+      setIsManualFormOpen(false);
+      fetchPartnerships();
+    } catch (error: any) {
+      toast({ title: "Error adding partnership", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSavingManual(false);
     }
   };
 
@@ -217,18 +277,60 @@ const AdminPartnerships = () => {
                   <h1 className="text-4xl md:text-5xl font-bold mb-2">Partnerships</h1>
                   <p className="text-white/90 text-lg">Manage and track all partnership applications</p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-all duration-300"
-                  onClick={() => navigate('/admin')}
-                >
-                  ← Back to Dashboard
-                </Button>
+                <div className="flex flex-wrap justify-end gap-3">
+                  <Button
+                    type="button"
+                    className="bg-white text-blue-700 hover:bg-blue-50"
+                    onClick={() => setIsManualFormOpen((open) => !open)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Partnership
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur transition-all duration-300"
+                    onClick={() => navigate('/admin')}
+                  >
+                    ← Back to Dashboard
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="w-full px-0 py-12">
+            {isManualFormOpen && (
+              <Card className="mb-8 border-blue-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl text-slate-800">Add Partnership Manually</CardTitle>
+                  <p className="text-sm text-muted-foreground">Use this for historical registrations or verified payments missing from the portal.</p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={createManualPartnership} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div><Label htmlFor="manual-name">Full name</Label><Input id="manual-name" required value={manualForm.name} onChange={(e) => updateManualField("name", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-email">Email</Label><Input id="manual-email" type="email" required value={manualForm.email} onChange={(e) => updateManualField("email", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-phone">Phone</Label><Input id="manual-phone" value={manualForm.phone} onChange={(e) => updateManualField("phone", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-level">Partnership level</Label><Input id="manual-level" required value={manualForm.level} onChange={(e) => updateManualField("level", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-amount">Amount (GHS)</Label><Input id="manual-amount" type="number" min="0.01" step="0.01" required value={manualForm.amount} onChange={(e) => updateManualField("amount", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-method">Payment method</Label><Input id="manual-method" required value={manualForm.payment_method} onChange={(e) => updateManualField("payment_method", e.target.value)} /></div>
+                    <div>
+                      <Label htmlFor="manual-status">Payment status</Label>
+                      <select id="manual-status" value={manualForm.payment_status} onChange={(e) => updateManualField("payment_status", e.target.value)} className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <option value="pending">Pending / needs verification</option>
+                        <option value="paid">Paid / verified</option>
+                      </select>
+                    </div>
+                    <div><Label htmlFor="manual-reference">Payment reference</Label><Input id="manual-reference" placeholder="Original provider reference" value={manualForm.payment_reference} onChange={(e) => updateManualField("payment_reference", e.target.value)} /></div>
+                    <div><Label htmlFor="manual-transaction">Transaction ID</Label><Input id="manual-transaction" value={manualForm.transaction_id} onChange={(e) => updateManualField("transaction_id", e.target.value)} /></div>
+                    <div className="md:col-span-2"><Label htmlFor="manual-message">Notes</Label><Input id="manual-message" value={manualForm.message} onChange={(e) => updateManualField("message", e.target.value)} /></div>
+                    <div className="flex gap-3 md:col-span-2">
+                      <Button type="submit" disabled={isSavingManual}>{isSavingManual ? "Adding..." : "Save Partnership"}</Button>
+                      <Button type="button" variant="outline" onClick={() => setIsManualFormOpen(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">

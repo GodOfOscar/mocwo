@@ -522,6 +522,84 @@ app.get('/api/admin-partnerships', async (req, res) => {
   }
 });
 
+app.post('/api/admin-partnerships', async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    level,
+    amount,
+    payment_method: paymentMethod,
+    payment_status: paymentStatus,
+    payment_reference: paymentReference,
+    message,
+    transaction_id: transactionId,
+  } = req.body || {};
+  const numericAmount = Number(amount);
+  const normalizedPaymentStatus = paymentStatus === 'paid' ? 'paid' : 'pending';
+  const reference = String(paymentReference || `MANUAL-${Date.now()}`).trim();
+
+  if (!String(name || '').trim() || !String(email || '').trim() || !String(level || '').trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return res.status(400).json({ success: false, error: 'Name, email, level, and a valid amount are required.' });
+  }
+
+  try {
+    const { data: existingPayment } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('payment_reference', reference)
+      .maybeSingle();
+
+    if (existingPayment) {
+      return res.status(409).json({ success: false, error: 'A payment with this reference already exists.' });
+    }
+
+    const { data: partnership, error: partnershipError } = await supabase
+      .from('partnerships')
+      .insert([{
+        name: String(name).trim(),
+        email: String(email).trim(),
+        phone: String(phone || '').trim() || null,
+        level: String(level).trim(),
+        amount: numericAmount,
+        payment_method: String(paymentMethod || 'manual').trim(),
+        message: String(message || 'Added manually by an administrator').trim(),
+        status: normalizedPaymentStatus === 'paid' ? 'active' : 'pending_payment',
+        payment_status: normalizedPaymentStatus,
+        payment_reference: reference,
+        activated_at: normalizedPaymentStatus === 'paid' ? new Date().toISOString() : null,
+      }])
+      .select()
+      .single();
+
+    if (partnershipError) throw partnershipError;
+
+    const { error: paymentError } = await supabase
+      .from('payments')
+      .insert([{
+        partnership_id: partnership.id,
+        payment_reference: reference,
+        transaction_id: String(transactionId || '').trim() || null,
+        amount: numericAmount,
+        currency: 'GHS',
+        payment_method: String(paymentMethod || 'manual').trim(),
+        gateway: 'manual_admin_entry',
+        status: normalizedPaymentStatus,
+        paid_at: normalizedPaymentStatus === 'paid' ? new Date().toISOString() : null,
+      }]);
+
+    if (paymentError) {
+      await supabase.from('partnerships').delete().eq('id', partnership.id);
+      throw paymentError;
+    }
+
+    return res.status(201).json({ success: true, data: partnership });
+  } catch (error) {
+    console.error('ADMIN PARTNERSHIP CREATE ERROR:', error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || 'Unable to create partnership.' });
+  }
+});
+
 const normalizeMonth = (value) => String(value || "").trim().toLowerCase();
 const validateMonth = (month) => /^[a-z0-9-_]+$/.test(month);
 
