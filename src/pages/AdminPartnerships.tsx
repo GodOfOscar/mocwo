@@ -60,6 +60,8 @@ const AdminPartnerships = () => {
   const [isManualFormOpen, setIsManualFormOpen] = useState(false);
   const [manualForm, setManualForm] = useState<ManualPartnershipForm>(emptyManualPartnership);
   const [isSavingManual, setIsSavingManual] = useState(false);
+  const [partnershipSearch, setPartnershipSearch] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -211,6 +213,21 @@ const AdminPartnerships = () => {
       .filter((p) => normalizeStatus(p.status) === 'active')
       .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
   };
+
+  const levelOrder: Record<string, number> = { bronze: 1, silver: 2, gold: 3 };
+  const filteredPartnerships = partnerships
+    .filter((partnership) => {
+      const search = partnershipSearch.trim().toLowerCase();
+      const matchesSearch = !search || [partnership.name, partnership.phone || ""]
+        .some((value) => value.toLowerCase().includes(search));
+      const matchesLevel = levelFilter === "all" || partnership.level.toLowerCase() === levelFilter;
+      return matchesSearch && matchesLevel;
+    })
+    .sort((first, second) => {
+      const firstOrder = levelOrder[first.level.toLowerCase()] || 99;
+      const secondOrder = levelOrder[second.level.toLowerCase()] || 99;
+      return firstOrder - secondOrder || first.name.localeCompare(second.name);
+    });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-950/5">
@@ -427,6 +444,35 @@ const AdminPartnerships = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
+                    <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end">
+                      <div className="flex-1">
+                        <Label htmlFor="partnership-search">Search by name or phone</Label>
+                        <Input
+                          id="partnership-search"
+                          value={partnershipSearch}
+                          onChange={(event) => setPartnershipSearch(event.target.value)}
+                          placeholder="Search name or phone number"
+                          className="mt-2"
+                        />
+                      </div>
+                      <div className="w-full md:w-52">
+                        <Label htmlFor="partnership-level-filter">Sort by level</Label>
+                        <select
+                          id="partnership-level-filter"
+                          value={levelFilter}
+                          onChange={(event) => setLevelFilter(event.target.value)}
+                          className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="all">All levels</option>
+                          <option value="bronze">Bronze</option>
+                          <option value="silver">Silver</option>
+                          <option value="gold">Gold</option>
+                        </select>
+                      </div>
+                    </div>
+                    {filteredPartnerships.length === 0 ? (
+                      <div className="py-10 text-center text-muted-foreground">No matching partnerships found.</div>
+                    ) : (
                     <Table>
                       <TableHeader className="bg-slate-100/50">
                         <TableRow className="hover:bg-transparent">
@@ -442,7 +488,7 @@ const AdminPartnerships = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {partnerships.map((partnership) => (
+                        {filteredPartnerships.map((partnership) => (
                           <TableRow key={partnership.id} className="hover:bg-blue-50/50 transition-colors">
                             <TableCell className="font-semibold text-slate-800">{partnership.name}</TableCell>
                             <TableCell className="text-slate-600">{partnership.email}</TableCell>
@@ -496,6 +542,7 @@ const AdminPartnerships = () => {
                         ))}
                       </TableBody>
                     </Table>
+                    )}
                   </div>
                 )}
               </CardContent>
