@@ -280,27 +280,6 @@ router.post("/collection", async (req, res) => {
       callback_url: LIBERTEPAY_CALLBACK_URL,
     };
 
-    if (metadata?.payment_type === "partnership" || metadata?.level) {
-      const { error: pendingError } = await supabase
-        .from("partnerships")
-        .insert([
-          {
-            name: metadata.name || account_name,
-            email: metadata.email || null,
-            phone: metadata.phone || normalizedAccountNumber,
-            level: metadata.level || "custom",
-            amount: numericAmount,
-            payment_method: metadata.payment_method || "mobile-money",
-            message: `${metadata.message || ""} | Reference: ${safeReference}`.trim(),
-            status: "pending",
-          },
-        ]);
-
-      if (pendingError) {
-        console.warn("Pending partnership registration could not be saved:", pendingError.message);
-      }
-    }
-
     console.log("Sending collection request:", paymentData);
 
     const response = await axios.post(

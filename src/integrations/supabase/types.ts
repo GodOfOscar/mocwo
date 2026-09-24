@@ -47,6 +47,7 @@ export type Database = {
       }
       partnerships: {
         Row: {
+          activated_at: string | null
           amount: number | null
           created_at: string
           email: string
@@ -55,11 +56,14 @@ export type Database = {
           message: string | null
           name: string
           payment_method: string
+          payment_reference: string | null
+          payment_status: string | null
           phone: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          activated_at?: string | null
           amount?: number | null
           created_at?: string
           email: string
@@ -68,11 +72,14 @@ export type Database = {
           message?: string | null
           name: string
           payment_method: string
+          payment_reference?: string | null
+          payment_status?: string | null
           phone?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          activated_at?: string | null
           amount?: number | null
           created_at?: string
           email?: string
@@ -81,11 +88,67 @@ export type Database = {
           message?: string | null
           name?: string
           payment_method?: string
+          payment_reference?: string | null
+          payment_status?: string | null
           phone?: string | null
           status?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          gateway: string
+          gateway_response: Json | null
+          id: string
+          paid_at: string | null
+          partnership_id: string | null
+          payment_method: string | null
+          payment_reference: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          gateway?: string
+          gateway_response?: Json | null
+          id?: string
+          paid_at?: string | null
+          partnership_id?: string | null
+          payment_method?: string | null
+          payment_reference: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          gateway?: string
+          gateway_response?: Json | null
+          id?: string
+          paid_at?: string | null
+          partnership_id?: string | null
+          payment_method?: string | null
+          payment_reference?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [{ foreignKeyName: "payments_partnership_id_fkey"; columns: ["partnership_id"]; isOneToOne: false; referencedRelation: "partnerships"; referencedColumns: ["id"] }]
       }
       news: {
         Row: {

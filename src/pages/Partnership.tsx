@@ -43,9 +43,9 @@ The Martyrs of Christ World Outreach (MOCWO) Partnership Scheme is established t
 By registering as a MOCWO Partner, an individual agrees to the following Terms and Conditions:
 
 1. Partnership Levels
-• Bronze Partner — GHS 50 monthly / GHS 570 annual
-• Silver Partner — GHS 100 monthly / GHS 1,140 annual
-• Gold Partner — GHS 250 monthly / GHS 2,850 annual
+• Bronze Partner — GHS 50 monthly / GHS 570 annual (5% discount)
+• Silver Partner — GHS 100 monthly / GHS 1,140 annual (5% discount)
+• Gold Partner — GHS 250 monthly / GHS 2,850 annual (5% discount)
 
 2. Contribution Frequency
 Partners may fulfil their partnership commitment either monthly or annually. An annual payment shall cover the partner’s contribution for the applicable twelve-month period.
@@ -207,9 +207,9 @@ const Partnership = () => {
     {
       title: "Bronze Partner",
       amount: "₵ 50/month",
+      annualAmount: "₵ 570/year",
       icon: Heart,
       color: "from-orange-400 to-orange-600",
-      description: "Planting seeds of hope and joining our global intercession family",
       benefits: [
         "Monthly prayer support",
         "Access to partner events",
@@ -221,9 +221,9 @@ const Partnership = () => {
     {
       title: "Silver Partner",
       amount: "₵ 100/month",
+      annualAmount: "₵ 1,140/year",
       icon: Star,
       color: "from-gray-400 to-gray-600",
-      description: "Walking closer with us as we transform communities together",
       benefits: [
         "All Bronze benefits",
         "Pastoral Engagement",
@@ -236,9 +236,9 @@ const Partnership = () => {
     {
       title: "Gold Partner",
       amount: "₵ 250/month",
+      annualAmount: "₵ 2,850/year",
       icon: Sparkles,
       color: "from-yellow-400 to-yellow-600",
-      description: "Leading the charge in global mission and kingdom advancement",
       benefits: [
         "All Silver benefits",
         "Annual partner retreat",
@@ -266,6 +266,72 @@ const Partnership = () => {
   const getMinimumAmount = (level: string) => partnershipMinimums[level] ?? 0;
 
   const normalizePartnerName = (name: string) => name.trim().replace(/\s+/g, ' ');
+
+  const ensurePendingPartnershipRecord = async ({
+    name,
+    email,
+    phone,
+    level,
+    amount,
+    paymentMethod,
+    message,
+    paymentReference,
+  }: {
+    name: string;
+    email: string;
+    phone: string;
+    level: string;
+    amount: number;
+    paymentMethod: string;
+    message: string;
+    paymentReference: string;
+  }) => {
+    const partnerName = normalizePartnerName(name);
+    const existing = await findPartnerByName(partnerName);
+
+    if (existing) {
+      return {
+        partnership: existing,
+        payment: null,
+      };
+    }
+
+    const { data: partnership, error: partnershipError } = await publicSupabase
+      .from('partnerships')
+      .insert([{
+        name: partnerName,
+        email,
+        phone,
+        level,
+        amount,
+        payment_method: paymentMethod,
+        message: `${message || ''} | Reference: ${paymentReference}`.trim(),
+        status: 'pending_payment',
+        payment_status: 'pending',
+        payment_reference: paymentReference,
+      }])
+      .select()
+      .single();
+
+    if (partnershipError) throw partnershipError;
+
+    const { error: paymentError } = await publicSupabase
+      .from('payments')
+      .insert([{
+        partnership_id: partnership.id,
+        payment_reference: paymentReference,
+        amount,
+        currency: 'GHS',
+        payment_method: paymentMethod,
+        gateway: 'libertepay',
+        status: 'pending',
+        transaction_id: paymentReference,
+      }]);
+
+    if (paymentError) throw paymentError;
+
+    return { partnership, payment: { paymentReference } };
+  };
 
   const findPartnerByName = async (name: string) => {
     const normalizedName = normalizePartnerName(name);
@@ -385,10 +451,20 @@ const Partnership = () => {
 
     setIsProcessing(true);
 
-    // Lead user to the respective payment method
     if (formData.paymentMethod === 'card' || formData.paymentMethod === 'mobile-money') {
       try {
         const reference = `PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+        await ensurePendingPartnershipRecord({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          level: formData.level,
+          amount: Number(formData.amount),
+          paymentMethod: formData.paymentMethod,
+          message: formData.message,
+          paymentReference: reference,
+        });
 
         if (formData.paymentMethod === 'mobile-money') {
           if (!formData.phone) {
@@ -420,6 +496,7 @@ const Partnership = () => {
             reference,
             metadata: {
               name: formData.name,
+              email: formData.email,
               level: formData.level,
               phone: formData.phone,
               payment_method: formData.paymentMethod,
@@ -436,8 +513,8 @@ const Partnership = () => {
           }
 
           toast({
-            title: 'Payment Accepted',
-            description: 'LibertéPay confirmed the provider response. Final callback data will be recorded after the provider callback arrives.',
+            title: 'Authorization Request Sent',
+            description: 'Check the selected mobile-money phone and approve the debit request. Your partnership becomes active only after LibertyPay confirms the payment.',
             variant: 'default',
           });
 
@@ -451,41 +528,38 @@ const Partnership = () => {
         setIsProcessing(false);
       }
     } else {
-      // For manual verification methods
       if (formData.paymentMethod === 'bank-transfer') {
         toast({
           title: "Awaiting Transfer",
           description: "Please follow the bank transfer instructions below. Your application will be processed once verified.",
         });
       }
-      // Submit for manual verification
       savePartnershipData("MANUAL_VERIFICATION_REQUIRED");
     }
   };
 
   const savePartnershipData = async (reference: string) => {
     try {
-      const { error } = await publicSupabase
-        .from('partnerships')
-        .insert([{
+      const existingPending = await findPartnerByName(normalizePartnerName(formData.name));
+
+      if (!existingPending) {
+        await ensurePendingPartnershipRecord({
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
           level: formData.level,
-          amount: parseFloat(formData.amount) || 0,
-          payment_method: formData.paymentMethod,
-          message: `${formData.message} | Reference: ${reference}`,
-          status: 'pending'
-        }]);
-
-      if (error) throw error;
+          amount: Number(formData.amount) || 0,
+          paymentMethod: formData.paymentMethod,
+          message: formData.message,
+          paymentReference: reference,
+        });
+      }
 
       toast({
         title: "Success! 🙏",
         description: "Redirecting to your partnership summary...",
       });
 
-      // Redirect to success page with data
       navigate('/partnership-success', { 
         state: { 
           name: formData.name, 
@@ -586,6 +660,7 @@ const Partnership = () => {
             reference,
             metadata: {
               name: partner.name,
+              email: paymentEmail,
               level: returningForm.level,
               phone: paymentPhone,
               payment_method: returningForm.paymentMethod,
@@ -609,7 +684,7 @@ const Partnership = () => {
           return;
         }
 
-        toast({ title: 'Payment Accepted', description: 'The LibertyPay callback will create the partnership record only after the final provider status arrives.', variant: 'default' });
+        toast({ title: 'Authorization Request Sent', description: 'Approve the debit request on the selected mobile-money phone. Your partnership becomes active only after LibertyPay confirms the payment.', variant: 'default' });
         navigate('/partnership-success', {
           state: {
             name: partner.name,
@@ -694,7 +769,7 @@ const Partnership = () => {
                     </div>
                     <CardTitle className="text-2xl font-bold text-gray-900">{level.title}</CardTitle>
                     <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-cyan-600 mt-2">{level.amount}</p>
-                    <p className="text-sm text-gray-600 mt-2 font-medium">{level.description}</p>
+                    <p className="text-sm font-semibold text-blue-700 mt-1">{level.annualAmount} with 5% annual discount</p>
                   </CardHeader>
 
                   <CardContent className="relative z-10">
@@ -925,9 +1000,9 @@ const Partnership = () => {
                         <SelectValue placeholder="Select partnership level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Bronze Partner"> Bronze Partner - ₵ 50/month</SelectItem>
-                        <SelectItem value="Silver Partner"> Silver Partner - ₵ 100/month</SelectItem>
-                        <SelectItem value="Gold Partner"> Gold Partner - ₵ 250/month</SelectItem>
+                        <SelectItem value="Bronze Partner"> Bronze Partner - ₵ 50/month or ₵ 570/year</SelectItem>
+                        <SelectItem value="Silver Partner"> Silver Partner - ₵ 100/month or ₵ 1,140/year</SelectItem>
+                        <SelectItem value="Gold Partner"> Gold Partner - ₵ 250/month or ₵ 2,850/year</SelectItem>
 
                         <SelectItem value="custom"> Beyound 250</SelectItem>
                       </SelectContent>
@@ -985,7 +1060,7 @@ const Partnership = () => {
                         aria-label="I accept the partnership agreement"
                       />
                       <Label htmlFor="terms-accept" className="text-sm font-black text-slate-800 uppercase tracking-wide">
-                        I have read and accept the partnership terms and declaration
+                        I have read and accepted the partnership terms and declaration
                       </Label>
                     </div>
 

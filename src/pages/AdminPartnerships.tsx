@@ -16,6 +16,7 @@ interface Partnership {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   level: string;
   amount: number;
   payment_method: string;
@@ -127,13 +128,28 @@ const AdminPartnerships = () => {
     }
   };
 
-  // Calculate stats
+  const normalizeStatus = (status?: string) => {
+    const normalized = String(status || '').toLowerCase();
+    if (['pending_payment', 'pending'].includes(normalized)) return 'pending_payment';
+    if (['active', 'approved'].includes(normalized)) return 'active';
+    if (['payment_failed', 'failed', 'rejected'].includes(normalized)) return 'payment_failed';
+    return normalized || 'pending_payment';
+  };
+
+  const statusCounts = partnerships.reduce((acc, item) => {
+    const key = normalizeStatus(item.status);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   const stats = {
     total: partnerships.length,
-    approved: partnerships.filter(p => p.status === 'approved').length,
-    pending: partnerships.filter(p => p.status === 'pending').length,
-    rejected: partnerships.filter(p => p.status === 'rejected').length,
-    totalRevenue: partnerships.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0)
+    active: statusCounts.active || 0,
+    pendingPayment: statusCounts.pending_payment || 0,
+    failedPayment: statusCounts.payment_failed || 0,
+    totalRevenue: partnerships
+      .filter((p) => normalizeStatus(p.status) === 'active')
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
   };
 
   return (
@@ -233,8 +249,8 @@ const AdminPartnerships = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-muted-foreground text-sm font-medium">Approved</p>
-                      <p className="text-3xl font-bold text-green-600 mt-2">{stats.approved}</p>
+                      <p className="text-muted-foreground text-sm font-medium">Active Partners</p>
+                      <p className="text-3xl font-bold text-green-600 mt-2">{stats.active}</p>
                     </div>
                     <div className="w-12 h-12 rounded-lg bg-green-600/20 flex items-center justify-center">
                       <div className="w-2 h-2 rounded-full bg-green-600" />
@@ -247,11 +263,25 @@ const AdminPartnerships = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-muted-foreground text-sm font-medium">Pending</p>
-                      <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pending}</p>
+                      <p className="text-muted-foreground text-sm font-medium">Pending Payment</p>
+                      <p className="text-3xl font-bold text-yellow-600 mt-2">{stats.pendingPayment}</p>
                     </div>
                     <div className="w-12 h-12 rounded-lg bg-yellow-600/20 flex items-center justify-center">
                       <div className="w-2 h-2 rounded-full bg-yellow-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground text-sm font-medium">Failed Payment</p>
+                      <p className="text-3xl font-bold text-red-600 mt-2">{stats.failedPayment}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-red-600/20 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-red-600" />
                     </div>
                   </div>
                 </CardContent>
@@ -262,7 +292,7 @@ const AdminPartnerships = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm font-medium">Total Revenue</p>
-                      <p className="text-3xl font-bold text-cyan-600 mt-2">${stats.totalRevenue.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-cyan-600 mt-2">₵ {stats.totalRevenue.toLocaleString()}</p>
                     </div>
                     <div className="w-12 h-12 rounded-lg bg-cyan-600/20 flex items-center justify-center">
                       <div className="w-2 h-2 rounded-full bg-cyan-600" />
@@ -300,6 +330,7 @@ const AdminPartnerships = () => {
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="font-bold text-slate-700">Name</TableHead>
                           <TableHead className="font-bold text-slate-700">Email</TableHead>
+                          <TableHead className="font-bold text-slate-700">Phone</TableHead>
                           <TableHead className="font-bold text-slate-700">Level</TableHead>
                           <TableHead className="font-bold text-slate-700">Amount</TableHead>
                           <TableHead className="font-bold text-slate-700">Payment</TableHead>
@@ -313,6 +344,7 @@ const AdminPartnerships = () => {
                           <TableRow key={partnership.id} className="hover:bg-blue-50/50 transition-colors">
                             <TableCell className="font-semibold text-slate-800">{partnership.name}</TableCell>
                             <TableCell className="text-slate-600">{partnership.email}</TableCell>
+                            <TableCell className="text-slate-600">{partnership.phone || "N/A"}</TableCell>
                             <TableCell>
                               <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{partnership.level}</Badge>
                             </TableCell>

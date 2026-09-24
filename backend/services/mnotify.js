@@ -92,6 +92,28 @@ async function sendSmsWithRetry(recipient, message) {
   throw lastError;
 }
 
+export async function sendPartnershipWelcomeSms({
+  name,
+  phone,
+  level,
+  amount,
+  reference,
+}) {
+  const recipient = normalizeGhanaPhone(phone);
+
+  if (!/^233\d{9}$/.test(recipient)) {
+    throw new Error(`Invalid Ghana phone number: ${phone}`);
+  }
+
+  const message =
+    `MOCWO: Congratulations ${name}! Your ${level || "partnership"} registration is now successful. ` +
+    `We are excited to welcome you as a partner. Your annual contribution of GHS ${Number(amount).toFixed(2)} is now active.` +
+    (reference ? ` Ref: ${reference}` : "") +
+    " Thank you for partnering with MOCWO.";
+
+  return sendSmsWithRetry(recipient, message);
+}
+
 export async function sendPartnershipPaymentSms({
   name,
   phone,

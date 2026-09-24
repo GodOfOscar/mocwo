@@ -5,7 +5,7 @@ export const partnershipLevels = [
   {
     slug: "bronze-partner",
     title: "Bronze Partner",
-    amount: "$50/month",
+    amount: "₵50/month or ₵570/year",
     icon: Heart,
     color: "from-orange-400 to-orange-600",
     benefits: [
@@ -18,7 +18,7 @@ export const partnershipLevels = [
   {
     slug: "silver-partner",
     title: "Silver Partner",
-    amount: "$100/month",
+    amount: "₵100/month or ₵1,140/year",
     icon: Star,
     color: "from-gray-400 to-gray-600",
     benefits: [
@@ -32,7 +32,7 @@ export const partnershipLevels = [
   {
     slug: "gold-partner",
     title: "Gold Partner",
-    amount: "$250/month",
+    amount: "₵250/month or ₵2,850/year",
     icon: Sparkles,
     color: "from-yellow-400 to-yellow-600",
     benefits: [

@@ -15,11 +15,8 @@ import {
   sendDonationPaymentSms,
   sendMnotifySms,
   sendPartnershipPaymentSms,
+  sendPartnershipWelcomeSms,
 } from "./services/mnotify.js";
-import {
-  findPendingPayment,
-  forgetPendingPayment,
-} from "./services/payment-state.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -201,37 +198,26 @@ app.put('/api/live-chat/messages/:id', async (req, res) => {
 
 app.post("/api/payments/callback", async (req, res) => {
   try {
-    const body = { ...(req.query || {}), ...(req.body || {}) };
-    const providerData = body.data?.data || body.data || body;
-    const pendingPayment = findPendingPayment(
-      body.transaction_id || body.transactionId || providerData.transaction_id || providerData.transactionId,
-      body.reference || body.external_reference || providerData.reference
-    );
-    const rawStatus = String(
+    const body = req.body || {};
+    const status = String(
       body.status ||
       body.transaction_status ||
       body.data?.status ||
       body.data?.transaction_status ||
       body.data?.data?.status ||
-      providerData.status ||
       ""
     ).toUpperCase();
-    const status = ["SUCCESS", "SUCCESSFUL", "COMPLETED", "COMPLETE", "PAID", "SETTLED"].includes(rawStatus)
-      ? "SUCCESS"
-      : ["FAILED", "FAILURE", "CANCELLED", "CANCELED", "DECLINED"].includes(rawStatus)
-        ? "FAILED"
-        : rawStatus;
-    const transactionId = String(body.transaction_id || body.transactionId || providerData.transaction_id || providerData.transactionId || body.txn_id || body.id || pendingPayment?.transactionId || "");
-    const phone = String(body.phone || body.customer_phone || body.account_number || providerData.phone || providerData.customer_phone || providerData.account_number || body.metadata?.phone || providerData.metadata?.phone || pendingPayment?.phone || "");
-    const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || providerData.amount || body.metadata?.amount || providerData.metadata?.amount || pendingPayment?.amount || 0);
-    const reference = String(body.reference || body.external_reference || body.payment_reference || providerData.reference || providerData.external_reference || providerData.payment_reference || body.metadata?.reference || providerData.metadata?.reference || pendingPayment?.reference || "");
-    const email = String(body.email || body.customer_email || body.donor_email || providerData.email || providerData.customer_email || body.metadata?.email || providerData.metadata?.email || pendingPayment?.email || "anonymous@libertepay.local");
-    const name = String(body.name || body.customer_name || body.donor_name || body.account_name || providerData.name || providerData.customer_name || providerData.account_name || body.metadata?.name || providerData.metadata?.name || pendingPayment?.name || "Anonymous Donor");
-    const level = String(body.level || body.partner_level || providerData.level || providerData.partner_level || body.metadata?.level || providerData.metadata?.level || pendingPayment?.level || "custom");
-    const paymentMethod = String(body.payment_method || body.paymentMethod || providerData.payment_method || body.metadata?.payment_method || providerData.metadata?.payment_method || pendingPayment?.paymentMethod || "mobile-money");
-    const donationType = String(body.donation_type || body.type || body.gift_type || providerData.donation_type || body.metadata?.donation_type || providerData.metadata?.donation_type || pendingPayment?.donationType || "offering");
-    const partnershipMessage = String(body.message || providerData.message || body.metadata?.message || providerData.metadata?.message || pendingPayment?.message || "");
-    const paymentType = String(body.payment_type || providerData.payment_type || body.metadata?.payment_type || providerData.metadata?.payment_type || pendingPayment?.paymentType || "").toLowerCase();
+    const transactionId = String(body.transaction_id || body.transactionId || body.reference || body.txn_id || body.id || "");
+    const phone = String(body.phone || body.customer_phone || body.account_number || body.metadata?.phone || body.metadata?.mobile || "");
+    const amount = Number(body.amount || body.total_amount || body.amount_paid || body.amount_to_pay || body.metadata?.amount || 0);
+    const reference = String(body.reference || body.external_reference || body.payment_reference || body.metadata?.reference || "");
+    const email = String(body.email || body.customer_email || body.donor_email || body.metadata?.email || "anonymous@libertepay.local");
+    const name = String(body.name || body.customer_name || body.donor_name || body.account_name || body.metadata?.name || "Anonymous Donor");
+    const level = String(body.level || body.partner_level || body.metadata?.level || "custom");
+    const paymentMethod = String(body.payment_method || body.paymentMethod || body.metadata?.payment_method || "mobile-money");
+    const donationType = String(body.donation_type || body.type || body.gift_type || body.metadata?.donation_type || "offering");
+    const partnershipMessage = String(body.message || body.metadata?.message || "");
+    const paymentType = String(body.payment_type || body.metadata?.payment_type || "").toLowerCase();
     const isPartnershipPayment =
       paymentType === "partnership" ||
       Boolean(body.level || body.partner_level || body.metadata?.level) ||
@@ -299,8 +285,6 @@ app.post("/api/payments/callback", async (req, res) => {
             transactionId,
             donationType,
           });
-
-          forgetPendingPayment(transactionId, reference);
 
       return res.status(200).json({
         success: true,
@@ -1271,6 +1255,91 @@ const sendSMSViaMMNotify = async (phoneNumber, message) => {
   }
 };
 
+async function ensurePendingPartnershipRecord({
+  name,
+  email,
+  phone,
+  level,
+  amount,
+  paymentMethod,
+  reference,
+  transactionId,
+  message = "",
+}) {
+  const normalizedPhone = normalizeGhanaPhone(phone || "");
+  const paymentRef = String(reference || transactionId || `PARTNER-${Date.now()}`).trim();
+  const baseMessage = `${message} | Reference: ${paymentRef}`.trim();
+
+  const { data: existingPartnership, error: partnershipLookupError } = await supabase
+    .from("partnerships")
+    .select("id, status, payment_status, payment_reference")
+    .or(`payment_reference.eq.${paymentRef},message.ilike.%Reference: ${paymentRef}%,message.ilike.%${paymentRef}%`)
+    .maybeSingle();
+
+  if (partnershipLookupError && partnershipLookupError.code !== "PGRST116") {
+    throw partnershipLookupError;
+  }
+
+  const fallbackPartnership = existingPartnership || null;
+  if (fallbackPartnership) {
+    return fallbackPartnership;
+  }
+
+  const { data: createdPartnership, error: insertError } = await supabase
+    .from("partnerships")
+    .insert([
+      {
+        name: String(name || "Anonymous Partner").trim(),
+        email: String(email || "anonymous@libertepay.local").trim(),
+        phone: normalizedPhone || null,
+        level: String(level || "custom").trim(),
+        amount: Number(amount || 0),
+        payment_method: paymentMethod || "mobile-money",
+        message: baseMessage,
+        status: "pending_payment",
+        payment_status: "pending",
+        payment_reference: paymentRef,
+      },
+    ])
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+
+  const { data: existingPayment, error: paymentLookupError } = await supabase
+    .from("payments")
+    .select("id, status")
+    .eq("payment_reference", paymentRef)
+    .maybeSingle();
+
+  if (paymentLookupError && paymentLookupError.code !== "PGRST116") {
+    throw paymentLookupError;
+  }
+
+  if (!existingPayment) {
+    const { error: paymentInsertError } = await supabase
+      .from("payments")
+      .insert([
+        {
+          partnership_id: createdPartnership.id,
+          payment_reference: paymentRef,
+          transaction_id: transactionId || paymentRef,
+          amount: Number(amount || 0),
+          currency: "GHS",
+          payment_method: paymentMethod || "mobile-money",
+          gateway: "libertepay",
+          status: "pending",
+        },
+      ]);
+
+    if (paymentInsertError) {
+      throw paymentInsertError;
+    }
+  }
+
+  return createdPartnership;
+}
+
 async function completePartnershipPayment({
   name,
   email,
@@ -1283,67 +1352,111 @@ async function completePartnershipPayment({
   message = "",
 }) {
   const normalizedPhone = normalizeGhanaPhone(phone);
-  const approvedMessage = `${message} | Reference: ${reference} | Transaction: ${transactionId}`.trim();
-  const { data: existing, error: lookupError } = await supabase
-    .from("partnerships")
-    .select("id")
-    .ilike("message", `%Reference: ${reference}%`)
+  const paymentRef = String(reference || transactionId || `PARTNER-${Date.now()}`).trim();
+  const approvedMessage = `${message} | Reference: ${paymentRef} | Transaction: ${transactionId}`.trim();
+
+  const { data: existingPayment, error: paymentLookupError } = await supabase
+    .from("payments")
+    .select("id, partnership_id, status")
+    .or(`payment_reference.eq.${paymentRef},transaction_id.eq.${transactionId}`)
     .maybeSingle();
 
-  if (lookupError) throw lookupError;
+  if (paymentLookupError && paymentLookupError.code !== "PGRST116") throw paymentLookupError;
 
-  const query = existing
-    ? supabase
-        .from("partnerships")
-        .update({
-          name,
-          email,
-          phone: normalizedPhone,
-          level,
-          amount,
-          payment_method: paymentMethod,
-          message: approvedMessage,
-          status: "approved",
-        })
-        .eq("id", existing.id)
-    : supabase.from("partnerships").insert([
-        {
-          name,
-          email,
-          phone: normalizedPhone,
-          level,
-          amount,
-          payment_method: paymentMethod,
-          message: approvedMessage,
-          status: "approved",
-        },
-      ]);
+  const partnershipLookup = existingPayment?.partnership_id
+    ? await supabase.from("partnerships").select("id").eq("id", existingPayment.partnership_id).maybeSingle()
+    : await supabase.from("partnerships").select("id").eq("payment_reference", paymentRef).maybeSingle();
 
-  const { data, error } = await query.select().single();
+  const { data: partnershipRecord, error: partnershipLookupError } = partnershipLookup;
+  if (partnershipLookupError && partnershipLookupError.code !== "PGRST116") throw partnershipLookupError;
 
-  if (error) {
-    throw error;
+  const targetPartnership = partnershipRecord || await ensurePendingPartnershipRecord({
+    name,
+    email,
+    phone,
+    level,
+    amount,
+    paymentMethod,
+    reference: paymentRef,
+    transactionId,
+    message,
+  });
+
+  const { data: paymentRecord, error: paymentInsertError } = await supabase
+    .from("payments")
+    .upsert(
+      {
+        id: existingPayment?.id || undefined,
+        partnership_id: targetPartnership.id,
+        payment_reference: paymentRef,
+        transaction_id: transactionId || paymentRef,
+        amount: Number(amount || 0),
+        currency: "GHS",
+        payment_method: paymentMethod || "mobile-money",
+        gateway: "libertepay",
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        gateway_response: { transaction_id: transactionId, reference: paymentRef, status: "SUCCESS" },
+      },
+      { onConflict: "payment_reference" }
+    )
+    .select()
+    .single();
+
+  if (paymentInsertError) throw paymentInsertError;
+
+  const { data: updatedPartnership, error: updatePartnershipError } = await supabase
+    .from("partnerships")
+    .update({
+      name: String(name || targetPartnership.name || "Anonymous Partner").trim(),
+      email: String(email || targetPartnership.email || "anonymous@libertepay.local").trim(),
+      phone: normalizeGhanaPhone(phone || targetPartnership.phone || "") || null,
+      level: String(level || targetPartnership.level || "custom").trim(),
+      amount: Number(amount || targetPartnership.amount || 0),
+      payment_method: paymentMethod || targetPartnership.payment_method || "mobile-money",
+      message: approvedMessage,
+      status: "active",
+      payment_status: "paid",
+      payment_reference: paymentRef,
+      activated_at: new Date().toISOString(),
+    })
+    .eq("id", targetPartnership.id)
+    .select()
+    .single();
+
+  if (updatePartnershipError) throw updatePartnershipError;
+
+  try {
+    await sendPartnershipWelcomeSms({
+      name: String(name || updatedPartnership.name || "Partner"),
+      phone: normalizeGhanaPhone(phone || updatedPartnership.phone || ""),
+      level: String(level || updatedPartnership.level || "partnership"),
+      amount,
+      reference: paymentRef,
+    });
+  } catch (smsError) {
+    console.error("[mNotify] Failed to send congratulatory partnership SMS:", smsError);
   }
 
   try {
     await sendPartnershipPaymentSms({
-      name,
-      phone: normalizedPhone,
+      name: String(name || updatedPartnership.name || "Partner"),
+      phone: normalizeGhanaPhone(phone || updatedPartnership.phone || ""),
       amount,
-      reference,
+      reference: paymentRef,
     });
   } catch (smsError) {
     console.error("[mNotify] Failed to send payment SMS:", smsError);
   }
 
   console.log("✓ Callback partnership record persisted:", {
-    reference,
+    reference: paymentRef,
     transactionId,
     amount,
     phone: normalizedPhone,
   });
 
-  return data;
+  return updatedPartnership;
 }
 
 async function completeDonationPayment({

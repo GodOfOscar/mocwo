@@ -4,6 +4,23 @@
 
 This repository contains a React + Vite application with Supabase backend integration.
 
+## Partnership lifecycle
+
+- A partnership registration is created immediately when a partner submits the form.
+- The new record is set to `pending_payment` and stored with a unique payment reference before any provider response is treated as final.
+- A corresponding payment row is created in `public.payments` with status `pending`.
+- The payment provider is called for authorization/collection.
+- The provider callback/webhook updates the payment to `paid` and flips the partnership to `active` only after verification.
+- Duplicate callbacks are ignored by checking the payment reference or transaction id before creating another payment record.
+- If the payment fails, the payment record is marked `failed` and the partnership remains `pending_payment`, so it still appears in the admin dashboard and can be retried.
+
+## Payment lifecycle
+
+- One partnership can have many payment attempts.
+- Each payment attempt is stored in `public.payments` and linked to the same partnership.
+- Revenue is calculated only from successful paid records.
+- Pending and failed payments are excluded from dashboard revenue totals.
+
 ## How can I edit this code?
 
 You can edit this project locally using your preferred IDE.
