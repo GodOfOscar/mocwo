@@ -267,6 +267,14 @@ const Partnership = () => {
 
   const normalizePartnerName = (name: string) => name.trim().replace(/\s+/g, ' ');
 
+  const isRetryableMobileMoneyPartner = (partner: {
+    status?: string | null;
+    payment_method?: string | null;
+  } | null) =>
+    Boolean(partner) &&
+    ["pending", "pending_payment"].includes(String(partner?.status || "").toLowerCase()) &&
+    String(partner?.payment_method || "").toLowerCase() === "mobile-money";
+
   const findPartnerByName = async (name: string) => {
     const normalizedName = normalizePartnerName(name);
     if (!normalizedName) return null;
@@ -345,10 +353,20 @@ const Partnership = () => {
       return;
     }
 
+    if (formData.paymentMethod === 'mobile-money' && !formData.phone.trim()) {
+      toast({ title: 'Phone Required', description: 'Please enter the mobile money number for debit approval.', variant: 'destructive' });
+      return;
+    }
+
+    if (formData.paymentMethod === 'mobile-money' && !mobileNetwork) {
+      toast({ title: 'Network Required', description: 'Please select the mobile network before continuing.', variant: 'destructive' });
+      return;
+    }
+
     setFormData(prev => ({ ...prev, name: normalizedName }));
 
     const partner = await findPartnerByName(normalizedName);
-    if (partner) {
+    if (partner && !isRetryableMobileMoneyPartner(partner)) {
       setExistingPartner(partner);
       setShowReturningForm(true);
       setReturningForm({
@@ -391,18 +409,6 @@ const Partnership = () => {
         const reference = `PARTNER-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
         if (formData.paymentMethod === 'mobile-money') {
-          if (!formData.phone) {
-            toast({ title: 'Phone Required', description: 'Please enter the mobile money number for debit approval.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
-
-          if (!mobileNetwork) {
-            toast({ title: 'Network Required', description: 'Please select the mobile network before continuing.', variant: 'destructive' });
-            setIsProcessing(false);
-            return;
-          }
-
           const institutionCode = networkMap[mobileNetwork];
           const accountData = await verifyLibertepayAccount(institutionCode, formData.phone);
           const verifiedAccountName = accountData.account_name || accountData.name;
@@ -420,6 +426,7 @@ const Partnership = () => {
             reference,
             metadata: {
               name: formData.name,
+              email: formData.email,
               level: formData.level,
               phone: formData.phone,
               payment_method: formData.paymentMethod,
@@ -1220,4 +1227,3 @@ const Partnership = () => {
 };
 
 export default Partnership;
-

@@ -281,23 +281,48 @@ router.post("/collection", async (req, res) => {
     };
 
     if (metadata?.payment_type === "partnership" || metadata?.level) {
-      const { error: pendingError } = await supabase
+      const partnerName = String(metadata.name || account_name).trim().replace(/\s+/g, " ");
+      const pendingRecord = await supabase
         .from("partnerships")
-        .insert([
-          {
-            name: metadata.name || account_name,
-            email: metadata.email || null,
-            phone: metadata.phone || normalizedAccountNumber,
-            level: metadata.level || "custom",
-            amount: numericAmount,
-            payment_method: metadata.payment_method || "mobile-money",
-            message: `${metadata.message || ""} | Reference: ${safeReference}`.trim(),
-            status: "pending",
-          },
-        ]);
+        .select("id")
+        .ilike("name", partnerName)
+        .in("status", ["pending", "pending_payment"])
+        .eq("payment_method", "mobile-money")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (pendingError) {
-        console.warn("Pending partnership registration could not be saved:", pendingError.message);
+      if (pendingRecord.error) {
+        console.error("Pending partnership lookup failed:", pendingRecord.error.message);
+        return res.status(500).json({
+          success: false,
+          message: "Unable to prepare the partnership application for payment. Please try again.",
+        });
+      }
+
+      const partnershipData = {
+        name: partnerName,
+        email: metadata.email || null,
+        phone: metadata.phone || normalizedAccountNumber,
+        level: metadata.level || "custom",
+        amount: numericAmount,
+        payment_method: metadata.payment_method || "mobile-money",
+        message: `${metadata.message || ""} | Reference: ${safeReference}`.trim(),
+        status: "pending",
+      };
+      const pendingWrite = pendingRecord.data
+        ? await supabase
+            .from("partnerships")
+            .update(partnershipData)
+            .eq("id", pendingRecord.data.id)
+        : await supabase.from("partnerships").insert([partnershipData]);
+
+      if (pendingWrite.error) {
+        console.error("Pending partnership registration could not be saved:", pendingWrite.error.message);
+        return res.status(500).json({
+          success: false,
+          message: "Unable to prepare the partnership application for payment. Please try again.",
+        });
       }
     }
 
