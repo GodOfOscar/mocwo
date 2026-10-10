@@ -7,7 +7,7 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": "^18 || ^20"
+    "node": "24.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.91.0",
